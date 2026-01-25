@@ -1,0 +1,29 @@
+thai,german,transliteration,pos,tags,exampleThai,exampleGerman
+กิน,essen,gin,Verb,"Food,A1",ฉันกินข้าว,Ich esse Reis.
+ดื่ม,trinken,duem,Verb,"Food,A1",ฉันดื่มน้ำ,Ich trinke Wasser.
+น้ำ,Wasser,nam,Nomen,"Food,A1",น้ำเย็น,Kaltes Wasser.
+ข้าว,Reis,khao,Nomen,"Food,A1",ข้าวอร่อย,Der Reis ist lecker.
+ไป,gehen,paai,Verb,"Basics,A1",ฉันไปโรงเรียน,Ich gehe zur Schule.
+มา,kommen,maa,Verb,"Basics,A1",เขามาที่บ้าน,Er kommt nach Hause.
+อยู่,sein/wohnen,yuu,Verb,"Basics,A1",ฉันอยู่ที่นี่,Ich bin hier.
+มี,haben,mii,Verb,"Basics,A1",ฉันมีเวลา,Ich habe Zeit.
+ไม่,no/nicht,mai,Partikel,"Basics,A1",ไม่เป็นไร,Kein Problem.
+ใช่,ja,chai,Partikel,"Basics,A1",ใช่ครับ,Ja.
+บ้าน,Haus,baan,Nomen,"Basics,A1",บ้านใหญ่,Das Haus ist groß.
+รถ,Auto,rot,Nomen,"Transport,A1",รถใหม่,Ein neues Auto.
+คน,Mensch,khon,Nomen,"Basics,A1",คนเยอะ,Viele Menschen.
+วันนี้,heute,wanii,Adverb,"Time,A1",วันนี้ร้อน,Heute ist es heiß.
+พรุ่งนี้,morgen,phrung-nii,Adverb,"Time,A1",พรุ่งนี้ทำงาน,Morgen arbeite ich.
+ทำ,machen,tam,Verb,"Basics,A1",ฉันทำงาน,Ich arbeite.
+งาน,Arbeit,ngaan,Nomen,"Basics,A1",งานเยอะ,Viel Arbeit.
+เรียน,lernen,rian,Verb,"School,A1",ฉันเรียนภาษาไทย,Ich lerne Thai.
+ภาษา,Sprache,phaa-saa,Nomen,"School,A1",ภาษาไทย,Die thailändische Sprache.
+ดี,gut,dii,Adjektiv,"Basics,A1",ดีมาก,Sehr gut.
+ใหญ่,groß,yai,Adjektiv,"Basics,A1",บ้านใหญ่,Ein großes Haus.
+เล็ก,klein,lek,Adjektiv,"Basics,A1",ห้องเล็ก,Ein kleines Zimmer.
+เร็ว,schnell,reo,Adjektiv,"Basics,A2",รถเร็ว,Das Auto ist schnell.
+ช้า,langsam,chaa,Adjektiv,"Basics,A2",เดินช้า,Langsam gehen.
+ซื้อ,kaufen,sue,Verb,"Shopping,A2",ฉันซื้อของ,Ich kaufe Sachen.
+ขาย,verkaufen,khaai,Verb,"Shopping,A2",เขาขายอาหาร,Er verkauft Essen.
+ราคา,Preis,raa-khaa,Nomen,"Shopping,A2",ราคาถูก,Der Preis ist günstig.
+แพง,teuer,paeng,Adjektiv,"Shopping,A2",ของแพง,Die Sache ist teuer.
