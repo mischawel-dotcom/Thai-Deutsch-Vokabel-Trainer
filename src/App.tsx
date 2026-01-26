@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import VocabList from "./pages/VocabList";
 import Learn from "./pages/Learn";
-import ImportExport from "./pages/ImportExport";
+import Exam from "./pages/Exam";
+import Settings from "./pages/Settings";
+import { seedDatabase } from "./db/importVocab";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
-type Route = "home" | "list" | "learn" | "io";
+type Route = "home" | "list" | "learn" | "exam" | "settings";
 
 function getInitialDarkMode(): boolean {
   // 1) gespeicherte Präferenz
@@ -23,6 +25,23 @@ function getInitialDarkMode(): boolean {
 export default function App() {
   const [route, setRoute] = useState<Route>("home");
   const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  // Initialize vocabulary database on app load
+  useEffect(() => {
+    const initVocab = async () => {
+      try {
+        const imported = await seedDatabase();
+        if (imported) {
+          console.log("✅ Vocabulary database initialized with 500 entries");
+        } else {
+          console.log("✓ Vocabulary database already initialized");
+        }
+      } catch (err) {
+        console.error("Failed to initialize vocabulary database:", err);
+      }
+    };
+    void initVocab();
+  }, []);
 
   // Initial lesen + anwenden
   useEffect(() => {
@@ -72,15 +91,17 @@ export default function App() {
               <TabsTrigger value="home">Home</TabsTrigger>
               <TabsTrigger value="list">Vokabeln</TabsTrigger>
               <TabsTrigger value="learn">Lernen</TabsTrigger>
-              <TabsTrigger value="io">Import / Export</TabsTrigger>
+              <TabsTrigger value="exam">Examen</TabsTrigger>
+              <TabsTrigger value="settings">Einstellungen</TabsTrigger>
             </TabsList>
           </Tabs>
         </header>
 
-        {route === "home" && <Home />}
+        {route === "home" && <Home onNavigate={setRoute} />}
         {route === "list" && <VocabList />}
         {route === "learn" && <Learn />}
-        {route === "io" && <ImportExport />}
+        {route === "exam" && <Exam />}
+        {route === "settings" && <Settings />}
       </div>
     </div>
   );

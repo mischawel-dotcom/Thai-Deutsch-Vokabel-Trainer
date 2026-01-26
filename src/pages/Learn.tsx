@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
-import { speak, stopSpeak, listVoices, hasThaiVoice } from "../features/tts";
+import { speak, stopSpeak } from "../features/tts";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -20,13 +20,28 @@ export default function Learn() {
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [thaiVoiceInfo, setThaiVoiceInfo] = useState<string>("");
+  // Thai voice hint state removed (unused)
+  const [dailyLimit, setDailyLimit] = useState<number>(30);
+
+  // Load daily limit from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("dailyLimit");
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num) && num > 0) {
+        setDailyLimit(num);
+      }
+    }
+  }, []);
 
   // Richtung (während Session gesperrt)
   const [direction, setDirection] = useState<LearnDirection>("TH_DE");
 
   // Tag-Auswahl (OR-Logik)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Lektion-Auswahl
+  const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
 
   // Nur fällige Karten
   const [onlyDue, setOnlyDue] = useState<boolean>(false);
@@ -67,6 +82,19 @@ export default function Learn() {
     return Array.from(map.entries())
       .sort((a, b) => a[0].localeCompare(b[0], "de"))
       .map(([tag, count]) => ({ tag, count }));
+  }, [allVocab]);
+
+  // Lektionen-Index
+  const allLessons = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const v of allVocab) {
+      if (v.lesson !== undefined && v.lesson > 0) {
+        map.set(v.lesson, (map.get(v.lesson) ?? 0) + 1);
+      }
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([lesson, count]) => ({ lesson, count }));
   }, [allVocab]);
 
   const current = useMemo(() => {
@@ -137,6 +165,11 @@ export default function Learn() {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
 
+  function matchesLessonFilter(v: VocabEntry): boolean {
+    if (selectedLesson === undefined) return true;
+    return v.lesson === selectedLesson;
+  }
+
   function clearSelectedTags() {
     setSelectedTags([]);
   }
@@ -157,18 +190,32 @@ export default function Learn() {
     const ids: number[] = [];
     for (const v of allVocab) {
       if (!v.id) continue;
+      if (!matchesLessonFilter(v)) continue;
       if (!matchesTagFilter(v)) continue;
       if (!matchesDueFilter(v.id)) continue;
       ids.push(v.id);
     }
+    // Begrenze fällige Karten auf Daily-Limit, damit "nur fällige" nicht alle 500 lädt
+    if (onlyDue && dailyLimit > 0 && ids.length > dailyLimit) {
+      return ids.slice(0, dailyLimit);
+    }
     return ids;
   }
+
+  // Berechne die Anzahl der verfügbaren Karten basierend auf Filtern
+  const selectedCardsCount = buildSessionIds().length;
+  const isOverLimit = selectedCardsCount > dailyLimit;
 
   function startSession() {
     const ids = buildSessionIds();
 
     if (ids.length === 0) {
-      setStatus(onlyDue ? "Keine Karten passend zur Tag-Auswahl (und fällig)." : "Keine Karten passend zur Tag-Auswahl.");
+      const filters = [];
+      if (selectedTags.length > 0) filters.push("Tag-Auswahl");
+      if (selectedLesson !== undefined) filters.push("Lektion-Auswahl");
+      if (onlyDue) filters.push("(und fällig)");
+      const msg = filters.length > 0 ? `Keine Karten passend zur ${filters.join(" ")}` : "Keine Karten vorhanden.";
+      setStatus(msg);
       setSessionActive(false);
       setQueue([]);
       setCurrentId(null);
@@ -245,43 +292,6 @@ export default function Learn() {
     }
   }
 
-  async function onMakeAllDueNowClick() {
-    const ok = confirm(
-      "Sonderaktion: Alle Karten sofort lernen\n\n" +
-        "Dabei werden alle Karten unabhängig vom Lernplan\n" +
-        "für diese Session freigegeben.\n\n" +
-        "Nutze das z. B. für Wiederholung oder Tests."
-    );
-    if (!ok) return;
-
-    const now = Date.now();
-    const all = await db.progress.toArray();
-    await db.progress.bulkPut(all.map((p) => ({ ...p, dueAt: now })));
-
-    await refreshDueSet();
-    setStatus("OK: Alle Karten sind für sofortiges Lernen freigegeben.");
-  }
-
-  async function showVoiceDebug() {
-    try {
-      const voices = await listVoices();
-      const thai = await hasThaiVoice();
-
-      setThaiVoiceInfo(thai ? "✅ Thai-Stimme gefunden." : "⚠️ Keine Thai-Stimme gefunden.");
-
-      alert(
-        voices
-          .slice(0, 25)
-          .map((v) => `${v.lang} — ${v.name}${v.default ? " (default)" : ""}`)
-          .join("\n")
-      );
-    } catch (e: any) {
-      console.error(e);
-      setThaiVoiceInfo("");
-      alert(e?.message ?? String(e));
-    }
-  }
-
   const finished = sessionActive && currentId == null;
   const cardStreak = current?.id ? Math.min(streaks[current.id] ?? 0, 5) : 0;
   const progressPct = Math.round((cardStreak / 5) * 100);
@@ -294,7 +304,6 @@ export default function Learn() {
       {/* Status / Fehler */}
       <div className="space-y-2">
         {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
-        {thaiVoiceInfo ? <p className="text-sm">{thaiVoiceInfo}</p> : null}
         {error ? (
           <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap">
             {error}
@@ -339,25 +348,35 @@ export default function Learn() {
                   Deutsch → Thai
                 </Button>
               </div>
+            </div>
 
-              <div className="ml-auto flex flex-wrap gap-2">
-                <Button onClick={startSession}>Session starten</Button>
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">Lektionen auswählen:</div>
 
+              {/* Lektionen Buttons */}
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
-                  onClick={onMakeAllDueNowClick}
-                  title={
-                    "Hebt den Lernplan auf und macht alle Karten\n" +
-                    "für diese Session sofort verfügbar.\n" +
-                    "Geeignet für Wiederholung oder Tests."
-                  }
+                  type="button"
+                  size="sm"
+                  variant={selectedLesson === undefined ? "secondary" : "outline"}
+                  onClick={() => setSelectedLesson(undefined)}
+                  className="h-8"
                 >
-                  Sonderaktion: Alle Karten sofort lernen
+                  Alle
                 </Button>
-
-                <Button variant="outline" onClick={showVoiceDebug}>
-                  Stimmen (Debug)
-                </Button>
+                {allLessons.map(({ lesson, count }) => (
+                  <Button
+                    key={lesson}
+                    type="button"
+                    size="sm"
+                    variant={selectedLesson === lesson ? "secondary" : "outline"}
+                    onClick={() => setSelectedLesson(lesson)}
+                    className="h-8"
+                    title={`Lektion ${lesson}`}
+                  >
+                    L{lesson} <span className="text-muted-foreground">({count})</span>
+                  </Button>
+                ))}
               </div>
             </div>
 
@@ -423,6 +442,26 @@ export default function Learn() {
                 <p className="text-xs text-muted-foreground">Keine Tag-Filter aktiv (alle Karten).</p>
               )}
             </div>
+
+            {isOverLimit && (
+              <div className="p-3 rounded-md bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+                <p className="text-sm text-orange-800 dark:text-orange-200">
+                  ⚠️ <strong>Viele Karten:</strong> Du hast {selectedCardsCount} Karten ausgewählt, empfohlen sind max. {dailyLimit}.
+                  <br />
+                  <span className="text-xs opacity-90">Du kannst trotzdem alle lernen, aber kurze Sessions sind effizienter!</span>
+                </p>
+              </div>
+            )}
+
+            <div className="pt-4 border-t">
+              <Button 
+                onClick={startSession}
+                size="lg"
+                className="w-full h-14 text-lg font-semibold"
+              >
+                🚀 Session starten ({selectedCardsCount} {selectedCardsCount === 1 ? "Karte" : "Karten"})
+              </Button>
+            </div>
           </div>
         </Card>
       ) : null}
@@ -443,7 +482,7 @@ export default function Learn() {
       {/* Keine Session */}
       {!sessionActive ? (
         <p className="text-center text-sm text-muted-foreground">
-          Wähle Richtung + Tags/optional „nur fällige Karten“ und klicke auf <b>Session starten</b>.
+          Wähle Richtung + optional Lektion/Tags/„nur fällige Karten" und klicke auf <b>Session starten</b>.
         </p>
       ) : null}
 
@@ -487,14 +526,14 @@ export default function Learn() {
 
           {/* Flashcard (größer) */}
           <Card
-            className="mx-auto max-w-2xl cursor-pointer select-none p-10 text-center shadow-sm"
+            className="mx-auto max-w-2xl cursor-pointer select-none p-10 text-center shadow-lg hover:shadow-xl transition-shadow hover:bg-secondary/30"
             onClick={() => setFlipped((f) => !f)}
             role="button"
             aria-label="Karte umdrehen"
             title="Klicken zum Umdrehen"
           >
             {!flipped ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="text-6xl font-semibold leading-tight">{frontText}</div>
 
                 {/* transliteration nur sinnvoll, wenn Thai vorne */}
@@ -528,7 +567,9 @@ export default function Learn() {
                   </Button>
                 </div>
 
-                <div className="text-xs text-muted-foreground">Klicken zum Umdrehen</div>
+                <div className="pt-4 border-t">
+                  <div className="text-sm font-medium text-primary animate-pulse">👇 Klick zum Umdrehen</div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -620,7 +661,7 @@ export default function Learn() {
               title={!canGrade ? "Bitte zuerst umdrehen" : "Setzt den 5er-Zähler dieser Karte auf 0"}
               className="px-8"
             >
-              Falsch
+              ❌ Falsch
             </Button>
 
             <Button
@@ -629,12 +670,16 @@ export default function Learn() {
               title={!canGrade ? "Bitte zuerst umdrehen" : "Erhöht den 5er-Zähler dieser Karte um 1"}
               className="px-8"
             >
-              Richtig
+              ✅ Richtig
             </Button>
           </div>
 
           {!canGrade ? (
-            <p className="text-center text-xs text-muted-foreground">Bitte erst umdrehen, dann bewerten.</p>
+            <div className="rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 text-center">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                ⬆️ Bitte erst die Karte umdrehen, dann bewerten.
+              </p>
+            </div>
           ) : null}
         </div>
       ) : null}

@@ -14,6 +14,7 @@ type EditorState = {
   german: string;
   transliteration: string;
   pos: string;
+  lesson?: number;
   tags: string; // comma separated
   exampleThai: string;
   exampleGerman: string;
@@ -28,6 +29,7 @@ const emptyEditor: EditorState = {
   german: "",
   transliteration: "",
   pos: "",
+  lesson: undefined,
   tags: "",
   exampleThai: "",
   exampleGerman: "",
@@ -105,6 +107,7 @@ export default function VocabList() {
   const [items, setItems] = useState<VocabEntry[]>([]);
   const [q, setQ] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [activeLesson, setActiveLesson] = useState<number | undefined>(undefined);
   const [tagMode, setTagMode] = useState<TagMode>("OR");
   const [editor, setEditor] = useState<EditorState>(emptyEditor);
 
@@ -131,6 +134,17 @@ export default function VocabList() {
       .map(([tag, count]) => ({ tag, count }));
   }, [items]);
 
+  // Alle verfügbaren Lektionen
+  const allLessons = useMemo(() => {
+    const set = new Set<number>();
+    for (const v of items) {
+      if (v.lesson !== undefined && v.lesson > 0) {
+        set.add(v.lesson);
+      }
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }, [items]);
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
 
@@ -146,6 +160,11 @@ export default function VocabList() {
 
       if (!textOk) return false;
 
+      // Lektionsfilter
+      if (activeLesson !== undefined && v.lesson !== activeLesson) {
+        return false;
+      }
+
       // Tagfilter
       if (activeTags.length === 0) return true;
 
@@ -159,7 +178,7 @@ export default function VocabList() {
       // OR: mindestens ein Tag muss passen
       return activeTags.some((t) => tagsSet.has(t));
     });
-  }, [items, q, activeTags, tagMode]);
+  }, [items, q, activeTags, activeLesson, tagMode]);
 
   function toggleTag(tag: string) {
     setActiveTags((prev) =>
@@ -188,6 +207,7 @@ export default function VocabList() {
       german: v.german ?? "",
       transliteration: v.transliteration ?? "",
       pos: v.pos ?? "",
+      lesson: v.lesson,
       tags: (v.tags ?? []).join(", "),
       exampleThai: v.exampleThai ?? "",
       exampleGerman: v.exampleGerman ?? "",
@@ -213,6 +233,7 @@ export default function VocabList() {
       thai,
       german,
       transliteration: editor.transliteration.trim() || undefined,
+      lesson: editor.lesson,
       pos: editor.pos.trim() || undefined,
       tags: normalizeTags(editor.tags),
       exampleThai: editor.exampleThai.trim() || undefined,
@@ -297,7 +318,51 @@ export default function VocabList() {
       {/* Tag Chips Bar */}
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ opacity: 0.85, fontSize: 12, color: mutedFg }}>Tags:</span>
+          {/* Lektionen Filter */}
+          <span style={{ opacity: 0.85, fontSize: 12, color: mutedFg }}>Lektionen:</span>
+          <div
+            style={{
+              display: "inline-flex",
+              border: `1px solid ${border}`,
+              borderRadius: 4,
+              overflow: "hidden",
+              background: bg,
+            }}
+          >
+            <button
+              onClick={() => setActiveLesson(undefined)}
+              style={{
+                padding: "4px 10px",
+                border: "none",
+                cursor: "pointer",
+                background: activeLesson === undefined ? "hsla(var(--ring), 0.18)" : "transparent",
+                color: fg,
+                borderRight: `1px solid ${border}`,
+              }}
+              title="Alle Lektionen anzeigen"
+            >
+              Alle
+            </button>
+            {allLessons.map((lesson) => (
+              <button
+                key={lesson}
+                onClick={() => setActiveLesson(lesson)}
+                style={{
+                  padding: "4px 10px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: activeLesson === lesson ? "hsla(var(--ring), 0.18)" : "transparent",
+                  color: fg,
+                  borderRight: `1px solid ${border}`,
+                }}
+                title={`Lektion ${lesson}`}
+              >
+                L{lesson}
+              </button>
+            ))}
+          </div>
+
+          <span style={{ marginLeft: 12, opacity: 0.85, fontSize: 12, color: mutedFg }}>Tags:</span>
 
           <span style={{ marginLeft: 6, opacity: 0.85, fontSize: 12, color: mutedFg }}>
             Modus:
@@ -405,6 +470,7 @@ export default function VocabList() {
           <tr style={{ textAlign: "left", borderBottom: `1px solid ${border}` }}>
             <th>Thai</th>
             <th>Deutsch</th>
+            <th>Lektion</th>
             <th>Translit.</th>
             <th>Wortart</th>
             <th>Tags</th>
@@ -416,6 +482,9 @@ export default function VocabList() {
             <tr key={v.id} style={{ borderBottom: `1px solid ${border}` }}>
               <td style={{ fontSize: 18 }}>{v.thai}</td>
               <td>{v.german}</td>
+              <td style={{ color: mutedFg, textAlign: "center" }}>
+                {v.lesson ? `L${v.lesson}` : "—"}
+              </td>
               <td style={{ color: mutedFg }}>{v.transliteration ?? ""}</td>
               <td style={{ color: mutedFg }}>{v.pos ?? ""}</td>
 
@@ -600,6 +669,24 @@ export default function VocabList() {
                     borderRadius: 8,
                   }}
                   placeholder="z.B. Verb / Nomen"
+                />
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span>Lektion</span>
+                <input
+                  type="number"
+                  value={editor.lesson ?? ""}
+                  onChange={(e) => setEditor((x) => ({ ...x, lesson: e.target.value ? parseInt(e.target.value, 10) : undefined }))}
+                  style={{
+                    padding: 8,
+                    background: bg,
+                    color: fg,
+                    border: `1px solid ${border}`,
+                    borderRadius: 8,
+                  }}
+                  placeholder="z.B. 1, 2, 3..."
+                  min="1"
                 />
               </label>
 

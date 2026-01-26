@@ -6,6 +6,7 @@ export type VocabEntry = {
   german: string;
   transliteration?: string;
   pos?: string;
+  lesson?: number;
   exampleThai?: string;
   exampleGerman?: string;
   tags?: string[];
@@ -28,10 +29,11 @@ class AppDB extends Dexie {
   progress!: Dexie.Table<SrsProgress, number>;
 
   constructor() {
-    super("thaiVocabTrainer");
+    // Bump DB name to force a clean IndexedDB (fix duplicate 1000 entries)
+    super("thaiVocabTrainer_v2");
 
-    this.version(1).stores({
-      vocab: "++id, thai, german, createdAt, updatedAt",
+    this.version(3).stores({
+      vocab: "++id, thai, german, lesson, createdAt, updatedAt",
       progress: "entryId, dueAt, updatedAt",
     });
 
