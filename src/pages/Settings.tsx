@@ -13,6 +13,9 @@ export default function Settings() {
   const [dailyLimit, setDailyLimit] = useState<number>(30);
   const [inputValue, setInputValue] = useState<string>("30");
   const [showVocabPage, setShowVocabPage] = useState<boolean>(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -30,6 +33,29 @@ export default function Settings() {
     if (savedVocabPage === "true") {
       setShowVocabPage(true);
     }
+
+    // Listen for PWA install prompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+      setDebugInfo("✅ beforeinstallprompt Event empfangen!");
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // Check if already installed
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      setShowInstallButton(false);
+      setDebugInfo("ℹ️ App ist bereits installiert (standalone mode)");
+    } else {
+      setDebugInfo("⏳ Warte auf beforeinstallprompt Event...");
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
   }, []);
 
   function saveDailyLimit() {
@@ -53,6 +79,27 @@ export default function Settings() {
     window.dispatchEvent(new CustomEvent("vocabPageVisibilityChanged", { detail: { visible: newValue } }));
     
     setMsg(newValue ? "✅ Vokabeln-Seite eingeblendet" : "✅ Vokabeln-Seite ausgeblendet");
+    setTimeout(() => setMsg(""), 3000);
+  }
+
+  async function installApp() {
+    if (!deferredPrompt) {
+      setMsg("⚠️ Installation nicht verfügbar. Öffnen Sie die App im Browser.");
+      setTimeout(() => setMsg(""), 3000);
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === "accepted") {
+      setMsg("✅ App wird installiert...");
+      setShowInstallButton(false);
+    } else {
+      setMsg("ℹ️ Installation abgebrochen");
+    }
+    
+    setDeferredPrompt(null);
     setTimeout(() => setMsg(""), 3000);
   }
 
@@ -206,6 +253,59 @@ export default function Settings() {
           </div>
         </Card>
 
+        {/* PWA Installation */}
+        <Card className="p-4 space-y-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-100">📱 Als App installieren</h3>
+
+          <div className="space-y-3">
+            {showInstallButton ? (
+              <>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Installieren Sie die App auf Ihrem Gerät für schnelleren Zugriff.
+                </p>
+                <Button 
+                  onClick={installApp}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  size="lg"
+                >
+                  📲 Jetzt installieren
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  So installieren Sie die App auf Ihrem Gerät:
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded">
+                    <strong>🤖 Android (Chrome):</strong>
+                    <ol className="list-decimal ml-4 mt-1 space-y-1">
+                      <li>Öffnen Sie das Browser-Menü (⋮)</li>
+                      <li>Tippen Sie auf "Zum Startbildschirm hinzufügen"</li>
+                      <li>Bestätigen Sie mit "Hinzufügen"</li>
+                    </ol>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded">
+                    <strong>🍎 iOS (Safari):</strong>
+                    <ol className="list-decimal ml-4 mt-1 space-y-1">
+                      <li>Tippen Sie auf den Teilen-Button (⎙)</li>
+                      <li>Scrollen Sie zu "Zum Home-Bildschirm"</li>
+                      <li>Tippen Sie auf "Hinzufügen"</li>
+                    </ol>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded">
+                    <strong>💻 Desktop (Chrome/Edge):</strong>
+                    <ol className="list-decimal ml-4 mt-1 space-y-1">
+                      <li>Klicken Sie auf das ⊕ Symbol in der Adressleiste</li>
+                      <li>Oder: Menü → "App installieren"</li>
+                    </ol>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+
         {/* CSV Import/Export */}
         <Card className="p-4 space-y-4">
           <h3 className="font-semibold text-lg">Vokabeln verwalten</h3>
@@ -293,6 +393,25 @@ export default function Settings() {
           >
             Stimmen Debug
           </Button>
+        </Card>
+
+        {/* PWA Debug Info */}
+        <Card className="p-4 space-y-4 bg-slate-50 dark:bg-slate-900">
+          <h3 className="font-semibold text-lg">🔧 PWA Debug Info</h3>
+          <div className="text-xs space-y-2">
+            <p className="font-mono bg-slate-100 dark:bg-slate-800 p-2 rounded">
+              {debugInfo || "Keine Informationen verfügbar"}
+            </p>
+            <p className="text-muted-foreground">
+              Service Worker: {('serviceWorker' in navigator) ? '✅ Unterstützt' : '❌ Nicht unterstützt'}
+            </p>
+            <p className="text-muted-foreground">
+              beforeinstallprompt: {deferredPrompt ? '✅ Verfügbar' : '❌ Nicht verfügbar'}
+            </p>
+            <p className="text-muted-foreground">
+              Display Mode: {window.matchMedia('(display-mode: standalone)').matches ? '📱 Standalone (installiert)' : '🌐 Browser'}
+            </p>
+          </div>
         </Card>
 
         {/* Status Message */}
