@@ -12,6 +12,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(false);
   const [dailyLimit, setDailyLimit] = useState<number>(30);
   const [inputValue, setInputValue] = useState<string>("30");
+  const [showVocabPage, setShowVocabPage] = useState<boolean>(false);
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -22,6 +23,12 @@ export default function Settings() {
         setDailyLimit(num);
         setInputValue(String(num));
       }
+    }
+
+    // Load showVocabPage from localStorage
+    const savedVocabPage = localStorage.getItem("showVocabPage");
+    if (savedVocabPage === "true") {
+      setShowVocabPage(true);
     }
   }, []);
 
@@ -34,6 +41,18 @@ export default function Settings() {
     setDailyLimit(num);
     localStorage.setItem("dailyLimit", String(num));
     setMsg(`✅ Tägliches Limit gespeichert: ${num} Karten`);
+    setTimeout(() => setMsg(""), 3000);
+  }
+
+  function toggleVocabPage() {
+    const newValue = !showVocabPage;
+    setShowVocabPage(newValue);
+    localStorage.setItem("showVocabPage", String(newValue));
+    
+    // Dispatch event for immediate UI update
+    window.dispatchEvent(new CustomEvent("vocabPageVisibilityChanged", { detail: { visible: newValue } }));
+    
+    setMsg(newValue ? "✅ Vokabeln-Seite eingeblendet" : "✅ Vokabeln-Seite ausgeblendet");
     setTimeout(() => setMsg(""), 3000);
   }
 
@@ -166,6 +185,22 @@ export default function Settings() {
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 Aktuell eingestellt: <span className="font-semibold">{dailyLimit}</span> Karten
+              </p>
+            </div>
+
+            {/* Vokabeln-Seite Toggle */}
+            <div className="pt-4 border-t">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showVocabPage}
+                  onChange={toggleVocabPage}
+                  className="h-4 w-4 accent-primary"
+                />
+                <span className="text-sm font-medium">Vokabeln-Seite anzeigen</span>
+              </label>
+              <p className="text-xs text-muted-foreground mt-2">
+                Wenn aktiviert, wird ein "Vokabeln" Tab im Hauptmenü angezeigt, um alle Vokabeln zu durchsuchen.
               </p>
             </div>
           </div>

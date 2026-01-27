@@ -5,7 +5,8 @@ import VocabList from "./pages/VocabList";
 import Learn from "./pages/Learn";
 import Exam from "./pages/Exam";
 import Settings from "./pages/Settings";
-import { seedDatabase } from "./db/importVocab";
+import { db } from "./db/db";
+import { DEFAULT_VOCAB } from "./data/defaultVocab";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -25,23 +26,54 @@ function getInitialDarkMode(): boolean {
 export default function App() {
   const [route, setRoute] = useState<Route>("home");
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [showVocabPage, setShowVocabPage] = useState<boolean>(false);
 
-  // Initialize vocabulary database on app load
+  // Initialize default vocab on app load
   useEffect(() => {
-    const initVocab = async () => {
+    const initDefaultVocab = async () => {
       try {
-        const imported = await seedDatabase();
-        if (imported) {
-          console.log("✅ Vocabulary database initialized with 500 entries");
-        } else {
-          console.log("✓ Vocabulary database already initialized");
+        const count = await db.vocab.count();
+        if (count === 0) {
+          const now = Date.now();
+          const entries = DEFAULT_VOCAB.map(v => ({
+            ...v,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          await db.vocab.bulkAdd(entries);
+          console.log(`✅ Default vocab loaded: ${entries.length} entries`);
         }
       } catch (err) {
-        console.error("Failed to initialize vocabulary database:", err);
+        console.error("Failed to load default vocab:", err);
       }
     };
-    void initVocab();
+    void initDefaultVocab();
   }, []);
+
+  // Load showVocabPage from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("showVocabPage");
+    if (saved === "true") {
+      setShowVocabPage(true);
+    }
+  }, []);
+
+  // Listen for vocabPageVisibilityChanged event
+  useEffect(() => {
+    const handleVisibilityChange = (event: any) => {
+      setShowVocabPage(event.detail?.visible ?? false);
+    };
+
+    window.addEventListener("vocabPageVisibilityChanged", handleVisibilityChange);
+    return () => window.removeEventListener("vocabPageVisibilityChanged", handleVisibilityChange);
+  }, []);
+
+  // Auto-redirect from list route if page is hidden
+  useEffect(() => {
+    if (route === "list" && !showVocabPage) {
+      setRoute("home");
+    }
+  }, [showVocabPage, route]);
 
   // Initial lesen + anwenden
   useEffect(() => {
@@ -89,7 +121,7 @@ export default function App() {
           <Tabs value={route} onValueChange={(v) => setRoute(v as Route)}>
             <TabsList className="w-full justify-start">
               <TabsTrigger value="home">Home</TabsTrigger>
-              <TabsTrigger value="list">Vokabeln</TabsTrigger>
+              {showVocabPage && <TabsTrigger value="list">Vokabeln</TabsTrigger>}
               <TabsTrigger value="learn">Lernen</TabsTrigger>
               <TabsTrigger value="exam">Examen</TabsTrigger>
               <TabsTrigger value="settings">Einstellungen</TabsTrigger>
@@ -97,7 +129,7 @@ export default function App() {
           </Tabs>
         </header>
 
-        {route === "home" && <Home onNavigate={setRoute} />}
+        {route === "home" && <Home />}
         {route === "list" && <VocabList />}
         {route === "learn" && <Learn />}
         {route === "exam" && <Exam />}

@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Worker Cleanup</title>
+</head>
+<body>
+    <h1>Clearing Service Worker...</h1>
+    <p id="status">Please wait...</p>
+    
+    <script>
+        async function clearServiceWorker() {
+            const status = document.getElementById('status');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        console.log('Unregistered:', registration);
+                    }
+                    
+                    status.innerHTML = '✅ Service Worker cleared!<br><br>' +
+                        '<a href="/">Click here to open the app</a><br><br>' +
+                        'Or close this tab and reopen the app URL.';
+                } catch (err) {
+                    status.innerHTML = '❌ Error: ' + err.message;
+                }
+            } else {
+                status.innerHTML = '⚠️ Service Worker not supported';
+            }
+        }
+        
+        clearServiceWorker();
+    </script>
+</body>
+</html>

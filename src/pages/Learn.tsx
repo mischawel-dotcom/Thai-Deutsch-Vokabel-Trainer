@@ -3,6 +3,7 @@ import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
 import { speak, stopSpeak } from "../features/tts";
+import { getNextLesson, incrementLearningProgress } from "../lib/lessonProgress";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export default function Learn() {
   const [error, setError] = useState<string>("");
   // Thai voice hint state removed (unused)
   const [dailyLimit, setDailyLimit] = useState<number>(30);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -161,6 +163,99 @@ export default function Learn() {
     void loadAllVocab();
   }, []);
 
+  // Helper: Get daily limit directly from localStorage (no state timing issues)
+  function getCurrentDailyLimit(): number {
+    const saved = localStorage.getItem("dailyLimit");
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num) && num > 0) {
+        return num;
+      }
+    }
+    return 30;
+  }
+
+  // Helper: Build session IDs with optional limit override
+  function buildSessionIds(limitOverride?: number): number[] {
+    const ids: number[] = [];
+    for (const v of allVocab) {
+      if (!v.id) continue;
+      if (!matchesLessonFilter(v)) continue;
+      if (!matchesTagFilter(v)) continue;
+      if (!matchesDueFilter(v.id)) continue;
+      ids.push(v.id);
+    }
+    const limit = limitOverride !== undefined ? limitOverride : getCurrentDailyLimit();
+    // Begrenze fällige Karten auf Daily-Limit
+    if (onlyDue && limit > 0 && ids.length > limit) {
+      return ids.slice(0, limit);
+    }
+    return ids;
+  }
+
+  // Helper: Start session with direct parameters (no state timing issues)
+  function startSessionWithFilters(lesson?: number, duOnly: boolean = false) {
+    // Temporarily set filters
+    setSelectedLesson(lesson);
+    setOnlyDue(duOnly);
+
+    // Get limit directly
+    const limit = getCurrentDailyLimit();
+
+    // Build IDs with these filters
+    const ids: number[] = [];
+    for (const v of allVocab) {
+      if (!v.id) continue;
+      if (lesson !== undefined && v.lesson !== lesson) continue;
+      if (duOnly && !dueSet.has(v.id)) continue;
+      ids.push(v.id);
+    }
+
+    // Apply limit
+    if (duOnly && limit > 0 && ids.length > limit) {
+      ids.splice(limit);
+    }
+
+    if (ids.length === 0) {
+      setStatus("Keine Karten für diese Auswahl verfügbar.");
+      setSessionActive(false);
+      setQueue([]);
+      setCurrentId(null);
+      setFlipped(false);
+      setStreaks({});
+      setDoneIds({});
+      return;
+    }
+
+    const shuffled = shuffle(ids);
+
+    setSessionActive(true);
+    setQueue(shuffled);
+    setCurrentId(shuffled[0] ?? null);
+    setFlipped(false);
+
+    setStreaks(Object.fromEntries(ids.map((id) => [id, 0])));
+    setDoneIds({});
+
+    setStatus(`Session gestartet: ${ids.length} Karte(n)`);
+  }
+
+  // Quick-Start: Only due cards (with recommended lesson)
+  function quickStartDue() {
+    const nextLesson = getNextLesson();
+    if (nextLesson !== null) {
+      startSessionWithFilters(nextLesson, true);
+    } else {
+      // All lessons complete, start with lesson 1
+      startSessionWithFilters(1, true);
+    }
+  }
+
+  // Quick-Start: Specific lesson, only due
+  function quickStartLesson(lesson: number) {
+    startSessionWithFilters(lesson, true);
+  }
+
   function toggleTag(tag: string) {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   }
@@ -173,38 +268,6 @@ export default function Learn() {
   function clearSelectedTags() {
     setSelectedTags([]);
   }
-
-  // OR-Logik: mindestens ein Tag muss passen
-  function matchesTagFilter(v: VocabEntry): boolean {
-    if (selectedTags.length === 0) return true;
-    const tags = (v.tags ?? []).map((t) => t.trim()).filter(Boolean);
-    return selectedTags.some((t) => tags.includes(t));
-  }
-
-  function matchesDueFilter(id: number): boolean {
-    if (!onlyDue) return true;
-    return dueSet.has(id);
-  }
-
-  function buildSessionIds(): number[] {
-    const ids: number[] = [];
-    for (const v of allVocab) {
-      if (!v.id) continue;
-      if (!matchesLessonFilter(v)) continue;
-      if (!matchesTagFilter(v)) continue;
-      if (!matchesDueFilter(v.id)) continue;
-      ids.push(v.id);
-    }
-    // Begrenze fällige Karten auf Daily-Limit, damit "nur fällige" nicht alle 500 lädt
-    if (onlyDue && dailyLimit > 0 && ids.length > dailyLimit) {
-      return ids.slice(0, dailyLimit);
-    }
-    return ids;
-  }
-
-  // Berechne die Anzahl der verfügbaren Karten basierend auf Filtern
-  const selectedCardsCount = buildSessionIds().length;
-  const isOverLimit = selectedCardsCount > dailyLimit;
 
   function startSession() {
     const ids = buildSessionIds();
@@ -237,6 +300,25 @@ export default function Learn() {
 
     setStatus(`Session gestartet: ${ids.length} Karte(n)`);
   }
+
+  // OR-Logik: mindestens ein Tag muss passen
+  function matchesTagFilter(v: VocabEntry): boolean {
+    if (selectedTags.length === 0) return true;
+    const tags = (v.tags ?? []).map((t) => t.trim()).filter(Boolean);
+    return selectedTags.some((t) => tags.includes(t));
+  }
+
+  function matchesDueFilter(id: number): boolean {
+    if (!onlyDue) return true;
+    return dueSet.has(id);
+  }
+
+  // Berechne die Anzahl der verfügbaren Karten basierend auf Filtern
+  const selectedCardsCount = useMemo(() => {
+    return buildSessionIds().length;
+  }, [allVocab, selectedLesson, selectedTags, onlyDue, dueSet, dailyLimit]);
+
+  const isOverLimit = selectedCardsCount > dailyLimit;
 
   async function restartSessionConfirm() {
     const ok = confirm("Wollen Sie die Lern-Session neu starten?\n\nAlle Session-Zähler werden zurückgesetzt.");
@@ -286,6 +368,13 @@ export default function Learn() {
 
     if (nextStreak >= 5) {
       setDoneIds((prev) => ({ ...prev, [currentId]: true }));
+      
+      // Update learning progress for the card's lesson
+      const card = allVocab.find((v) => v.id === currentId);
+      if (card && card.lesson) {
+        incrementLearningProgress(card.lesson, 1);
+      }
+      
       goNext();
     } else {
       requeueCurrentToEnd();
@@ -311,8 +400,62 @@ export default function Learn() {
         ) : null}
       </div>
 
-      {/* Filter / Controls (nur wenn keine Session läuft) */}
+      {/* QUICK-START BUTTONS (nur wenn keine Session läuft) */}
       {!sessionActive ? (
+        <div className="space-y-3">
+          <div className="text-sm font-semibold text-muted-foreground">🚀 Schnellstart:</div>
+          
+          <div className="grid grid-cols-1 gap-2">
+            {/* Nur Fällige */}
+            <Button
+              onClick={quickStartDue}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              title="Starten Sie mit den fälligen Karten der empfohlenen Lektion"
+            >
+              📖 Nur Fällige (empfohlen)
+            </Button>
+
+            {/* Einzelne Lektionen */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+              {allLessons.length > 0 ? (
+                allLessons.map(({ lesson, count }) => (
+                  <Button
+                    key={lesson}
+                    onClick={() => quickStartLesson(lesson)}
+                    variant="secondary"
+                    className="h-10 text-sm font-medium"
+                    title={`Lektion ${lesson} starten (${count} Karten)`}
+                  >
+                    L{lesson} <span className="text-xs opacity-75">({count})</span>
+                  </Button>
+                ))
+              ) : null}
+            </div>
+          </div>
+
+          {/* Toggle für Erweiterte Filter */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            {showAdvancedFilters ? "⬆️" : "⬇️"} Erweiterte Filter {showAdvancedFilters ? "ausblenden" : "anzeigen"}
+          </button>
+        </div>
+      ) : null}
+
+      {/* Status / Fehler */}
+      <div className="space-y-2">
+        {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
+        {error ? (
+          <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap">
+            {error}
+          </pre>
+        ) : null}
+      </div>
+
+      {/* Filter / Controls (nur wenn keine Session läuft UND showAdvancedFilters aktiv) */}
+      {!sessionActive && showAdvancedFilters ? (
         <Card className="p-4">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">

@@ -2,6 +2,7 @@
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
+import { completeLessonViaExam } from "../lib/lessonProgress";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,6 +43,16 @@ export default function Exam() {
   useEffect(() => {
     loadVocab();
   }, []);
+
+  // Handle exam completion
+  useEffect(() => {
+    if (state === "result" && selectedLesson !== null) {
+      const percentage = Math.round((score / questions.length) * 100);
+      if (percentage >= 85) {
+        completeLessonViaExam(selectedLesson, percentage);
+      }
+    }
+  }, [state, selectedLesson, score, questions.length]);
 
   async function loadVocab() {
     try {
@@ -412,10 +423,10 @@ export default function Exam() {
             </div>
 
             <p className="text-sm text-muted-foreground mt-4">
-              {percentage >= 80 && "Ausgezeichnet! 🎉"}
-              {percentage >= 60 && percentage < 80 && "Gute Leistung! 👍"}
-              {percentage >= 40 && percentage < 60 && "Noch etwas üben! 📚"}
-              {percentage < 40 && "Viel Erfolg beim nächsten Mal! 💪"}
+              {percentage >= 85 && "Ausgezeichnet! 🎉 Lektion abgeschlossen!"}
+              {percentage >= 70 && percentage < 85 && "Gute Leistung! 👍 Bitte versuchen Sie es nochmal für eine bessere Note."}
+              {percentage >= 50 && percentage < 70 && "Noch etwas üben! 📚"}
+              {percentage < 50 && "Viel Erfolg beim nächsten Mal! 💪"}
             </p>
           </Card>
 

@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { db } from "../db/db";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getLessonProgress } from "../lib/lessonProgress";
 
 type Route = "home" | "list" | "learn" | "exam" | "settings";
 
 interface HomeProps {
-  onNavigate: (route: Route) => void;
+  onNavigate?: (route: Route) => void;
 }
 
 export default function Home({ onNavigate }: HomeProps) {
@@ -15,6 +16,7 @@ export default function Home({ onNavigate }: HomeProps) {
   const [dailyLimit, setDailyLimit] = useState<number>(30);
   const [learnedToday, setLearnedToday] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
+  const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const run = async () => {
@@ -44,6 +46,13 @@ export default function Home({ onNavigate }: HomeProps) {
       // Calculate streak (consecutive days with reviews)
       const lastStreak = localStorage.getItem("learningStreak");
       setStreak(lastStreak ? parseInt(lastStreak, 10) : 0);
+
+      // Load lesson progress for all lessons
+      const progress: Record<number, number> = {};
+      for (let i = 1; i <= 5; i++) {
+        progress[i] = getLessonProgress(i);
+      }
+      setLessonProgress(progress);
     };
     run();
   }, []);
@@ -128,13 +137,55 @@ export default function Home({ onNavigate }: HomeProps) {
         </div>
       </Card>
 
+      {/* Lesson Progress Cards */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold">Lektionen-Fortschritt</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[1, 2, 3, 4, 5].map((lesson) => {
+            const prog = lessonProgress[lesson] ?? 0;
+            let statusIcon = "📖";
+            let statusColor = "bg-gray-100 dark:bg-gray-800";
+
+            if (prog >= 100) {
+              statusIcon = "✅";
+              statusColor = "bg-green-100 dark:bg-green-900";
+            } else if (prog >= 75) {
+              statusIcon = "🎯";
+              statusColor = "bg-blue-100 dark:bg-blue-900";
+            }
+
+            return (
+              <Card key={lesson} className={`p-4 ${statusColor}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold">Lektion {lesson}</h4>
+                  <span className="text-2xl">{statusIcon}</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-primary h-full transition-all duration-500 rounded-full"
+                    style={{ width: `${prog}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {prog >= 100
+                    ? "✨ Abgeschlossen!"
+                    : prog >= 75
+                      ? "📝 Exam bereit"
+                      : `${Math.round(prog)}% gelernt`}
+                </p>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Button
           size="lg"
           className="h-20 text-lg font-semibold"
           disabled={dueCount === 0}
-          onClick={() => onNavigate("learn")}
+          onClick={() => onNavigate?.("learn")}
         >
           🎯 Jetzt lernen ({dueCount})
         </Button>
@@ -142,7 +193,7 @@ export default function Home({ onNavigate }: HomeProps) {
           size="lg"
           variant="outline"
           className="h-20 text-lg font-semibold"
-          onClick={() => onNavigate("list")}
+          onClick={() => onNavigate?.("list")}
         >
           📝 Alle Vokabeln anzeigen
         </Button>
