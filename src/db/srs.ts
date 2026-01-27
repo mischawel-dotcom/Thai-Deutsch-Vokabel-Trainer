@@ -9,6 +9,7 @@ type SrsProgress = {
   repetitions: number;
   dueAt: number;
   lastGrade?: number;
+  lastReviewed?: number;
   updatedAt: number;
 };
 
@@ -73,5 +74,6 @@ export async function gradeCard(entryId: number, grade: Grade) {
   const prev = await table.get(entryId);
   const next = nextProgress(prev, grade);
   next.entryId = entryId;
+  next.lastReviewed = Date.now();
   await table.put(next);
 }

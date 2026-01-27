@@ -21,6 +21,7 @@ export type SrsProgress = {
   repetitions: number;
   dueAt: number;
   lastGrade?: number;
+  lastReviewed?: number;
   updatedAt: number;
 };
 
@@ -32,9 +33,16 @@ class AppDB extends Dexie {
     // Bump DB name to force a clean IndexedDB (fix duplicate 1000 entries)
     super("thaiVocabTrainer_v2");
 
+    // Version 3: Original schema
     this.version(3).stores({
       vocab: "++id, thai, german, lesson, createdAt, updatedAt",
       progress: "entryId, dueAt, updatedAt",
+    });
+
+    // Version 4: Add lastReviewed field for daily progress tracking
+    this.version(4).stores({
+      vocab: "++id, thai, german, lesson, createdAt, updatedAt",
+      progress: "entryId, dueAt, lastReviewed, updatedAt",
     });
 
     this.vocab = this.table("vocab");
