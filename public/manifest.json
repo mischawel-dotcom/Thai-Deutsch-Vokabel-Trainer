@@ -2,7 +2,7 @@
   "name": "Thai–Deutsch Vokabeltrainer",
   "short_name": "Vokabeltrainer",
   "description": "Lerne Thai-Vokabeln mit SRS (Spaced Repetition System), Examen und Lektionen-Fortschritt",
-  "start_url": "/",
+  "start_url": "/Thai-Deutsch-Vokabel-Trainer/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
