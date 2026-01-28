@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import VocabList from "./pages/VocabList";
 import Learn from "./pages/Learn";
+import Test from "./pages/Test";
 import Exam from "./pages/Exam";
 import Settings from "./pages/Settings";
 import { db } from "./db/db";
@@ -11,7 +12,7 @@ import { DEFAULT_VOCAB } from "./data/defaultVocab";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
-type Route = "home" | "list" | "learn" | "exam" | "settings";
+type Route = "home" | "list" | "learn" | "test" | "exam" | "settings";
 
 function getInitialDarkMode(): boolean {
   // 1) gespeicherte Präferenz
@@ -123,6 +124,7 @@ export default function App() {
               <TabsTrigger value="home">Home</TabsTrigger>
               {showVocabPage && <TabsTrigger value="list">Vokabeln</TabsTrigger>}
               <TabsTrigger value="learn">Lernen</TabsTrigger>
+              <TabsTrigger value="test">Tests</TabsTrigger>
               <TabsTrigger value="exam">Examen</TabsTrigger>
               <TabsTrigger value="settings">Einstellungen</TabsTrigger>
             </TabsList>
@@ -132,6 +134,7 @@ export default function App() {
         {route === "home" && <Home />}
         {route === "list" && <VocabList />}
         {route === "learn" && <Learn />}
+        {route === "test" && <Test />}
         {route === "exam" && <Exam />}
         {route === "settings" && <Settings />}
       </div>

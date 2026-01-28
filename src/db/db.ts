@@ -10,6 +10,7 @@ export type VocabEntry = {
   exampleThai?: string;
   exampleGerman?: string;
   tags?: string[];
+  viewed?: boolean;
   createdAt: number;
   updatedAt: number;
 };
@@ -42,6 +43,12 @@ class AppDB extends Dexie {
     // Version 4: Add lastReviewed field for daily progress tracking
     this.version(4).stores({
       vocab: "++id, thai, german, lesson, createdAt, updatedAt",
+      progress: "entryId, dueAt, lastReviewed, updatedAt",
+    });
+
+    // Version 5: Add viewed flag for learning tracking
+    this.version(5).stores({
+      vocab: "++id, thai, german, lesson, viewed, createdAt, updatedAt",
       progress: "entryId, dueAt, lastReviewed, updatedAt",
     });
 
