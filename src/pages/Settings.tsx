@@ -6,6 +6,15 @@ import { listVoices, hasThaiVoice } from "../features/tts";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+type LearnDirection = "TH_DE" | "DE_TH";
 
 export default function Settings() {
   const [msg, setMsg] = useState<string>("");
@@ -16,6 +25,9 @@ export default function Settings() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [learnDirection, setLearnDirection] = useState<LearnDirection>("TH_DE");
+  const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -26,6 +38,12 @@ export default function Settings() {
         setDailyLimit(num);
         setInputValue(String(num));
       }
+    }
+
+    // Load learnDirection from localStorage
+    const savedDirection = localStorage.getItem("learnDirection");
+    if (savedDirection === "TH_DE" || savedDirection === "DE_TH") {
+      setLearnDirection(savedDirection);
     }
 
     // Load showVocabPage from localStorage
@@ -62,12 +80,21 @@ export default function Settings() {
     const num = parseInt(inputValue, 10);
     if (isNaN(num) || num <= 0) {
       setMsg("❌ Bitte geben Sie eine Zahl größer als 0 ein");
+      setTimeout(() => setMsg(""), 3000);
       return;
     }
+    
+    // Visual feedback: Button zeigt "Gespeichert"
+    setIsSaving(true);
     setDailyLimit(num);
     localStorage.setItem("dailyLimit", String(num));
     setMsg(`✅ Tägliches Limit gespeichert: ${num} Karten`);
-    setTimeout(() => setMsg(""), 3000);
+    
+    // Reset nach 1.5 Sekunden
+    setTimeout(() => {
+      setIsSaving(false);
+      setMsg("");
+    }, 1500);
   }
 
   function toggleVocabPage() {
@@ -111,6 +138,14 @@ export default function Settings() {
     setTimeout(() => setMsg(""), 3000);
   }
 
+  function changeLearnDirection(direction: LearnDirection) {
+    setLearnDirection(direction);
+    localStorage.setItem("learnDirection", direction);
+    const dirText = direction === "TH_DE" ? "Thai → Deutsch" : "Deutsch → Thai";
+    setMsg(`✅ Lernrichtung: ${dirText}`);
+    setTimeout(() => setMsg(""), 3000);
+  }
+
   async function onImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -145,6 +180,8 @@ export default function Settings() {
       setMsg(`❌ Export-Fehler: ${err?.message ?? String(err)}`);
     }
   }
+
+
 
   async function showVoiceDebug() {
     try {
@@ -206,33 +243,70 @@ export default function Settings() {
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium">
-                Maximale Karten pro Sitzung (heute Fällig)
+                Tägliches Lernziel
               </label>
               <p className="text-xs text-muted-foreground mb-2">
-                Standard: 30 Karten
+                Maximale Karten, die täglich als "Heute fällig" angezeigt werden (Standard: 30)
               </p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="number"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   min="1"
-                  className="w-32 px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="w-full sm:w-32 px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   placeholder="z.B. 30"
                 />
-                <Button onClick={saveDailyLimit} className="flex-1">
-                  Speichern
+                <Button 
+                  onClick={saveDailyLimit} 
+                  className="w-full sm:flex-1 bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
+                  disabled={isSaving}
+                  variant={isSaving ? "default" : "default"}
+                >
+                  {isSaving ? "✓ Gespeichert" : "Speichern"}
                 </Button>
                 <Button 
                   onClick={resetDailyLimit} 
-                  variant="outline"
+                  variant="default"
+                  className="w-full sm:flex-1 bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
                 >
                   Zurücksetzen
                 </Button>
               </div>
+              {isSaving && (
+                <div className="mt-2 p-2 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200 animate-in fade-in duration-200">
+                  ✓ Erfolgreich gespeichert!
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mt-2">
                 Aktuell eingestellt: <span className="font-semibold">{dailyLimit}</span> Karten
               </p>
+            </div>
+
+            {/* Lernrichtung */}
+            <div className="pt-4 border-t">
+              <label className="text-sm font-medium block mb-2">
+                Lernrichtung (für Tests)
+              </label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Standardrichtung für neue Abfragen
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  onClick={() => changeLearnDirection("TH_DE")}
+                  variant={learnDirection === "TH_DE" ? "default" : "outline"}
+                  className={learnDirection === "TH_DE" ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow" : ""}
+                >
+                  🇹🇭 Thai → Deutsch
+                </Button>
+                <Button 
+                  onClick={() => changeLearnDirection("DE_TH")}
+                  variant={learnDirection === "DE_TH" ? "default" : "outline"}
+                  className={learnDirection === "DE_TH" ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow" : ""}
+                >
+                  🇩🇪 Deutsch → Thai
+                </Button>
+              </div>
             </div>
 
             {/* Vokabeln-Seite Toggle */}
@@ -380,6 +454,69 @@ export default function Settings() {
           </div>
         </Card>
 
+        {/* Developer Debug - Lesson Progress Cheater */}
+        <Card className="p-4 space-y-4 bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
+          <h3 className="font-semibold text-lg text-purple-900 dark:text-purple-100">🛠️ Entwickler Debug</h3>
+          <p className="text-xs text-purple-800 dark:text-purple-200">
+            Setze Lektionen-Fortschritt zum schnellen Testen (100% = Exam erforderlich)
+          </p>
+          
+          <div className="grid grid-cols-5 gap-2">
+            {[1, 2, 3, 4, 5].map((lesson) => (
+              <Button 
+                key={lesson}
+                onClick={() => {
+                  localStorage.setItem(`lessonProgress_${lesson}`, "100");
+                  setMsg(`✅ Lektion ${lesson} auf 100% gesetzt`);
+                  setTimeout(() => setMsg(""), 2000);
+                  window.location.reload();
+                }}
+                variant="outline"
+                className="text-xs h-auto py-2 bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+              >
+                L{lesson} → 100%
+              </Button>
+            ))}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium block mb-2">Exam-Score setzen (85%+ = bestanden)</label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                onClick={() => {
+                  const lesson = prompt("Lektion (1-5):", "1");
+                  if (lesson && [1,2,3,4,5].includes(Number(lesson))) {
+                    localStorage.setItem(`lessonExamScore_${lesson}`, "85");
+                    setMsg(`✅ Lektion ${lesson} Exam mit 85% bestanden`);
+                    setTimeout(() => setMsg(""), 2000);
+                    window.location.reload();
+                  }
+                }}
+                variant="outline"
+                className="text-xs bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+              >
+                85% Bestanden
+              </Button>
+              <Button 
+                onClick={() => {
+                  const lesson = prompt("Lektion (1-5):", "1");
+                  if (lesson && [1,2,3,4,5].includes(Number(lesson))) {
+                    localStorage.removeItem(`lessonExamScore_${lesson}`);
+                    localStorage.removeItem(`lessonProgress_${lesson}`);
+                    setMsg(`✅ Lektion ${lesson} komplett zurückgesetzt`);
+                    setTimeout(() => setMsg(""), 2000);
+                    window.location.reload();
+                  }
+                }}
+                variant="outline"
+                className="text-xs bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+              >
+                Komplett Reset
+              </Button>
+            </div>
+          </div>
+        </Card>
+
         {/* Voice Debug */}
         <Card className="p-4 space-y-4">
           <h3 className="font-semibold text-lg">🔊 Text-to-Speech Debug</h3>
@@ -424,7 +561,87 @@ export default function Settings() {
             {msg}
           </Card>
         )}
+
+        {/* Help Button */}
+        <Card className="p-4 space-y-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <Button 
+            onClick={() => setShowHelpDialog(true)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            size="lg"
+          >
+            ❓ Benutzer-Anleitung
+          </Button>
+        </Card>
       </div>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">📱 Thai Vocab Trainer - Benutzer Anleitung</DialogTitle>
+            <DialogDescription>Hier findest du eine Übersicht aller Funktionen</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pr-4">
+            {/* Home Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">🏠 Home Seite (Startseite)</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Die Home Seite zeigt dir einen Überblick über denen Lernfortschritt mit vier Haupt-Indikatoren:
+              </p>
+              <ul className="space-y-2 text-sm">
+                <li><strong>Heute fällig (⭐):</strong> Zeigt wie viele Karten heute zur Wiederholung fällig sind. Klick auf die Karte zum automatischen Starten!</li>
+                <li><strong>Vokabeln (📚):</strong> Gesamtanzahl aller Vokabeln in deinem Wortschatz</li>
+                <li><strong>Streak (🔥):</strong> Deine aktuelle Lern-Serie (Tage hintereinander)</li>
+                <li><strong>Heutiges Lernziel:</strong> Fortschrittsbalken für deine tägliche Lernquote</li>
+              </ul>
+            </div>
+
+            {/* Learn Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">📚 Learn (Lernen)</h3>
+              <ul className="space-y-2 text-sm">
+                <li>Neue Karten kennenlernen oder Karten wiederholen</li>
+                <li>Klick "Markiere als gelernt" wenn du die Karte beherrschst</li>
+                <li>Die App merkt sich deine Lernfortschritte (Spaced Repetition)</li>
+              </ul>
+            </div>
+
+            {/* Test Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">🧪 Test (Abfrage)</h3>
+              <ul className="space-y-2 text-sm">
+                <li><strong>Lernrichtung:</strong> Wird automatisch aus deinen Einstellungen übernommen</li>
+                <li><strong>Quick-Start - Gelernte Karten:</strong> Testet deine gelernten Karten</li>
+                <li><strong>Custom Test:</strong> Wähle eine genaue Anzahl von Karten</li>
+                <li><strong>Lektionen-Tests (L1-L4):</strong> Tests für spezifische Lektionen</li>
+                <li><strong>Navigation:</strong> Mit Pfeilen ⬅️➡️ zwischen Karten navigieren</li>
+                <li><strong>Richtung ändern:</strong> In den Einstellungen konfigurieren</li>
+              </ul>
+            </div>
+
+            {/* Exam Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">📊 Exam (Prüfung)</h3>
+              <ul className="space-y-2 text-sm">
+                <li>Formale Prüfung mit Bestehensgrenze (85% richtig = bestanden)</li>
+                <li>Detailliertes Ergebnis am Ende</li>
+                <li>Nutze das für realistische Lernzielkontrolle</li>
+              </ul>
+            </div>
+
+            {/* Settings Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">⚙️ Einstellungen (Settings)</h3>
+              <ul className="space-y-2 text-sm">
+                <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 30)</li>
+                <li><strong>Lernrichtung:</strong> Standard für Tests (Thai→Deutsch oder Deutsch→Thai)</li>
+                <li><strong>Vokabeln-Seite:</strong> Zusätzlicher Tab zum Durchsuchen aller Vokabeln</li>
+                <li><strong>Daten zurücksetzen:</strong> Alle Lernfortschritte löschen</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

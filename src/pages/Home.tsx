@@ -1,25 +1,48 @@
 import { useEffect, useState } from "react";
 import { db } from "../db/db";
+import { ensureProgress } from "../db/srs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getLessonProgress } from "../lib/lessonProgress";
+import { getLessonProgress, getLessonExamScore, migrateProgressFromDb } from "../lib/lessonProgress";
 
-type Route = "home" | "list" | "learn" | "exam" | "settings";
+type Route = "home" | "list" | "learn" | "test" | "exam" | "settings";
 
 interface HomeProps {
   onNavigate?: (route: Route) => void;
 }
 
 export default function Home({ onNavigate }: HomeProps) {
-  const [dueCount, setDueCount] = useState<number>(0);
+  // Initialize dailyLimit from localStorage for better initial state
+  const getInitialDailyLimit = (): number => {
+    const saved = localStorage.getItem("dailyLimit");
+    if (saved) {
+      const num = parseInt(saved, 10);
+      if (!isNaN(num) && num > 0) return num;
+    }
+    return 30;
+  };
+
+  const initialDailyLimit = getInitialDailyLimit();
+  const [dueCount, setDueCount] = useState<number>(initialDailyLimit);
   const [total, setTotal] = useState<number>(0);
-  const [dailyLimit, setDailyLimit] = useState<number>(30);
+  const [dailyLimit, setDailyLimit] = useState<number>(initialDailyLimit);
   const [learnedToday, setLearnedToday] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const run = async () => {
+      // Migration: Neu-berechne alte Fortschrittswerte
+      await migrateProgressFromDb();
+      
+      // Ensure all vocab has progress records before querying
+      const allVocab = await db.vocab.toArray();
+      for (const v of allVocab) {
+        if (v.id) {
+          await ensureProgress(v.id);
+        }
+      }
+      
       const now = Date.now();
       const allDue = await db.progress.where("dueAt").belowOrEqual(now).toArray();
       const vocab = await db.vocab.count();
@@ -29,11 +52,6 @@ export default function Home({ onNavigate }: HomeProps) {
       const limit = savedLimit ? parseInt(savedLimit, 10) : 30;
       const validLimit = !isNaN(limit) && limit > 0 ? limit : 30;
       setDailyLimit(validLimit);
-      
-      // Begrenze auf das gesetzte Limit
-      const limited = Math.min(allDue.length, validLimit);
-      setDueCount(limited);
-      setTotal(vocab);
 
       // Calculate learned today (cards reviewed today)
       const todayStart = new Date().setHours(0, 0, 0, 0);
@@ -42,6 +60,12 @@ export default function Home({ onNavigate }: HomeProps) {
         .above(todayStart)
         .count();
       setLearnedToday(reviewedToday);
+      
+      // Berechne verbleibende Karten bis Tagesziel
+      const remaining = Math.max(0, validLimit - reviewedToday);
+      const limited = Math.min(allDue.length, remaining);
+      setDueCount(limited);
+      setTotal(vocab);
 
       // Calculate streak (consecutive days with reviews)
       const lastStreak = localStorage.getItem("learningStreak");
@@ -53,13 +77,17 @@ export default function Home({ onNavigate }: HomeProps) {
         progress[i] = getLessonProgress(i);
       }
       setLessonProgress(progress);
+
     };
     run();
   }, []);
 
   const progress = dailyLimit > 0 ? Math.min((learnedToday / dailyLimit) * 100, 100) : 0;
+  const dailyGoalReached = learnedToday >= dailyLimit;
 
   return (
+
+
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
@@ -71,8 +99,20 @@ export default function Home({ onNavigate }: HomeProps) {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Today's Due Cards */}
-        <Card className="p-6">
+        {/* Heute fällig */}
+        <Card 
+          className="p-6 cursor-pointer hover:bg-accent transition-colors order-1 md:order-none"
+          onClick={() => {
+            if (dueCount > 0) {
+              localStorage.setItem("autoStartLearnDue", "true");
+              localStorage.setItem("autoStartLearnDueCount", String(dueCount));
+            } else {
+              localStorage.removeItem("autoStartLearnDue");
+              localStorage.removeItem("autoStartLearnDueCount");
+            }
+            onNavigate?.("learn");
+          }}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Heute fällig</p>
@@ -81,12 +121,42 @@ export default function Home({ onNavigate }: HomeProps) {
             <div className="text-4xl">⭐</div>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            {dueCount > 0 ? "Los geht's!" : "Alles geschafft! 🎉"}
+            {dailyGoalReached ? "Gut gemacht! 🎉" : "Los geht's!"}
           </p>
         </Card>
 
-        {/* Total Vocabulary */}
-        <Card className="p-6">
+        {/* Heutiges Lernziel */}
+        <Card className="p-6 order-2 md:order-none">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Heutiges Lernziel</h3>
+              <span className="text-sm text-muted-foreground">
+                {learnedToday} / {dailyLimit} Karten
+              </span>
+            </div>
+            <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+              <div
+                className="bg-primary h-full transition-all duration-500 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {learnedToday > dailyLimit
+                ? "💪 Extra-Meile gegangen! Top!"
+                : progress >= 100
+                  ? "🎯 Tagesziel erreicht! Hervorragend!"
+                  : `Noch ${dailyLimit - learnedToday} Karten bis zum Tagesziel`}
+            </p>
+          </div>
+        </Card>
+
+        {/* Vokabeln */}
+        <button
+          type="button"
+          className="p-6 cursor-pointer hover:bg-accent transition-colors rounded-xl border bg-card text-card-foreground shadow-sm text-left focus:outline-none focus:ring-2 focus:ring-primary order-3 md:order-none"
+          onClick={() => onNavigate?.("list")}
+          title="Alle Vokabeln anzeigen"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Vokabeln</p>
@@ -97,10 +167,10 @@ export default function Home({ onNavigate }: HomeProps) {
           <p className="text-xs text-muted-foreground mt-3">
             Insgesamt im Wortschatz
           </p>
-        </Card>
+        </button>
 
-        {/* Learning Streak */}
-        <Card className="p-6">
+        {/* Streak */}
+        <Card className="p-6 order-4 md:order-none">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Streak</p>
@@ -114,48 +184,66 @@ export default function Home({ onNavigate }: HomeProps) {
         </Card>
       </div>
 
-      {/* Daily Progress */}
-      <Card className="p-6">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Heutiges Lernziel</h3>
-            <span className="text-sm text-muted-foreground">
-              {learnedToday} / {dailyLimit} Karten
-            </span>
-          </div>
-          <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
-            <div
-              className="bg-primary h-full transition-all duration-500 rounded-full"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {progress >= 100
-              ? "🎯 Tagesziel erreicht! Hervorragend!"
-              : `Noch ${dailyLimit - learnedToday} Karten bis zum Tagesziel`}
-          </p>
-        </div>
-      </Card>
-
       {/* Lesson Progress Cards */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Lektionen-Fortschritt</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[1, 2, 3, 4, 5].map((lesson) => {
             const prog = lessonProgress[lesson] ?? 0;
+            const examScore = getLessonExamScore(lesson);
+            const examPassed = examScore !== null && examScore >= 85;
+            const requiresExam = prog === 100 && !examPassed;
+
             let statusIcon = "📖";
             let statusColor = "bg-gray-100 dark:bg-gray-800";
+            let statusText = `${Math.round(prog)}% gelernt`;
 
-            if (prog >= 100) {
+            if (examPassed) {
+              // Exam passed - fully completed
               statusIcon = "✅";
               statusColor = "bg-green-100 dark:bg-green-900";
-            } else if (prog >= 75) {
+              statusText = "🎓 Bestanden!";
+            } else if (requiresExam) {
+              // Learning complete - exam required
+              statusIcon = "⚠️";
+              statusColor = "bg-amber-100 dark:bg-amber-900";
+              statusText = `📝 Examen erforderlich!`;
+            } else if (prog === 100) {
+              // Learning complete
               statusIcon = "🎯";
               statusColor = "bg-blue-100 dark:bg-blue-900";
+              statusText = "100% gelernt";
             }
 
             return (
-              <Card key={lesson} className={`p-4 ${statusColor}`}>
+              <button
+                key={lesson}
+                type="button"
+                className={`p-4 ${statusColor} transition-all cursor-pointer hover:shadow-md rounded-xl border bg-card text-card-foreground shadow-sm text-left`}
+                onClick={() => {
+                  // Prüfe, ob es ungelernte Karten in dieser Lektion gibt
+                  import("../db/db").then(async ({ db }) => {
+                    const total = await db.vocab.where("lesson").equals(lesson).count();
+                    const learned = await db.vocab.where("lesson").equals(lesson).and(v => v.viewed === true).count();
+                    if (learned < total) {
+                      // Es gibt noch ungelernte Karten → Weiterleitung zu Lernen/Lektion X
+                      localStorage.setItem("selectedLessonForLearn", String(lesson));
+                      onNavigate?.("learn");
+                      window.location.hash = `#learn`;
+                      window.dispatchEvent(new CustomEvent("appNavigate", { detail: "learn" }));
+                    } else {
+                      // Alles gelernt → Weiterleitung zu Test/Lektion X oder Examen
+                      const target = requiresExam ? "exam" : "test";
+                      if (!requiresExam) {
+                        localStorage.setItem("selectedLessonForTest", String(lesson));
+                      }
+                      onNavigate?.(target);
+                      window.location.hash = `#${target}`;
+                      window.dispatchEvent(new CustomEvent("appNavigate", { detail: target }));
+                    }
+                  });
+                }}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold">Lektion {lesson}</h4>
                   <span className="text-2xl">{statusIcon}</span>
@@ -167,13 +255,14 @@ export default function Home({ onNavigate }: HomeProps) {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {prog >= 100
-                    ? "✨ Abgeschlossen!"
-                    : prog >= 75
-                      ? "📝 Exam bereit"
-                      : `${Math.round(prog)}% gelernt`}
+                  {statusText}
                 </p>
-              </Card>
+                {requiresExam && (
+                  <p className="text-xs text-amber-700 dark:text-amber-200 mt-2 font-semibold">
+                    👉 Klicken zum Examen starten
+                  </p>
+                )}
+              </button>
             );
           })}
         </div>

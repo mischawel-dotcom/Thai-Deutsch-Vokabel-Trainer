@@ -6,8 +6,17 @@ import { speak, stopSpeak } from "../features/tts";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Learn() {
+    // Automatischer Dialog-Start für Lektion aus Home
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -16,6 +25,12 @@ export default function Learn() {
   const [sessionActive, setSessionActive] = useState(false);
   const [lessonCards, setLessonCards] = useState<VocabEntry[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+
+  // Dialog-State
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedLesson, setSelectedLesson] = useState<number>(0);
+  const [includeViewed, setIncludeViewed] = useState(true);
+  const [cardLimit, setCardLimit] = useState<string>("");
 
   // Lektionen-Index
   const allLessons = useMemo(() => {
@@ -48,22 +63,77 @@ export default function Learn() {
     void loadAllVocab();
   }, []);
 
-  function startSession(lesson: number) {
-    const cards = allVocab.filter((v) => v.lesson === lesson).sort((a, b) => {
+  useEffect(() => {
+    const shouldAutoStart = localStorage.getItem("autoStartLearnDue") === "true";
+    if (!shouldAutoStart) return;
+    if (sessionActive) return;
+    if (!allVocab.length) return;
+
+    const rawLimit = localStorage.getItem("dailyLimit");
+    const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 30;
+    const validLimit = !isNaN(limitParsed) && limitParsed > 0 ? limitParsed : 30;
+
+    const rawDueCount = localStorage.getItem("autoStartLearnDueCount");
+    const dueParsed = rawDueCount ? parseInt(rawDueCount, 10) : validLimit;
+    const targetLimit = !isNaN(dueParsed) && dueParsed > 0 ? Math.min(dueParsed, validLimit) : validLimit;
+
+    let cards = allVocab.filter((v) => !v.viewed);
+    cards.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+    cards = cards.slice(0, targetLimit);
+
+    if (cards.length === 0) {
+      setStatus("Keine ungelernten Karten verfügbar.");
+    } else {
+      setLessonCards(cards);
+      setCurrentIndex(0);
+      setSessionActive(true);
+      setStatus(`Heute fällig: ${cards.length} Karte(n)`);
+    }
+
+    localStorage.removeItem("autoStartLearnDue");
+    localStorage.removeItem("autoStartLearnDueCount");
+  }, [allVocab, sessionActive]);
+
+  function openLessonDialog(lesson: number) {
+    const cards = allVocab.filter((v) => v.lesson === lesson);
+    setSelectedLesson(lesson);
+    setCardLimit(String(cards.length)); // Standard: alle Karten
+    setIncludeViewed(true);
+    setDialogOpen(true);
+  }
+
+  function startSession() {
+    let cards = allVocab.filter((v) => v.lesson === selectedLesson);
+
+    // Filter: nur ungesehene Karten
+    if (!includeViewed) {
+      cards = cards.filter((v) => !v.viewed);
+    }
+
+    // Sortieren nach ID
+    cards.sort((a, b) => {
       const aId = a.id ?? 0;
       const bId = b.id ?? 0;
       return aId - bId;
     });
 
+    // Limit anwenden
+    const limit = parseInt(cardLimit, 10);
+    if (!isNaN(limit) && limit > 0) {
+      cards = cards.slice(0, limit);
+    }
+
     if (cards.length === 0) {
-      setStatus(`Keine Karten in Lektion ${lesson} vorhanden.`);
+      setStatus(`Keine Karten in Lektion ${selectedLesson} vorhanden.`);
+      setDialogOpen(false);
       return;
     }
 
     setLessonCards(cards);
     setCurrentIndex(0);
     setSessionActive(true);
-    setStatus(`Lektion ${lesson}: ${cards.length} Karte(n)`);
+    setStatus(`Lektion ${selectedLesson}: ${cards.length} Karte(n)`);
+    setDialogOpen(false);
   }
 
   function endSession() {
@@ -139,7 +209,7 @@ export default function Learn() {
                 allLessons.map(({ lesson, count }) => (
                   <Button
                     key={lesson}
-                    onClick={() => startSession(lesson)}
+                    onClick={() => openLessonDialog(lesson)}
                     className="h-12 px-6 text-base font-medium"
                     title={`Lektion ${lesson} starten (${count} Karten)`}
                   >
@@ -292,7 +362,7 @@ export default function Learn() {
               className="w-full h-12 text-base font-semibold"
               variant={current.viewed ? "secondary" : "default"}
             >
-              {current.viewed ? "✅ Bereits gesehen" : "Markiere als gesehen"}
+              {current.viewed ? "✅ Bereits gesehen" : "Markiere als gelernt"}
             </Button>
 
             {/* Navigation */}
@@ -342,6 +412,62 @@ export default function Learn() {
           <p className="text-muted-foreground">Keine Lektionen gefunden. Bitte importiere zuerst Vokabeln.</p>
         </Card>
       ) : null}
+
+      {/* Lektions-Konfigurations-Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lektion {selectedLesson} starten</DialogTitle>
+            <DialogDescription>
+              Konfiguriere deine Lernsession
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Bereits gelernte Karten anzeigen */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="includeViewed"
+                checked={includeViewed}
+                onChange={(e) => setIncludeViewed(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              <label htmlFor="includeViewed" className="text-sm font-medium cursor-pointer">
+                Bereits gelernte Karten anzeigen
+              </label>
+            </div>
+
+            {/* Anzahl der Karten */}
+            <div className="space-y-2">
+              <label htmlFor="cardLimit" className="text-sm font-medium">
+                Anzahl der Karten
+              </label>
+              <input
+                type="number"
+                id="cardLimit"
+                value={cardLimit}
+                onChange={(e) => setCardLimit(e.target.value)}
+                min="1"
+                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Alle Karten"
+              />
+              <p className="text-xs text-muted-foreground">
+                Standard: alle verfügbaren Karten der Lektion
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button onClick={startSession}>
+              Starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

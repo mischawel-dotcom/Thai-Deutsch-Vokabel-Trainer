@@ -1,17 +1,18 @@
 ﻿/**
  * Lesson progress tracking utilities
  * Progress system:
- * - 0-75%: Learning progress (cards reviewed in Learn page)
- * - 75%: Ready for Exam
- * - 85%+ on Exam: Lesson complete (100%)
+ * - 0-100%: Learning progress (cards reviewed in Learn page / Test page)
+ * - 100%: Ready for Exam
+ * - 85%+ on Exam: Lesson fully completed and passed
  */
 
 export interface LessonProgress {
   lesson: number;
   progress: number; // 0-100%
-  completed: boolean; // true if progress = 100%
+  completed: boolean; // true if exam passed with 85%+
   examScore: number | null; // Exam score if taken
-  readyForExam: boolean; // true if progress >= 75%
+  readyForExam: boolean; // true if progress = 100%
+  requiresExam: boolean; // true if progress = 100% but exam not passed yet
 }
 
 // Total vocab cards per lesson (from CSV)
@@ -32,18 +33,15 @@ export function getLessonProgress(lesson: number): number {
 }
 
 /**
- * Update learning progress for a lesson (max 75%)
+ * Update learning progress for a lesson (max 100%)
  * Called from Learn page when cards are reviewed
  */
 export function updateLearningProgress(lesson: number, cardsReviewed: number): void {
   const totalCards = LESSON_SIZES[lesson] ?? 100;
   const currentProgress = getLessonProgress(lesson);
   
-  // Don't update if already at exam level (75%+)
-  if (currentProgress >= 75) return;
-  
-  // Calculate new progress: (reviewed / total) * 75%
-  const learnProgress = Math.min((cardsReviewed / totalCards) * 75, 75);
+  // Calculate progress: (reviewed / total) * 100%
+  const learnProgress = Math.min((cardsReviewed / totalCards) * 100, 100);
   const newProgress = Math.max(currentProgress, Math.round(learnProgress));
   
   localStorage.setItem(`lessonProgress_${lesson}`, String(newProgress));
@@ -52,19 +50,58 @@ export function updateLearningProgress(lesson: number, cardsReviewed: number): v
 /**
  * Increment learning progress by number of cards just reviewed
  * More granular than recalculating from scratch
+ * NOTE: This only adds incremental progress for new unique card reviews
  */
 export function incrementLearningProgress(lesson: number, cardsJustReviewed: number): void {
   const totalCards = LESSON_SIZES[lesson] ?? 100;
   const currentProgress = getLessonProgress(lesson);
   
-  // Don't update if already at exam level (75%+)
-  if (currentProgress >= 75) return;
-  
-  // Add progress for these cards (each card = (1/total) * 75%)
-  const increment = (cardsJustReviewed / totalCards) * 75;
-  const newProgress = Math.min(Math.round(currentProgress + increment), 75);
+  // Add progress for these cards (each card = (1/total) * 100%)
+  const increment = (cardsJustReviewed / totalCards) * 100;
+  const newProgress = Math.min(Math.round(currentProgress + increment), 100);
   
   localStorage.setItem(`lessonProgress_${lesson}`, String(newProgress));
+}
+
+/**
+ * Recalculate learning progress based on actual reviewed cards in the DB
+ * Use this to verify or fix progress calculations
+ */
+export function recalculateLearningProgress(lesson: number, reviewedCardsInLesson: number): void {
+  const totalCards = LESSON_SIZES[lesson] ?? 100;
+  
+  // Calculate progress based on actual reviewed cards: (reviewed / total) * 100%
+  const progress = Math.round((reviewedCardsInLesson / totalCards) * 100);
+  
+  localStorage.setItem(`lessonProgress_${lesson}`, String(progress));
+}
+
+/**
+ * Migrate old cumulative progress to actual progress (one-time fix)
+ */
+export async function migrateProgressFromDb(): Promise<void> {
+  const { db } = await import("../db/db");
+  
+  const migrationDone = localStorage.getItem("progressMigrationDone_v3");
+  if (migrationDone) return; // Already migrated
+  
+  try {
+    for (const lesson of [1, 2, 3, 4, 5]) {
+      // Count actual reviewed cards in this lesson
+      const viewedCount = await db.vocab
+        .where("lesson")
+        .equals(lesson)
+        .and((v) => v.viewed === true)
+        .count();
+      
+      // Recalculate progress based on actual data
+      recalculateLearningProgress(lesson, viewedCount);
+    }
+    
+    localStorage.setItem("progressMigrationDone_v3", "true");
+  } catch (err) {
+    console.error("Progress migration failed:", err);
+  }
 }
 
 /**
@@ -95,10 +132,25 @@ export function getLessonExamScore(lesson: number): number | null {
 }
 
 /**
- * Check if lesson is ready for exam (≥75% progress)
+ * Check if lesson is ready for exam (= 100% progress)
  */
 export function isReadyForExam(lesson: number): boolean {
-  return getLessonProgress(lesson) >= 75;
+  return getLessonProgress(lesson) === 100;
+}
+
+/**
+ * Check if exam has been passed (85%+ score)
+ */
+export function isExamPassed(lesson: number): boolean {
+  const score = getLessonExamScore(lesson);
+  return score !== null && score >= 85;
+}
+
+/**
+ * Check if lesson requires exam (100% progress but exam not passed yet)
+ */
+export function requiresExam(lesson: number): boolean {
+  return isReadyForExam(lesson) && !isExamPassed(lesson);
 }
 
 /**
@@ -108,28 +160,35 @@ export function getLessonProgressList(): LessonProgress[] {
   const lessons = [1, 2, 3, 4, 5];
   return lessons.map((lesson) => {
     const progress = getLessonProgress(lesson);
+    const examScore = getLessonExamScore(lesson);
+    const examPassed = examScore !== null && examScore >= 85;
     return {
       lesson,
       progress,
-      completed: progress === 100,
-      examScore: getLessonExamScore(lesson),
-      readyForExam: progress >= 75,
+      completed: examPassed, // Only completed if exam passed
+      examScore,
+      readyForExam: progress === 100,
+      requiresExam: progress === 100 && !examPassed,
     };
   });
 }
 
 /**
- * Get the next incomplete lesson (first one not at 100%)
+ * Get the next incomplete lesson (first one not fully completed with exam passed)
  * Returns null if all lessons are completed
  */
 export function getNextLesson(): number | null {
   const lessons = [1, 2, 3, 4, 5];
   for (const lesson of lessons) {
-    if (getLessonProgress(lesson) < 100) {
+    const progress = getLessonProgress(lesson);
+    const examScore = getLessonExamScore(lesson);
+    const examPassed = examScore !== null && examScore >= 85;
+    // Not complete if: learning not done OR exam not passed
+    if (progress < 100 || !examPassed) {
       return lesson;
     }
   }
-  return null; // All lessons completed
+  return null; // All lessons completed with exams passed
 }
 
 /**

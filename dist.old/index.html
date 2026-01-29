@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/Thai-Deutsch-Vokabel-Trainer/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Lerne Thai-Vokabeln mit SRS (Spaced Repetition System)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="/Thai-Deutsch-Vokabel-Trainer/manifest.json" />
+    
+    <title>Thai–Deutsch Vokabeltrainer</title>
+    <script type="module" crossorigin src="/Thai-Deutsch-Vokabel-Trainer/assets/index-CWHti7sS.js"></script>
+    <link rel="stylesheet" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/index-Dz_uNHQo.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('✅ Service Worker registered'))
+            .catch(err => console.log('❌ Service Worker registration failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>

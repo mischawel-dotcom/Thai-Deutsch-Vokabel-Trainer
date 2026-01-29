@@ -1,38 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { importCsv, exportCsv } from "../features/vocab/csv";
-import { db } from "../db/db";
-import { DEFAULT_VOCAB } from "../data/defaultVocab";
 
 export default function ImportExport() {
   const [msg, setMsg] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Auto-import default vocab on first load if DB is empty
-  useEffect(() => {
-    const autoImport = async () => {
-      const count = await db.vocab.count();
-      if (count === 0) {
-        try {
-          setIsLoading(true);
-          // Add default vocab directly
-          const now = Date.now();
-          const entries = DEFAULT_VOCAB.map(v => ({
-            ...v,
-            createdAt: now,
-            updatedAt: now,
-          }));
-          await db.vocab.bulkAdd(entries);
-          setMsg(`✅ Standard-Vokabeln geladen: ${entries.length} Einträge`);
-        } catch (err: any) {
-          console.error("Auto-import failed:", err);
-          setMsg(`❌ Fehler beim Laden der Standard-Vokabeln: ${err?.message ?? String(err)}`);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    void autoImport();
-  }, []);
 
   async function onImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

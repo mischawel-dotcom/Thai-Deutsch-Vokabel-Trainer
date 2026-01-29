@@ -3,15 +3,27 @@ import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
 import { speak, stopSpeak } from "../features/tts";
-import { getNextLesson, incrementLearningProgress } from "../lib/lessonProgress";
+import { getNextLesson, recalculateLearningProgress } from "../lib/lessonProgress";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
-  a.sort(() => Math.random() - 0.5);
+  // Fisher-Yates Shuffle für echtes Mischen
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
   return a;
 }
 
@@ -21,22 +33,14 @@ export default function Test() {
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [dailyLimit, setDailyLimit] = useState<number>(30);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
 
-  // Load daily limit from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("dailyLimit");
-    if (saved) {
-      const num = parseInt(saved, 10);
-      if (!isNaN(num) && num > 0) {
-        setDailyLimit(num);
-      }
-    }
-  }, []);
-
   // Richtung (während Session gesperrt)
-  const [direction, setDirection] = useState<LearnDirection>("TH_DE");
+  const [direction, setDirection] = useState<LearnDirection>(() => {
+    const saved = localStorage.getItem("learnDirection");
+    if (saved === "TH_DE" || saved === "DE_TH") return saved;
+    return "TH_DE";
+  });
 
   // Tag-Auswahl (OR-Logik)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -44,12 +48,14 @@ export default function Test() {
   // Lektion-Auswahl
   const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
 
-  // Nur fällige Karten
-  const [onlyDue, setOnlyDue] = useState<boolean>(false);
-  const [dueSet, setDueSet] = useState<Set<number>>(new Set());
-
-  // Nur gesehene Karten
+  // Nur gelernte Karten
   const [onlyViewed, setOnlyViewed] = useState<boolean>(false);
+
+  // Dialog für Lektion-Auswahl
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
+  const [cardLimit, setCardLimit] = useState<string>("");
+  const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
 
   // Session-State
   const [sessionActive, setSessionActive] = useState(false);
@@ -57,9 +63,11 @@ export default function Test() {
   const [currentId, setCurrentId] = useState<number | null>(null);
   const [flipped, setFlipped] = useState(false);
 
-  // 5-in-a-row Logik
+  // 5-in-a-row Logik (Durchgang-basiert)
   const [streaks, setStreaks] = useState<Record<number, number>>({});
   const [doneIds, setDoneIds] = useState<Record<number, true>>({});
+  const [currentRound, setCurrentRound] = useState<number[]>([]); // Aktuelle Runde
+  const [roundIndex, setRoundIndex] = useState<number>(0); // Position in der Runde
 
   const canGrade = flipped && currentId != null;
 
@@ -131,12 +139,6 @@ export default function Test() {
 
   const completedCount = useMemo(() => Object.keys(doneIds).length, [doneIds]);
 
-  async function refreshDueSet() {
-    const now = Date.now();
-    const due = await db.progress.where("dueAt").belowOrEqual(now).toArray();
-    setDueSet(new Set(due.map((p) => p.entryId)));
-  }
-
   async function loadAllVocab() {
     setError("");
     setStatus("Lade Vokabeln …");
@@ -151,7 +153,6 @@ export default function Test() {
       }
 
       setAllVocab(vocab);
-      await refreshDueSet();
 
       setStatus(vocab.length ? `Geladen: ${vocab.length} Einträge` : "Keine Einträge vorhanden.");
     } catch (e: any) {
@@ -162,57 +163,47 @@ export default function Test() {
   }
 
   useEffect(() => {
-    void loadAllVocab();
+    loadAllVocab().then(() => {
+      // Check if user came from Home with a lesson selected
+      const selectedLesson = localStorage.getItem("selectedLessonForTest");
+      if (selectedLesson) {
+        const lesson = parseInt(selectedLesson, 10);
+        if (!isNaN(lesson) && [1, 2, 3, 4, 5].includes(lesson)) {
+          setSelectedLesson(lesson);
+          setTimeout(() => {
+            startSessionWithFilters(lesson, false);
+            setSessionActive(true);
+          }, 0);
+          localStorage.removeItem("selectedLessonForTest");
+        }
+      }
+    });
   }, []);
 
-  // Helper: Get daily limit directly from localStorage
-  function getCurrentDailyLimit(): number {
-    const saved = localStorage.getItem("dailyLimit");
-    if (saved) {
-      const num = parseInt(saved, 10);
-      if (!isNaN(num) && num > 0) {
-        return num;
-      }
-    }
-    return 30;
-  }
-
-  // Helper: Build session IDs with optional limit override
-  function buildSessionIds(limitOverride?: number): number[] {
+  // Helper: Build session IDs
+  function buildSessionIds(): number[] {
     const ids: number[] = [];
     for (const v of allVocab) {
       if (!v.id) continue;
       if (!matchesLessonFilter(v)) continue;
       if (!matchesTagFilter(v)) continue;
-      if (!matchesDueFilter(v.id)) continue;
       if (!matchesViewedFilter(v)) continue;
       ids.push(v.id);
-    }
-    const limit = limitOverride !== undefined ? limitOverride : getCurrentDailyLimit();
-    if (onlyDue && limit > 0 && ids.length > limit) {
-      return ids.slice(0, limit);
     }
     return ids;
   }
 
-  // Helper: Start session with direct parameters
-  function startSessionWithFilters(lesson?: number, duOnly: boolean = false) {
+  // Helper: Start session with learned cards
+  function startSessionWithFilters(lesson?: number, viewedOnly: boolean = false) {
     setSelectedLesson(lesson);
-    setOnlyDue(duOnly);
-
-    const limit = getCurrentDailyLimit();
+    setOnlyViewed(viewedOnly);
 
     const ids: number[] = [];
     for (const v of allVocab) {
       if (!v.id) continue;
       if (lesson !== undefined && v.lesson !== lesson) continue;
-      if (duOnly && !dueSet.has(v.id)) continue;
-      if (!matchesViewedFilter(v)) continue;
+      if (viewedOnly && !v.viewed) continue;
       ids.push(v.id);
-    }
-
-    if (duOnly && limit > 0 && ids.length > limit) {
-      ids.splice(limit);
     }
 
     if (ids.length === 0) {
@@ -223,13 +214,17 @@ export default function Test() {
       setFlipped(false);
       setStreaks({});
       setDoneIds({});
+      setCurrentRound([]);
+      setRoundIndex(0);
       return;
     }
 
     const shuffled = shuffle(ids);
 
     setSessionActive(true);
-    setQueue(shuffled);
+    setQueue(ids); // Komplette Liste
+    setCurrentRound(shuffled); // Erste Runde gemischt
+    setRoundIndex(0);
     setCurrentId(shuffled[0] ?? null);
     setFlipped(false);
 
@@ -239,8 +234,8 @@ export default function Test() {
     setStatus(`Session gestartet: ${ids.length} Karte(n)`);
   }
 
-  // Quick-Start: Only due cards
-  function quickStartDue() {
+  // Quick-Start: Learned cards
+  function quickStartLearned() {
     const nextLesson = getNextLesson();
     if (nextLesson !== null) {
       startSessionWithFilters(nextLesson, true);
@@ -249,9 +244,49 @@ export default function Test() {
     }
   }
 
-  // Quick-Start: Specific lesson, only due
-  function quickStartLesson(lesson: number) {
-    startSessionWithFilters(lesson, true);
+  // Quick-Start: Specific lesson, learned cards only
+  function openLessonDialog(lesson: number) {
+    setSelectedDialogLesson(lesson);
+    setCardLimit("");
+    setDialogOpen(true);
+  }
+
+  function startLessonFromDialog() {
+    if (!selectedDialogLesson) return;
+    
+    const limit = cardLimit ? parseInt(cardLimit, 10) : 0;
+    
+    // Hole alle Karten dieser Lektion (unabhängig vom viewed-Status)
+    const lessonCards = allVocab.filter(
+      (v) => v.id && v.lesson === selectedDialogLesson
+    );
+    
+    let cardsToUse = lessonCards.map((v) => v.id!);
+    
+    // Limitiere auf gewünschte Anzahl
+    if (limit > 0 && limit < cardsToUse.length) {
+      cardsToUse = shuffle(cardsToUse).slice(0, limit);
+    }
+    
+    if (cardsToUse.length === 0) {
+      setStatus(`Keine gelernten Karten in Lektion ${selectedDialogLesson} verfügbar.`);
+      setDialogOpen(false);
+      return;
+    }
+    
+    const shuffled = shuffle(cardsToUse);
+    
+    setSessionActive(true);
+    setQueue(cardsToUse);
+    setCurrentRound(shuffled);
+    setRoundIndex(0);
+    setCurrentId(shuffled[0] ?? null);
+    setFlipped(false);
+    setStreaks(Object.fromEntries(cardsToUse.map((id) => [id, 0])));
+    setDoneIds({});
+    setStatus(`Session gestartet: ${cardsToUse.length} Karte(n) aus Lektion ${selectedDialogLesson}`);
+    
+    setDialogOpen(false);
   }
 
   function toggleTag(tag: string) {
@@ -269,11 +304,6 @@ export default function Test() {
     return selectedTags.some((t) => tags.includes(t));
   }
 
-  function matchesDueFilter(id: number): boolean {
-    if (!onlyDue) return true;
-    return dueSet.has(id);
-  }
-
   function matchesViewedFilter(v: VocabEntry): boolean {
     if (!onlyViewed) return true;
     return v.viewed === true;
@@ -285,38 +315,80 @@ export default function Test() {
 
   const selectedCardsCount = useMemo(() => {
     return buildSessionIds().length;
-  }, [allVocab, selectedLesson, selectedTags, onlyDue, onlyViewed, dueSet, dailyLimit]);
-
-  const isOverLimit = selectedCardsCount > dailyLimit;
+  }, [allVocab, selectedLesson, selectedTags, onlyViewed]);
 
   async function restartSessionConfirm() {
     const ok = confirm("Wollen Sie die Test-Session neu starten?\n\nAlle Session-Zähler werden zurückgesetzt.");
     if (!ok) return;
 
-    await refreshDueSet();
     startSession();
   }
 
   function goNext() {
-    let rest = queue.slice(1);
-    while (rest.length > 0 && doneIds[rest[0]]) rest = rest.slice(1);
+    // Gehe zur nächsten Karte in der aktuellen Runde
+    const nextIndex = roundIndex + 1;
+    
+    // Suche nächste nicht-abgeschlossene Karte
+    let searchIndex = nextIndex;
+    while (searchIndex < currentRound.length && doneIds[currentRound[searchIndex]]) {
+      searchIndex++;
+    }
 
-    setQueue(rest);
-    setCurrentId(rest[0] ?? null);
+    if (searchIndex >= currentRound.length) {
+      // Runde abgeschlossen - starte neue Runde
+      startNewRound();
+    } else {
+      setRoundIndex(searchIndex);
+      setCurrentId(currentRound[searchIndex] ?? null);
+      setFlipped(false);
+    }
+  }
+
+  function startNewRound() {
+    // Sammle alle noch nicht abgeschlossenen Karten
+    const remaining = queue.filter(id => !doneIds[id]);
+    
+    if (remaining.length === 0) {
+      // Session beendet
+      setCurrentId(null);
+      setFlipped(false);
+      return;
+    }
+
+    // Mische für neue Runde
+    const shuffled = shuffle(remaining);
+    
+    setCurrentRound(shuffled);
+    setRoundIndex(0);
+    setCurrentId(shuffled[0] ?? null);
     setFlipped(false);
   }
 
   function requeueCurrentToEnd() {
     if (!currentId) return;
-    const rest = queue.slice(1);
-
-    if (!doneIds[currentId]) rest.push(currentId);
-
-    while (rest.length > 0 && doneIds[rest[0]]) rest.shift();
-
-    setQueue(rest);
-    setCurrentId(rest[0] ?? null);
-    setFlipped(false);
+    
+    // Verschiebe aktuelle Karte ans Ende der Runde
+    const newRound = [...currentRound];
+    const [removed] = newRound.splice(roundIndex, 1);
+    newRound.push(removed);
+    
+    setCurrentRound(newRound);
+    
+    // Zeige die Karte, die jetzt an der aktuellen Position ist
+    // (da wir eine entfernt haben, rutscht die nächste nach)
+    let searchIndex = roundIndex;
+    while (searchIndex < newRound.length && doneIds[newRound[searchIndex]]) {
+      searchIndex++;
+    }
+    
+    if (searchIndex >= newRound.length) {
+      // Alle verbleibenden Karten dieser Runde sind done -> neue Runde
+      startNewRound();
+    } else {
+      setRoundIndex(searchIndex);
+      setCurrentId(newRound[searchIndex] ?? null);
+      setFlipped(false);
+    }
   }
 
   async function markWrong() {
@@ -340,13 +412,23 @@ export default function Test() {
       
       const card = allVocab.find((v) => v.id === currentId);
       if (card && card.lesson) {
-        incrementLearningProgress(card.lesson, 1);
+        // Markiere Karte als "viewed" und berechne Fortschritt neu
+        await db.vocab.update(currentId, { viewed: true });
+        
+        // Berechne neu: Wie viele Karten in dieser Lektion haben viewed=true?
+        const viewedCards = await db.vocab
+          .where("lesson")
+          .equals(card.lesson)
+          .and((v) => v.viewed === true)
+          .count();
+        
+        // Setze Fortschritt basierend auf echten gelernten Karten
+        recalculateLearningProgress(card.lesson, viewedCards);
       }
-      
-      goNext();
-    } else {
-      requeueCurrentToEnd();
     }
+    
+    // Immer zur nächsten Karte im Durchgang (egal ob 5/5 oder nicht)
+    goNext();
   }
 
   function startSession() {
@@ -356,8 +438,7 @@ export default function Test() {
       const filters = [];
       if (selectedTags.length > 0) filters.push("Tag-Auswahl");
       if (selectedLesson !== undefined) filters.push("Lektion-Auswahl");
-      if (onlyDue) filters.push("(und fällig)");
-      if (onlyViewed) filters.push("(und gesehen)");
+      if (onlyViewed) filters.push("(und gelernt)");
       const msg = filters.length > 0 ? `Keine Karten passend zur ${filters.join(" ")}` : "Keine Karten vorhanden.";
       setStatus(msg);
       setSessionActive(false);
@@ -366,20 +447,35 @@ export default function Test() {
       setFlipped(false);
       setStreaks({});
       setDoneIds({});
+      setCurrentRound([]);
+      setRoundIndex(0);
       return;
     }
 
-    const shuffled = shuffle(ids);
+    // Limitiere auf gewünschte Anzahl
+    const limit = cardLimitAdvanced ? parseInt(cardLimitAdvanced, 10) : 0;
+    let cardsToUse = ids;
+    
+    if (limit > 0 && limit < ids.length) {
+      cardsToUse = shuffle(ids).slice(0, limit);
+    } else if (limit > ids.length) {
+      setStatus(`⚠️ Nur ${ids.length} Karten verfügbar, nicht ${limit}`);
+      return;
+    }
+
+    const shuffled = shuffle(cardsToUse);
 
     setSessionActive(true);
-    setQueue(shuffled);
+    setQueue(cardsToUse); // Komplette Liste aller Karten
+    setCurrentRound(shuffled); // Erste Runde gemischt
+    setRoundIndex(0);
     setCurrentId(shuffled[0] ?? null);
     setFlipped(false);
 
-    setStreaks(Object.fromEntries(ids.map((id) => [id, 0])));
+    setStreaks(Object.fromEntries(cardsToUse.map((id) => [id, 0])));
     setDoneIds({});
 
-    setStatus(`Session gestartet: ${ids.length} Karte(n)`);
+    setStatus(`Session gestartet: ${cardsToUse.length} Karte(n)`);
   }
 
   const finished = sessionActive && currentId == null;
@@ -408,12 +504,12 @@ export default function Test() {
           
           <div className="grid grid-cols-1 gap-2">
             <Button
-              onClick={quickStartDue}
+              onClick={quickStartLearned}
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-              title="Teste die fälligen Karten der empfohlenen Lektion"
+              title="Teste die Karten, die du bereits gelernt hast"
             >
-              📖 Nur Fällige (empfohlen)
+              📖 Teste gelernte Karten (empfohlen)
             </Button>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
@@ -421,7 +517,7 @@ export default function Test() {
                 allLessons.map(({ lesson, count }) => (
                   <Button
                     key={lesson}
-                    onClick={() => quickStartLesson(lesson)}
+                    onClick={() => openLessonDialog(lesson)}
                     variant="secondary"
                     className="h-10 text-sm font-medium"
                     title={`Lektion ${lesson} testen (${count} Karten)`}
@@ -447,16 +543,6 @@ export default function Test() {
         <Card className="p-4">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-primary"
-                  checked={onlyDue}
-                  onChange={(e) => setOnlyDue(e.target.checked)}
-                />
-                nur fällige Karten
-              </label>
-
               <label className="inline-flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -582,15 +668,21 @@ export default function Test() {
               )}
             </div>
 
-            {isOverLimit && (
-              <div className="p-3 rounded-md bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
-                <p className="text-sm text-orange-800 dark:text-orange-200">
-                  ⚠️ <strong>Viele Karten:</strong> Du hast {selectedCardsCount} Karten ausgewählt, empfohlen sind max. {dailyLimit}.
-                  <br />
-                  <span className="text-xs opacity-90">Du kannst trotzdem alle testen, aber kurze Sessions sind effizienter!</span>
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Anzahl Karten (optional)</label>
+              <input
+                type="number"
+                value={cardLimitAdvanced}
+                onChange={(e) => setCardLimitAdvanced(e.target.value)}
+                placeholder={`Alle (${selectedCardsCount} verfügbar)`}
+                min="1"
+                max={selectedCardsCount}
+                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leer lassen für alle verfügbaren Karten ({selectedCardsCount})
+              </p>
+            </div>
 
             <div className="pt-4 border-t">
               <Button 
@@ -598,7 +690,11 @@ export default function Test() {
                 size="lg"
                 className="w-full h-14 text-lg font-semibold"
               >
-                🚀 Session starten ({selectedCardsCount} {selectedCardsCount === 1 ? "Karte" : "Karten"})
+                {(() => {
+                  const limit = cardLimitAdvanced ? parseInt(cardLimitAdvanced, 10) : 0;
+                  const actualCount = limit > 0 && limit < selectedCardsCount ? limit : selectedCardsCount;
+                  return `🚀 Session starten (${actualCount} ${actualCount === 1 ? "Karte" : "Karten"})`;
+                })()}
               </Button>
             </div>
           </div>
@@ -621,7 +717,7 @@ export default function Test() {
       {/* Keine Session */}
       {!sessionActive ? (
         <p className="text-center text-sm text-muted-foreground">
-          Wähle Richtung + optional Lektion/Tags/„nur fällige Karten" und klicke auf <b>Session starten</b>.
+          Wähle Richtung + optional Lektion/Tags/Filter und klicke auf <b>Session starten</b>.
         </p>
       ) : null}
 
@@ -815,6 +911,44 @@ export default function Test() {
           ) : null}
         </div>
       ) : null}
+
+      {/* Dialog für Lektion-Auswahl */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lektion {selectedDialogLesson} testen</DialogTitle>
+            <DialogDescription>
+              Wähle, wie viele Karten du testen möchtest.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Anzahl Karten (optional)</label>
+              <input
+                type="number"
+                value={cardLimit}
+                onChange={(e) => setCardLimit(e.target.value)}
+                placeholder="Alle Karten"
+                min="1"
+                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leer lassen für alle gelernten Karten
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button onClick={startLessonFromDialog}>
+              Test starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

@@ -31,8 +31,8 @@ class AppDB extends Dexie {
   progress!: Dexie.Table<SrsProgress, number>;
 
   constructor() {
-    // Bump DB name to force a clean IndexedDB (fix duplicate 1000 entries)
-    super("thaiVocabTrainer_v2");
+    // Updated to v4 to force clean slate after fixing duplication bug
+    super("thaiVocabTrainer_v4");
 
     // Version 3: Original schema
     this.version(3).stores({
@@ -48,6 +48,12 @@ class AppDB extends Dexie {
 
     // Version 5: Add viewed flag for learning tracking
     this.version(5).stores({
+      vocab: "++id, thai, german, lesson, viewed, createdAt, updatedAt",
+      progress: "entryId, dueAt, lastReviewed, updatedAt",
+    });
+
+    // Version 6: Force clean slate after fixing duplication bug
+    this.version(6).stores({
       vocab: "++id, thai, german, lesson, viewed, createdAt, updatedAt",
       progress: "entryId, dueAt, lastReviewed, updatedAt",
     });
