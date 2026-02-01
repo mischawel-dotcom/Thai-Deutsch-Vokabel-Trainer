@@ -295,16 +295,9 @@ export default function Learn() {
                     variant="secondary"
                     onClick={() => void speak(current.thai, thaiLang)}
                     title="Thai Wort vorlesen"
+                    className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                   >
                     🔊 Thai sprechen
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={stopSpeak}
-                    title="Stop"
-                  >
-                    Stop
                   </Button>
                 </div>
               </div>
@@ -332,16 +325,9 @@ export default function Learn() {
                     variant="secondary"
                     onClick={() => void speak(current.german, germanLang)}
                     title="Deutsche Übersetzung vorlesen"
+                    className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                   >
                     🔊 Deutsch sprechen
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={stopSpeak}
-                    title="Stop"
-                  >
-                    Stop
                   </Button>
                 </div>
               </div>
@@ -394,10 +380,10 @@ export default function Learn() {
             <Button
               onClick={markCurrentAsViewed}
               size="sm"
-              className="w-full h-10 text-sm font-semibold"
+              className="w-full h-10 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
               variant={current.viewed ? "secondary" : "default"}
             >
-              {current.viewed ? "✅ Bereits gesehen" : "Markiere als gelernt"}
+              {current.viewed ? "✅ Bereits gelernt" : "Markiere als gelernt"}
             </Button>
 
             {/* Navigation */}
@@ -406,7 +392,7 @@ export default function Learn() {
                 onClick={goPrev}
                 disabled={currentIndex === 0}
                 variant="outline"
-                className="px-4"
+                className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
               >
                 ⬅️ Zurück
               </Button>
@@ -414,7 +400,7 @@ export default function Learn() {
               <Button
                 onClick={goNext}
                 disabled={currentIndex === lessonCards.length - 1}
-                className="px-4"
+                className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
               >
                 Weiter ➡️
               </Button>
@@ -424,7 +410,7 @@ export default function Learn() {
             <Button
               onClick={endSession}
               variant="outline"
-              className="w-full h-10 text-sm"
+              className="w-full h-10 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white rounded-lg"
             >
               📚 Lektion beenden
             </Button>
@@ -494,10 +480,10 @@ export default function Learn() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg">
               Abbrechen
             </Button>
-            <Button onClick={startSession}>
+            <Button onClick={startSession} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg">
               Starten
             </Button>
           </DialogFooter>
