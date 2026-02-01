@@ -224,17 +224,9 @@ export default function Learn() {
 
       {/* Lern-Session */}
       {sessionActive && current ? (
-        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-0 m-0">
-          {/* Close-Button oben rechts */}
-          <button
-            onClick={endSession}
-            className="absolute top-4 right-4 z-60 rounded-full bg-gray-200 dark:bg-gray-800 p-3 shadow-lg text-2xl hover:bg-gray-300 dark:hover:bg-gray-700 focus:outline-none"
-            aria-label="Session beenden"
-          >
-            ✕
-          </button>
+        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
           {/* Top-Status */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>
               Karte: <b className="text-foreground">{currentIndex + 1}</b> / <b className="text-foreground">{lessonCards.length}</b>
             </span>
@@ -245,7 +237,7 @@ export default function Learn() {
           </div>
 
           {/* Fortschrittsbalken */}
-          <div className="mx-auto w-full max-w-2xl">
+          <div className="mx-auto w-full max-w-2xl mt-2">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
@@ -256,11 +248,11 @@ export default function Learn() {
           </div>
 
           {/* Lernkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-8 md:p-10 shadow-lg mt-4">
-            <div className="space-y-6">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-6 md:p-8 shadow-lg mt-3">
+            <div className="space-y-4">
               {/* Thai mit Ton */}
-              <div className="space-y-3">
-                <div className="text-5xl font-semibold text-center leading-tight">{current.thai}</div>
+              <div className="space-y-2">
+                <div className="text-4xl font-semibold text-center leading-tight">{current.thai}</div>
                 
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button
@@ -283,21 +275,21 @@ export default function Learn() {
               </div>
 
               {/* Trennlinie */}
-              <div className="border-t my-4" />
+              <div className="border-t my-3" />
 
               {/* Lautschrift */}
               {current.transliteration ? (
                 <div className="text-center">
-                  <div className="text-base text-muted-foreground italic">{current.transliteration}</div>
+                  <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                 </div>
               ) : null}
 
               {/* Trennlinie */}
-              <div className="border-t my-4" />
+              <div className="border-t my-3" />
 
               {/* Deutsch mit Ton */}
-              <div className="space-y-3">
-                <div className="text-4xl font-semibold text-center leading-tight text-blue-600 dark:text-blue-400">{current.german}</div>
+              <div className="space-y-2">
+                <div className="text-3xl font-semibold text-center leading-tight text-blue-600 dark:text-blue-400">{current.german}</div>
                 
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button
@@ -322,8 +314,8 @@ export default function Learn() {
               {/* Beispiele (falls vorhanden) */}
               {current.exampleThai || current.exampleGerman ? (
                 <>
-                  <div className="border-t my-4" />
-                  <div className="rounded-md border bg-muted/30 p-4 text-sm space-y-2">
+                  <div className="border-t my-3" />
+                  <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
                     <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
                     
                     {current.exampleThai ? (
@@ -362,24 +354,24 @@ export default function Learn() {
           </Card>
 
           {/* Navigation + Aktionen */}
-          <div className="space-y-3">
+          <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
             {/* Markieren als gesehen */}
             <Button
               onClick={markCurrentAsViewed}
-              size="lg"
-              className="w-full h-12 text-base font-semibold"
+              size="sm"
+              className="w-full h-10 text-sm font-semibold"
               variant={current.viewed ? "secondary" : "default"}
             >
               {current.viewed ? "✅ Bereits gesehen" : "Markiere als gelernt"}
             </Button>
 
             {/* Navigation */}
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-2">
               <Button
                 onClick={goPrev}
                 disabled={currentIndex === 0}
                 variant="outline"
-                className="px-6"
+                className="px-4"
               >
                 ⬅️ Zurück
               </Button>
@@ -387,7 +379,7 @@ export default function Learn() {
               <Button
                 onClick={goNext}
                 disabled={currentIndex === lessonCards.length - 1}
-                className="px-6"
+                className="px-4"
               >
                 Weiter ➡️
               </Button>
@@ -397,7 +389,7 @@ export default function Learn() {
             <Button
               onClick={endSession}
               variant="outline"
-              className="w-full"
+              className="w-full h-10 text-sm"
             >
               📚 Lektion beenden
             </Button>
