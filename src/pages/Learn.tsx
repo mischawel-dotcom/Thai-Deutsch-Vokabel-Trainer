@@ -63,6 +63,41 @@ export default function Learn() {
     void loadAllVocab();
   }, []);
 
+  // Restore session on mount
+  useEffect(() => {
+    if (!allVocab.length) return;
+
+    const savedSession = localStorage.getItem("learnSession");
+    if (!savedSession) return;
+
+    try {
+      const session = JSON.parse(savedSession);
+      if (session.sessionActive && session.lessonCards && session.lessonCards.length > 0) {
+        setLessonCards(session.lessonCards);
+        setCurrentIndex(session.currentIndex || 0);
+        setSessionActive(true);
+        setStatus(`Session wiederhergestellt: ${session.lessonCards.length} Karte(n)`);
+      }
+    } catch (e) {
+      console.error("Failed to restore learn session:", e);
+      localStorage.removeItem("learnSession");
+    }
+  }, [allVocab]);
+
+  // Save session to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionActive && lessonCards.length > 0) {
+      const sessionData = {
+        sessionActive,
+        lessonCards,
+        currentIndex,
+      };
+      localStorage.setItem("learnSession", JSON.stringify(sessionData));
+    } else {
+      localStorage.removeItem("learnSession");
+    }
+  }, [sessionActive, lessonCards, currentIndex]);
+
   useEffect(() => {
     const shouldAutoStart = localStorage.getItem("autoStartLearnDue") === "true";
     if (!shouldAutoStart) return;

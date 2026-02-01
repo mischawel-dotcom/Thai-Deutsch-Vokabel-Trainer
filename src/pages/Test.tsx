@@ -83,6 +83,53 @@ export default function Test() {
     localStorage.setItem("learnDirection", direction);
   }, [direction]);
 
+  // Restore session on mount - AFTER allVocab is loaded
+  useEffect(() => {
+    if (!allVocab.length) return; // Wait for vocab to load first
+
+    const savedSession = localStorage.getItem("testSession");
+    if (!savedSession) return;
+
+    try {
+      const session = JSON.parse(savedSession);
+      if (session.sessionActive && session.queue && session.queue.length > 0) {
+        setSessionActive(true);
+        setQueue(session.queue);
+        setCurrentId(session.currentId);
+        setFlipped(session.flipped || false);
+        setStreaks(session.streaks || {});
+        setDoneIds(session.doneIds || {});
+        setCurrentRound(session.currentRound || []);
+        setRoundIndex(session.roundIndex || 0);
+        if (session.direction) setDirection(session.direction);
+        setStatus("Test-Session wiederhergestellt");
+      }
+    } catch (e) {
+      console.error("Failed to restore test session:", e);
+      localStorage.removeItem("testSession");
+    }
+  }, [allVocab]);
+
+  // Save session to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionActive && queue.length > 0) {
+      const sessionData = {
+        sessionActive,
+        queue,
+        currentId,
+        flipped,
+        streaks,
+        doneIds,
+        currentRound,
+        roundIndex,
+        direction,
+      };
+      localStorage.setItem("testSession", JSON.stringify(sessionData));
+    } else {
+      localStorage.removeItem("testSession");
+    }
+  }, [sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction]);
+
 
   // ===== Derived data =====
   // Tag-Index
