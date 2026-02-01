@@ -745,7 +745,18 @@ export default function Test() {
 
       {/* Karte */}
       {!finished && sessionActive && current && current.id ? (
-        <div className="space-y-4">
+        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-4 m-0">
+          {/* Close-Button oben rechts */}
+          <button
+            onClick={restartSessionConfirm}
+            className="absolute top-4 right-4 z-60 rounded-full bg-gray-200 dark:bg-gray-800 p-3 shadow-lg text-2xl hover:bg-gray-300 dark:hover:bg-gray-700 focus:outline-none"
+            aria-label="Session beenden"
+            title="Session neu starten"
+          >
+            ✕
+          </button>
+
+          {/* Top-Status */}
           <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
             <span>
               Verbleibend: <b className="text-foreground">{remainingUniqueCount}</b>
@@ -760,6 +771,7 @@ export default function Test() {
             </span>
           </div>
 
+          {/* Fortschrittsbalken */}
           <div className="mx-auto w-full max-w-2xl">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
@@ -770,158 +782,126 @@ export default function Test() {
             </div>
           </div>
 
-          <Card
-            className="mx-auto max-w-2xl cursor-pointer select-none p-10 text-center shadow-lg hover:shadow-xl transition-shadow hover:bg-secondary/30"
-            onClick={() => setFlipped((f) => !f)}
-            role="button"
-            aria-label="Karte umdrehen"
-            title="Klicken zum Umdrehen"
-          >
-            {!flipped ? (
-              <div className="space-y-6">
-                <div className="text-6xl font-semibold leading-tight">{frontText}</div>
+          {/* Testkarte */}
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-8 md:p-10 shadow-lg mt-4">
+            <div className="space-y-6">
+              {!flipped ? (
+                <div className="space-y-6">
+                  <div className="text-6xl font-semibold text-center leading-tight">{frontText}</div>
 
-                {direction === "TH_DE" && current.transliteration ? (
-                  <div className="text-base text-muted-foreground">{current.transliteration}</div>
-                ) : null}
+                  {direction === "TH_DE" && current.transliteration ? (
+                    <div className="text-center">
+                      <div className="text-base text-muted-foreground italic">{current.transliteration}</div>
+                    </div>
+                  ) : null}
 
-                <div className="flex flex-wrap justify-center gap-2 pt-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      void speak(frontText, frontLang);
-                    }}
-                    title="Vorlesen"
-                  >
-                    🔊 Vorlesen
-                  </Button>
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        void speak(frontText, frontLang);
+                      }}
+                      title="Vorlesen"
+                    >
+                      🔊 Vorlesen
+                    </Button>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      stopSpeak();
-                    }}
-                    title="Stop"
-                  >
-                    Stop
-                  </Button>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="text-sm font-medium text-primary animate-pulse">👇 Klick zum Umdrehen</div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-4xl font-semibold leading-snug">{backText}</div>
-
-                {direction === "DE_TH" && current.transliteration ? (
-                  <div className="text-base text-muted-foreground">{current.transliteration}</div>
-                ) : null}
-
-                <div className="flex flex-wrap justify-center gap-2 pt-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      void speak(backText, backLang);
-                    }}
-                    title="Vorlesen"
-                  >
-                    🔊 Vorlesen
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      stopSpeak();
-                    }}
-                    title="Stop"
-                  >
-                    Stop
-                  </Button>
-                </div>
-
-                {current.exampleThai || current.exampleGerman ? (
-                  <div className="space-y-2 rounded-md border bg-muted/30 p-4 text-sm">
-                    {current.exampleThai ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-muted-foreground">TH:</span>
-                        <span>{current.exampleThai}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            void speak(current.exampleThai!, "th-TH");
-                          }}
-                          title="Beispiel Thai vorlesen"
-                        >
-                          🔊
-                        </Button>
-                      </div>
-                    ) : null}
-
-                    {current.exampleGerman ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-muted-foreground">DE:</span>
-                        <span>{current.exampleGerman}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            void speak(current.exampleGerman!, "de-DE");
-                          }}
-                          title="Beispiel Deutsch vorlesen"
-                        >
-                          🔊
-                        </Button>
-                      </div>
-                    ) : null}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        stopSpeak();
+                      }}
+                      title="Stop"
+                    >
+                      Stop
+                    </Button>
                   </div>
-                ) : null}
 
-                <div className="text-xs text-muted-foreground">Klicken zum Zurückdrehen</div>
-              </div>
-            )}
+                  <div className="pt-4 border-t">
+                    <Button
+                      onClick={() => setFlipped(true)}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      👇 Karte umdrehen
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-4xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{backText}</div>
+
+                  {direction === "DE_TH" && current.transliteration ? (
+                    <div className="text-center">
+                      <div className="text-base text-muted-foreground italic">{current.transliteration}</div>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        void speak(backText, backLang);
+                      }}
+                      title="Vorlesen"
+                    >
+                      🔊 Vorlesen
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        stopSpeak();
+                      }}
+                      title="Stop"
+                    >
+                      Stop
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </Card>
 
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button
-              variant="destructive"
-              onClick={markWrong}
-              disabled={!canGrade}
-              title={!canGrade ? "Bitte zuerst umdrehen" : "Setzt den 5er-Zähler dieser Karte auf 0"}
-              className="px-8"
-            >
-              ❌ Falsch
-            </Button>
-
-            <Button
-              onClick={markRight}
-              disabled={!canGrade}
-              title={!canGrade ? "Bitte zuerst umdrehen" : "Erhöht den 5er-Zähler dieser Karte um 1"}
-              className="px-8"
-            >
-              ✅ Richtig
-            </Button>
-          </div>
-
-          {!canGrade ? (
-            <div className="rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 text-center">
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                ⬆️ Bitte erst die Karte umdrehen, dann bewerten.
-              </p>
+          {/* Bewertungs-Buttons */}
+          <div className="space-y-3 mt-4 w-full max-w-md">
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={() => handleGrade(0)}
+                disabled={!canGrade}
+                variant="destructive"
+                size="lg"
+                className="flex-1"
+              >
+                ❌ Falsch
+              </Button>
+              <Button
+                onClick={() => handleGrade(1)}
+                disabled={!canGrade}
+                variant="default"
+                size="lg"
+                className="flex-1"
+              >
+                ✅ Richtig
+              </Button>
             </div>
-          ) : null}
+
+            {!canGrade ? (
+              <div className="rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 text-center">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  ⬆️ Bitte erst die Karte umdrehen, dann bewerten.
+                </p>
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
