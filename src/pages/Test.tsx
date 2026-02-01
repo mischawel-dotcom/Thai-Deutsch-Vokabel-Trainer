@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
@@ -56,6 +56,7 @@ export default function Test() {
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
+  const cardLimitInputRef = useRef<HTMLInputElement>(null);
 
   // Session-State
   const [sessionActive, setSessionActive] = useState(false);
@@ -80,6 +81,18 @@ export default function Test() {
   useEffect(() => {
     localStorage.setItem("learnDirection", direction);
   }, [direction]);
+
+  // Verhindere Auto-Selektion des Input-Feldes im Dialog
+  useEffect(() => {
+    if (dialogOpen && cardLimitInputRef.current) {
+      // Deselektiere den Text im Input-Feld
+      setTimeout(() => {
+        if (cardLimitInputRef.current) {
+          cardLimitInputRef.current.blur();
+        }
+      }, 0);
+    }
+  }, [dialogOpen]);
 
   // Tag-Index
   const allTags = useMemo(() => {
@@ -247,7 +260,7 @@ export default function Test() {
   // Quick-Start: Specific lesson, learned cards only
   function openLessonDialog(lesson: number) {
     setSelectedDialogLesson(lesson);
-    setCardLimit("");
+    setCardLimit(""); // Leer lassen, damit nichts markiert ist
     setDialogOpen(true);
   }
 
@@ -914,31 +927,36 @@ export default function Test() {
 
       {/* Dialog für Lektion-Auswahl */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Lektion {selectedDialogLesson} testen</DialogTitle>
             <DialogDescription>
-              Wähle, wie viele Karten du testen möchtest.
+              Konfiguriere deine Test-Session
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
+            {/* Anzahl der Karten */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Anzahl Karten (optional)</label>
+              <label htmlFor="cardLimit" className="text-sm font-medium">
+                Anzahl der Karten
+              </label>
               <input
+                ref={cardLimitInputRef}
                 type="number"
+                id="cardLimit"
                 value={cardLimit}
                 onChange={(e) => setCardLimit(e.target.value)}
-                placeholder="Alle Karten"
                 min="1"
-                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Alle Karten"
               />
               <p className="text-xs text-muted-foreground">
-                Leer lassen für alle gelernten Karten
+                Standard: alle verfügbaren Karten der Lektion
               </p>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Abbrechen

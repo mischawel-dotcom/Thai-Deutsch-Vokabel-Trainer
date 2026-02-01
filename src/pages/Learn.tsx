@@ -224,7 +224,15 @@ export default function Learn() {
 
       {/* Lern-Session */}
       {sessionActive && current ? (
-        <div className="space-y-4">
+        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-0 m-0">
+          {/* Close-Button oben rechts */}
+          <button
+            onClick={endSession}
+            className="absolute top-4 right-4 z-60 rounded-full bg-gray-200 dark:bg-gray-800 p-3 shadow-lg text-2xl hover:bg-gray-300 dark:hover:bg-gray-700 focus:outline-none"
+            aria-label="Session beenden"
+          >
+            ✕
+          </button>
           {/* Top-Status */}
           <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
             <span>
@@ -248,7 +256,7 @@ export default function Learn() {
           </div>
 
           {/* Lernkarte */}
-          <Card className="mx-auto max-w-2xl p-10 shadow-lg">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-8 md:p-10 shadow-lg mt-4">
             <div className="space-y-6">
               {/* Thai mit Ton */}
               <div className="space-y-3">
