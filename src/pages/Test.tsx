@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useRef } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
@@ -30,6 +30,7 @@ function shuffle<T>(arr: T[]): T[] {
 type LearnDirection = "TH_DE" | "DE_TH";
 
 export default function Test() {
+  // ===== State =====
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -56,7 +57,6 @@ export default function Test() {
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
-  const cardLimitInputRef = useRef<HTMLInputElement>(null);
 
   // Session-State
   const [sessionActive, setSessionActive] = useState(false);
@@ -72,6 +72,7 @@ export default function Test() {
 
   const canGrade = flipped && currentId != null;
 
+  // ===== Effects =====
   // Persist direction
   useEffect(() => {
     const saved = localStorage.getItem("learnDirection");
@@ -82,18 +83,8 @@ export default function Test() {
     localStorage.setItem("learnDirection", direction);
   }, [direction]);
 
-  // Verhindere Auto-Selektion des Input-Feldes im Dialog
-  useEffect(() => {
-    if (dialogOpen && cardLimitInputRef.current) {
-      // Deselektiere den Text im Input-Feld
-      setTimeout(() => {
-        if (cardLimitInputRef.current) {
-          cardLimitInputRef.current.blur();
-        }
-      }, 0);
-    }
-  }, [dialogOpen]);
 
+  // ===== Derived data =====
   // Tag-Index
   const allTags = useMemo(() => {
     const map = new Map<string, number>();
@@ -152,6 +143,7 @@ export default function Test() {
 
   const completedCount = useMemo(() => Object.keys(doneIds).length, [doneIds]);
 
+  // ===== Data loading =====
   async function loadAllVocab() {
     setError("");
     setStatus("Lade Vokabeln …");
@@ -193,6 +185,7 @@ export default function Test() {
     });
   }, []);
 
+  // ===== Helpers =====
   // Helper: Build session IDs
   function buildSessionIds(): number[] {
     const ids: number[] = [];
@@ -337,6 +330,16 @@ export default function Test() {
     startSession();
   }
 
+  async function endSessionConfirm() {
+    const ok = confirm("Wollen Sie die Test-Session beenden?\n\nIhr Fortschritt wird gespeichert.");
+    if (!ok) return;
+
+    setSessionActive(false);
+    setCurrentId(null);
+    setFlipped(false);
+    setStatus("Session beendet");
+  }
+
   function goNext() {
     // Gehe zur nächsten Karte in der aktuellen Runde
     const nextIndex = roundIndex + 1;
@@ -405,7 +408,12 @@ export default function Test() {
   }
 
   async function markWrong() {
-    if (!canGrade || !currentId) return;
+    if (!currentId) return;
+    
+    if (!flipped) {
+      alert("Bitte erst die Karte umdrehen, dann bewerten.");
+      return;
+    }
 
     await gradeCard(currentId, 0);
     setStreaks((prev) => ({ ...prev, [currentId]: 0 }));
@@ -413,7 +421,12 @@ export default function Test() {
   }
 
   async function markRight() {
-    if (!canGrade || !currentId) return;
+    if (!currentId) return;
+    
+    if (!flipped) {
+      alert("Bitte erst die Karte umdrehen, dann bewerten.");
+      return;
+    }
 
     await gradeCard(currentId, 2);
 
@@ -495,6 +508,7 @@ export default function Test() {
   const cardStreak = current?.id ? Math.min(streaks[current.id] ?? 0, 5) : 0;
   const progressPct = Math.round((cardStreak / 5) * 100);
 
+  // ===== Render =====
   return (
     <PageShell
       title="Tests"
@@ -745,19 +759,10 @@ export default function Test() {
 
       {/* Karte */}
       {!finished && sessionActive && current && current.id ? (
-        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-4 m-0">
-          {/* Close-Button oben rechts */}
-          <button
-            onClick={restartSessionConfirm}
-            className="absolute top-4 right-4 z-60 rounded-full bg-gray-200 dark:bg-gray-800 p-3 shadow-lg text-2xl hover:bg-gray-300 dark:hover:bg-gray-700 focus:outline-none"
-            aria-label="Session beenden"
-            title="Session neu starten"
-          >
-            ✕
-          </button>
+        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
 
           {/* Top-Status */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>
               Verbleibend: <b className="text-foreground">{remainingUniqueCount}</b>
             </span>
@@ -772,7 +777,7 @@ export default function Test() {
           </div>
 
           {/* Fortschrittsbalken */}
-          <div className="mx-auto w-full max-w-2xl">
+          <div className="mx-auto w-full max-w-2xl mt-2">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
@@ -783,15 +788,15 @@ export default function Test() {
           </div>
 
           {/* Testkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-8 md:p-10 shadow-lg mt-4">
-            <div className="space-y-6">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-6 md:p-8 shadow-lg mt-3">
+            <div className="space-y-4">
               {!flipped ? (
-                <div className="space-y-6">
-                  <div className="text-6xl font-semibold text-center leading-tight">{frontText}</div>
+                <div className="space-y-4">
+                  <div className="text-4xl font-semibold text-center leading-tight">{frontText}</div>
 
                   {direction === "TH_DE" && current.transliteration ? (
                     <div className="text-center">
-                      <div className="text-base text-muted-foreground italic">{current.transliteration}</div>
+                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
                   ) : null}
 
@@ -821,6 +826,52 @@ export default function Test() {
                     </Button>
                   </div>
 
+                  {/* Beispiele (falls vorhanden) */}
+                  {current.exampleThai || current.exampleGerman ? (
+                    <>
+                      <div className="border-t my-3" />
+                      <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                        <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
+                        
+                        {current.exampleThai ? (
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <span className="text-muted-foreground">TH:</span>
+                            <span>{current.exampleThai}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                void speak(current.exampleThai!, direction === "TH_DE" ? "th-TH" : "th-TH");
+                              }}
+                              title="Beispiel Thai vorlesen"
+                            >
+                              🔊
+                            </Button>
+                          </div>
+                        ) : null}
+
+                        {current.exampleGerman ? (
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <span className="text-muted-foreground">DE:</span>
+                            <span>{current.exampleGerman}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                void speak(current.exampleGerman!, "de-DE");
+                              }}
+                              title="Beispiel Deutsch vorlesen"
+                            >
+                              🔊
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
+
                   <div className="pt-4 border-t">
                     <Button
                       onClick={() => setFlipped(true)}
@@ -833,11 +884,11 @@ export default function Test() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-4xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{backText}</div>
+                  <div className="text-3xl font-semibold text-center leading-tight">{backText}</div>
 
                   {direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
-                      <div className="text-base text-muted-foreground italic">{current.transliteration}</div>
+                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
                   ) : null}
 
@@ -866,48 +917,97 @@ export default function Test() {
                       Stop
                     </Button>
                   </div>
+
+                  {/* Beispiele (falls vorhanden) */}
+                  {current.exampleThai || current.exampleGerman ? (
+                    <>
+                      <div className="border-t my-3" />
+                      <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                        <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
+                        
+                        {current.exampleThai ? (
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <span className="text-muted-foreground">TH:</span>
+                            <span>{current.exampleThai}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                void speak(current.exampleThai!, "th-TH");
+                              }}
+                              title="Beispiel Thai vorlesen"
+                            >
+                              🔊
+                            </Button>
+                          </div>
+                        ) : null}
+
+                        {current.exampleGerman ? (
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <span className="text-muted-foreground">DE:</span>
+                            <span>{current.exampleGerman}</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                void speak(current.exampleGerman!, "de-DE");
+                              }}
+                              title="Beispiel Deutsch vorlesen"
+                            >
+                              🔊
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               )}
             </div>
           </Card>
 
           {/* Bewertungs-Buttons */}
-          <div className="space-y-3 mt-4 w-full max-w-md">
-            <div className="flex gap-3 justify-center">
+          <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
+            <div className="flex gap-2 justify-center">
               <Button
-                onClick={() => handleGrade(0)}
-                disabled={!canGrade}
+                onClick={markWrong}
                 variant="destructive"
-                size="lg"
+                size="sm"
                 className="flex-1"
               >
                 ❌ Falsch
               </Button>
               <Button
-                onClick={() => handleGrade(1)}
-                disabled={!canGrade}
+                onClick={markRight}
                 variant="default"
-                size="lg"
+                size="sm"
                 className="flex-1"
               >
                 ✅ Richtig
               </Button>
             </div>
 
-            {!canGrade ? (
-              <div className="rounded-md bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 text-center">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  ⬆️ Bitte erst die Karte umdrehen, dann bewerten.
-                </p>
-              </div>
-            ) : null}
+            <div className="pt-2 border-t">
+              <Button
+                onClick={endSessionConfirm}
+                variant="outline"
+                className="w-full h-10 text-sm"
+              >
+                Test beenden
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}
 
       {/* Dialog für Lektion-Auswahl */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent
+          className="max-w-sm"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Lektion {selectedDialogLesson} testen</DialogTitle>
             <DialogDescription>
@@ -922,7 +1022,6 @@ export default function Test() {
                 Anzahl der Karten
               </label>
               <input
-                ref={cardLimitInputRef}
                 type="number"
                 id="cardLimit"
                 value={cardLimit}
@@ -941,7 +1040,15 @@ export default function Test() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Abbrechen
             </Button>
-            <Button onClick={startLessonFromDialog}>
+            <Button
+              onPointerDown={() => {
+                const active = document.activeElement;
+                if (active instanceof HTMLInputElement) {
+                  active.blur();
+                }
+              }}
+              onClick={startLessonFromDialog}
+            >
               Test starten
             </Button>
           </DialogFooter>
