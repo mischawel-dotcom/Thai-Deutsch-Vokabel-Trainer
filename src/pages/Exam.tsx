@@ -6,6 +6,12 @@ import { completeLessonViaExam } from "../lib/lessonProgress";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ExamState = "selection" | "direction" | "testing" | "result";
 type ExamDirection = "TH_DE" | "DE_TH";
@@ -43,6 +49,47 @@ export default function Exam() {
   useEffect(() => {
     loadVocab();
   }, []);
+
+  // Restore session after vocabByLesson loads
+  useEffect(() => {
+    if (Object.keys(vocabByLesson).length === 0) return;
+    const savedSession = localStorage.getItem("examSession");
+    if (!savedSession) return;
+    
+    try {
+      const session = JSON.parse(savedSession);
+      if (session.state === "testing" && session.questions?.length > 0) {
+        setSelectedLesson(session.selectedLesson);
+        setDirection(session.direction);
+        setQuestions(session.questions);
+        setCurrentQuestionIndex(session.currentQuestionIndex || 0);
+        setScore(session.score || 0);
+        setAnswered(session.answered || {});
+        setState("testing");
+      }
+    } catch (e) {
+      console.error("Failed to restore exam session:", e);
+      localStorage.removeItem("examSession");
+    }
+  }, [vocabByLesson]);
+
+  // Save session on every change
+  useEffect(() => {
+    if (state === "testing" && questions.length > 0) {
+      const sessionData = {
+        state,
+        selectedLesson,
+        direction,
+        questions,
+        currentQuestionIndex,
+        score,
+        answered,
+      };
+      localStorage.setItem("examSession", JSON.stringify(sessionData));
+    } else {
+      localStorage.removeItem("examSession");
+    }
+  }, [state, selectedLesson, direction, questions, currentQuestionIndex, score, answered]);
 
   // Handle exam completion
   useEffect(() => {
@@ -152,6 +199,7 @@ export default function Exam() {
 
   function resetExam() {
     if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
+    localStorage.removeItem("examSession");
     setState("selection");
     setSelectedLesson(null);
     setQuestions([]);
@@ -276,17 +324,25 @@ export default function Exam() {
     const isAnswered = userAnswer !== undefined;
 
     return (
-      <PageShell title={`Examen - Lektion ${selectedLesson}`}>
-        <div className="space-y-6">
+      <PageShell title="Examen">
+        <Dialog open={true} onOpenChange={() => {}}>
+          <DialogContent
+            className="max-w-2xl max-h-[95vh] overflow-y-auto"
+            onOpenAutoFocus={(event) => event.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>Lektion {selectedLesson} - Examen</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
           {/* Progress */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
               <span>
                 Frage {currentQuestionIndex + 1} von {questions.length}
               </span>
               <span className="font-semibold">Punkte: {score}</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
               <div
                 className="bg-blue-500 dark:bg-blue-600 h-full transition-all duration-300"
                 style={{
@@ -297,10 +353,25 @@ export default function Exam() {
             </div>
           </div>
 
+          {/* End Exam Button */}
+          <Button
+            onClick={() => {
+              if (confirm("Examen jetzt beenden?")) {
+                if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
+                resetExam();
+              }
+            }}
+            variant="ghost"
+            size="sm"
+            className="w-full"
+          >
+            Examen beenden
+          </Button>
+
           {/* Question */}
-          <Card className="p-6 space-y-4">
-            <div className="text-center space-y-3">
-              <div className="text-3xl font-semibold text-primary">
+          <Card className="p-4 space-y-3">
+            <div className="text-center space-y-2">
+              <div className="text-4xl font-semibold text-primary">
                 {question.questionText}
               </div>
               <Button
@@ -318,20 +389,20 @@ export default function Exam() {
                 className="mx-auto"
                 title="Klick = Abspielen, Rechtsklick = Stoppen"
               >
-                🔊 Aussprechen
+                🔊
               </Button>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Wähle die richtige Antwort
               </p>
             </div>
 
             {/* Options */}
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {question.options.map((option, idx) => {
                 const isSelected = userAnswer === option;
                 const isCorrect = option === question.correctAnswer;
 
-                let buttonClassName = "justify-start h-auto py-3 px-4";
+                let buttonClassName = "justify-start h-auto py-2 px-3 text-sm";
                 if (isAnswered) {
                   if (isCorrect) {
                     buttonClassName += " bg-green-100 hover:bg-green-100 dark:bg-green-900 dark:hover:bg-green-900 text-foreground";
@@ -356,22 +427,22 @@ export default function Exam() {
 
             {/* Feedback */}
             {isAnswered && (
-              <div className="mt-4 p-3 rounded-lg bg-muted animate-in fade-in">
+              <div className="mt-3 p-2 rounded-lg bg-muted animate-in fade-in">
                 {userAnswer === question.correctAnswer ? (
-                  <p className="text-sm text-green-700 dark:text-green-400 font-semibold">
+                  <p className="text-xs text-green-700 dark:text-green-400 font-semibold">
                     ✓ Richtig!
                   </p>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-sm text-red-700 dark:text-red-400 font-semibold">
+                    <p className="text-xs text-red-700 dark:text-red-400 font-semibold">
                       ✗ Falsch
                     </p>
-                    <p className="text-sm text-foreground">
+                    <p className="text-xs text-foreground">
                       Richtige Antwort: {question.correctAnswer}
                     </p>
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-muted-foreground mt-1">
                   (Nächste Frage in Kürze...)
                 </p>
               </div>
@@ -388,7 +459,7 @@ export default function Exam() {
                     setState("result");
                   }
                 }}
-                className="w-full mt-4"
+                className="w-full mt-2"
                 variant="outline"
                 size="sm"
               >
@@ -396,7 +467,9 @@ export default function Exam() {
               </Button>
             )}
           </Card>
-        </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </PageShell>
     );
   }
