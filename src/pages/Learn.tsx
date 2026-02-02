@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
-import { speak, stopSpeak } from "../features/tts";
+import { speak } from "../features/tts";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";

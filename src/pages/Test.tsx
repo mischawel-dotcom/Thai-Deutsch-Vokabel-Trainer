@@ -70,8 +70,6 @@ export default function Test() {
   const [currentRound, setCurrentRound] = useState<number[]>([]); // Aktuelle Runde
   const [roundIndex, setRoundIndex] = useState<number>(0); // Position in der Runde
 
-  const canGrade = flipped && currentId != null;
-
   // ===== Effects =====
   // Persist direction
   useEffect(() => {
