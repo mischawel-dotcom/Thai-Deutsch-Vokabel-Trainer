@@ -880,7 +880,7 @@ export default function Test() {
                       onClick={() => setFlipped(true)}
                       className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
                     >
-                      👇 Karte umdrehen
+                      👉 Karte umdrehen
                     </Button>
                   </div>
                 </div>
