@@ -190,12 +190,14 @@ export default function Learn() {
           if (!newViewedState) {
             const progress = await db.progress.get(card.id);
             if (progress) {
+              const now = Date.now();
               await db.progress.update(card.id, {
-                interval: 0,
-                easeFactor: 2.5,
+                ease: 2.5,
+                intervalDays: 0,
                 repetitions: 0,
-                dueAt: Date.now(),
-                lastReviewed: 0
+                dueAt: now,
+                lastReviewed: 0,
+                updatedAt: now,
               });
             }
           }
