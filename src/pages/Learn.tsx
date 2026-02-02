@@ -183,13 +183,33 @@ export default function Learn() {
       const card = lessonCards[currentIndex];
       if (card.id) {
         try {
-          await db.vocab.update(card.id, { viewed: true });
+          const newViewedState = !card.viewed;
+          await db.vocab.update(card.id, { viewed: newViewedState });
+          
+          // Wenn als "nicht gelernt" markiert, setze SRS-Fortschritt zurück
+          if (!newViewedState) {
+            const progress = await db.progress.get(card.id);
+            if (progress) {
+              await db.progress.update(card.id, {
+                interval: 0,
+                easeFactor: 2.5,
+                repetitions: 0,
+                dueAt: Date.now(),
+                lastReviewed: 0
+              });
+            }
+          }
+          
           setLessonCards((prev) => {
             const updated = [...prev];
-            updated[currentIndex] = { ...updated[currentIndex], viewed: true };
+            updated[currentIndex] = { ...updated[currentIndex], viewed: newViewedState };
             return updated;
           });
-          setStatus(`✅ Karte ${currentIndex + 1}/${lessonCards.length} als gesehen markiert`);
+          
+          const statusMsg = newViewedState 
+            ? `✅ Karte ${currentIndex + 1}/${lessonCards.length} als gelernt markiert`
+            : `↩️ Karte ${currentIndex + 1}/${lessonCards.length} als nicht gelernt markiert (Fortschritt zurückgesetzt)`;
+          setStatus(statusMsg);
         } catch (e) {
           console.error("Fehler beim Speichern:", e);
           setError("Fehler beim Speichern");
@@ -383,7 +403,7 @@ export default function Learn() {
               className="w-full h-10 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
               variant={current.viewed ? "secondary" : "default"}
             >
-              {current.viewed ? "✅ Bereits gelernt" : "Markiere als gelernt"}
+              {current.viewed ? "↩️ Markiere als nicht gelernt" : "✅ Markiere als gelernt"}
             </Button>
 
             {/* Navigation */}
