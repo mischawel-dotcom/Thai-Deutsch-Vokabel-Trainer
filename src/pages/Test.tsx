@@ -2,7 +2,7 @@
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
-import { speak, stopSpeak } from "../features/tts";
+import { speak } from "../features/tts";
 import { getNextLesson, recalculateLearningProgress } from "../lib/lessonProgress";
 
 import PageShell from "@/components/PageShell";
@@ -833,11 +833,26 @@ export default function Test() {
           </div>
 
           {/* Testkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-6 md:p-8 shadow-lg mt-3">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/90 dark:bg-slate-900/80 backdrop-blur mt-3">
             <div className="space-y-4">
+              <div className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed">
+                <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
+                Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt.
+              </div>
               {!flipped ? (
                 <div className="space-y-4">
-                  <div className="text-4xl font-semibold text-center leading-tight">{frontText}</div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-0.5">
+                      Vorderseite
+                    </span>
+                    <span className="rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5">
+                      {direction === "TH_DE" ? "Thai → Deutsch" : "Deutsch → Thai"}
+                    </span>
+                  </div>
+
+                  <div className="text-4xl sm:text-5xl font-semibold text-center leading-tight">
+                    {frontText}
+                  </div>
 
                   {direction === "TH_DE" && current.transliteration ? (
                     <div className="text-center">
@@ -849,6 +864,7 @@ export default function Test() {
                     <Button
                       size="sm"
                       variant="secondary"
+                      className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
                         void speak(frontText, frontLang);
@@ -857,71 +873,12 @@ export default function Test() {
                     >
                       🔊 Vorlesen
                     </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        stopSpeak();
-                      }}
-                      title="Stop"
-                    >
-                      Stop
-                    </Button>
                   </div>
-
-                  {/* Beispiele (falls vorhanden) */}
-                  {current.exampleThai || current.exampleGerman ? (
-                    <>
-                      <div className="border-t my-3" />
-                      <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
-                        <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
-                        
-                        {current.exampleThai ? (
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <span className="text-muted-foreground">TH:</span>
-                            <span>{current.exampleThai}</span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                void speak(current.exampleThai!, direction === "TH_DE" ? "th-TH" : "th-TH");
-                              }}
-                              title="Beispiel Thai vorlesen"
-                            >
-                              🔊
-                            </Button>
-                          </div>
-                        ) : null}
-
-                        {current.exampleGerman ? (
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <span className="text-muted-foreground">DE:</span>
-                            <span>{current.exampleGerman}</span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                void speak(current.exampleGerman!, "de-DE");
-                              }}
-                              title="Beispiel Deutsch vorlesen"
-                            >
-                              🔊
-                            </Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </>
-                  ) : null}
 
                   <div className="pt-4 border-t">
                     <Button
                       onClick={() => setFlipped(true)}
-                      variant="outline"
-                      className="w-full"
+                      className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
                     >
                       👇 Karte umdrehen
                     </Button>
@@ -929,7 +886,16 @@ export default function Test() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="text-3xl font-semibold text-center leading-tight">{backText}</div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5">
+                      Rückseite
+                    </span>
+                    <span className="rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5">
+                      {direction === "TH_DE" ? "Thai → Deutsch" : "Deutsch → Thai"}
+                    </span>
+                  </div>
+
+                  <div className="text-3xl sm:text-4xl font-semibold text-center leading-tight">{backText}</div>
 
                   {direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
@@ -941,6 +907,7 @@ export default function Test() {
                     <Button
                       size="sm"
                       variant="secondary"
+                      className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
                         void speak(backText, backLang);
@@ -948,18 +915,6 @@ export default function Test() {
                       title="Vorlesen"
                     >
                       🔊 Vorlesen
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        stopSpeak();
-                      }}
-                      title="Stop"
-                    >
-                      Stop
                     </Button>
                   </div>
 
@@ -1020,7 +975,7 @@ export default function Test() {
                 onClick={markWrong}
                 variant="destructive"
                 size="sm"
-                className="flex-1"
+                className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
               >
                 ❌ Falsch
               </Button>
@@ -1028,7 +983,7 @@ export default function Test() {
                 onClick={markRight}
                 variant="default"
                 size="sm"
-                className="flex-1"
+                className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white"
               >
                 ✅ Richtig
               </Button>
@@ -1037,8 +992,8 @@ export default function Test() {
             <div className="pt-2 border-t">
               <Button
                 onClick={endSessionConfirm}
-                variant="outline"
-                className="w-full h-10 text-sm"
+                variant="destructive"
+                className="w-full h-10 text-sm shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
               >
                 Test beenden
               </Button>
@@ -1081,8 +1036,12 @@ export default function Test() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+          <DialogFooter className="flex flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setDialogOpen(false)}
+              className="shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
+            >
               Abbrechen
             </Button>
             <Button
@@ -1093,6 +1052,7 @@ export default function Test() {
                 }
               }}
               onClick={startLessonFromDialog}
+              className="shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
             >
               Test starten
             </Button>

@@ -5,6 +5,8 @@
 \- No frameworks unless requested
 
 \- Focus on learning logic, not UI polish
+
+- Do NOT make any changes without explicit user request and confirmation
 ## Development Workflow
 
 **ALWAYS follow this process when making changes:**
