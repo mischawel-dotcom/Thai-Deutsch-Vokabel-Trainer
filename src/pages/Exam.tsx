@@ -235,7 +235,7 @@ export default function Exam() {
                 setSelectedLesson(lesson);
                 setState("direction");
               }}
-              className="w-full justify-start h-auto py-4"
+              className="w-full justify-start h-auto py-4 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
               variant="outline"
             >
               <div className="text-left">
@@ -275,7 +275,7 @@ export default function Exam() {
               onClick={() => {
                 startExam(selectedLesson, "TH_DE");
               }}
-              className="w-full justify-start h-auto py-6"
+              className="w-full justify-start h-auto py-6 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
               variant="outline"
             >
               <div className="text-left">
@@ -290,7 +290,7 @@ export default function Exam() {
               onClick={() => {
                 startExam(selectedLesson, "DE_TH");
               }}
-              className="w-full justify-start h-auto py-6"
+              className="w-full justify-start h-auto py-6 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
               variant="outline"
             >
               <div className="text-left">
@@ -308,7 +308,7 @@ export default function Exam() {
               setSelectedLesson(null);
             }}
             variant="ghost"
-            className="w-full mt-4"
+            className="w-full mt-4 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
           >
             ← Zurück
           </Button>
@@ -361,9 +361,9 @@ export default function Exam() {
                 resetExam();
               }
             }}
-            variant="ghost"
+            variant="destructive"
             size="sm"
-            className="w-full"
+            className="w-full shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
           >
             Examen beenden
           </Button>
@@ -386,7 +386,7 @@ export default function Exam() {
                 }}
                 variant="outline"
                 size="sm"
-                className="mx-auto"
+                className="mx-auto shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
                 title="Klick = Abspielen, Rechtsklick = Stoppen"
               >
                 🔊
@@ -402,7 +402,7 @@ export default function Exam() {
                 const isSelected = userAnswer === option;
                 const isCorrect = option === question.correctAnswer;
 
-                let buttonClassName = "justify-start h-auto py-2 px-3 text-sm";
+                let buttonClassName = "justify-start h-auto py-2 px-3 text-sm shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150";
                 if (isAnswered) {
                   if (isCorrect) {
                     buttonClassName += " bg-green-100 hover:bg-green-100 dark:bg-green-900 dark:hover:bg-green-900 text-foreground";
@@ -459,7 +459,7 @@ export default function Exam() {
                     setState("result");
                   }
                 }}
-                className="w-full mt-2"
+                className="w-full mt-2 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
                 variant="outline"
                 size="sm"
               >
@@ -504,7 +504,7 @@ export default function Exam() {
           </Card>
 
           <div className="flex gap-3">
-            <Button onClick={resetExam} className="flex-1">
+            <Button onClick={resetExam} className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150">
               Neue Lektion wählen
             </Button>
             <Button
@@ -513,7 +513,7 @@ export default function Exam() {
                 startExam(selectedLesson || 1, direction);
               }}
               variant="outline"
-              className="flex-1"
+              className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
             >
               Wiederholen
             </Button>
