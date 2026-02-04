@@ -1,9 +1,11 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState, useRef, useReducer } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
 import { speak } from "../features/tts";
 import { getNextLesson, recalculateLearningProgress } from "../lib/lessonProgress";
+import trueSoundFile from "@/assets/true.wav";
+import falseSoundFile from "@/assets/false.wav";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -29,9 +31,63 @@ function shuffle<T>(arr: T[]): T[] {
 
 type LearnDirection = "TH_DE" | "DE_TH";
 
+type SessionState = {
+  sessionActive: boolean;
+  queue: number[];
+  currentId: number | null;
+  flipped: boolean;
+  streaks: Map<number, number>;
+  doneIds: Set<number>;
+  currentRound: number[];
+  roundIndex: number;
+};
+
+type SessionAction =
+  | { type: "set"; payload: Partial<SessionState> }
+  | { type: "updateStreak"; id: number; value: number }
+  | { type: "resetStreak"; id: number }
+  | { type: "addDone"; id: number };
+
+const initialSessionState: SessionState = {
+  sessionActive: false,
+  queue: [],
+  currentId: null,
+  flipped: false,
+  streaks: new Map(),
+  doneIds: new Set(),
+  currentRound: [],
+  roundIndex: 0,
+};
+
+function sessionReducer(state: SessionState, action: SessionAction): SessionState {
+  switch (action.type) {
+    case "set":
+      return { ...state, ...action.payload };
+    case "updateStreak": {
+      const newStreaks = new Map(state.streaks);
+      newStreaks.set(action.id, action.value);
+      return { ...state, streaks: newStreaks };
+    }
+    case "resetStreak": {
+      const newStreaks = new Map(state.streaks);
+      newStreaks.set(action.id, 0);
+      return { ...state, streaks: newStreaks };
+    }
+    case "addDone": {
+      const newDoneIds = new Set(state.doneIds);
+      newDoneIds.add(action.id);
+      return { ...state, doneIds: newDoneIds };
+    }
+    default:
+      return state;
+  }
+}
+
 export default function Test() {
   // ===== State =====
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
+  const [lessonMetadata, setLessonMetadata] = useState<{lesson: number, count: number}[]>([]);
+  const [lessonCache, setLessonCache] = useState<Map<number, VocabEntry[]>>(new Map());
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
@@ -57,18 +113,26 @@ export default function Test() {
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingKey, setSpeakingKey] = useState<string | null>(null);
+  const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
 
   // Session-State
-  const [sessionActive, setSessionActive] = useState(false);
-  const [queue, setQueue] = useState<number[]>([]);
-  const [currentId, setCurrentId] = useState<number | null>(null);
-  const [flipped, setFlipped] = useState(false);
+  const [session, dispatchSession] = useReducer(sessionReducer, initialSessionState);
+  const {
+    sessionActive,
+    queue,
+    currentId,
+    flipped,
+    streaks,
+    doneIds,
+    currentRound,
+    roundIndex,
+  } = session;
 
-  // 5-in-a-row Logik (Durchgang-basiert)
-  const [streaks, setStreaks] = useState<Record<number, number>>({});
-  const [doneIds, setDoneIds] = useState<Record<number, true>>({});
-  const [currentRound, setCurrentRound] = useState<number[]>([]); // Aktuelle Runde
-  const [roundIndex, setRoundIndex] = useState<number>(0); // Position in der Runde
+  // Refs für Focus-Management
+  const flipButtonRef = useRef<HTMLButtonElement>(null);
+  const lastFocusedElement = useRef<HTMLElement | null>(null);
 
   // ===== Effects =====
   // Persist direction
@@ -83,7 +147,7 @@ export default function Test() {
 
   // Restore session on mount - AFTER allVocab is loaded
   useEffect(() => {
-    if (!allVocab.length) return; // Wait for vocab to load first
+    if (!allVocab.length && lessonCache.size === 0) return; // Wait for vocab to load first
 
     const savedSession = localStorage.getItem("testSession");
     if (!savedSession) return;
@@ -91,14 +155,19 @@ export default function Test() {
     try {
       const session = JSON.parse(savedSession);
       if (session.sessionActive && session.queue && session.queue.length > 0) {
-        setSessionActive(true);
-        setQueue(session.queue);
-        setCurrentId(session.currentId);
-        setFlipped(session.flipped || false);
-        setStreaks(session.streaks || {});
-        setDoneIds(session.doneIds || {});
-        setCurrentRound(session.currentRound || []);
-        setRoundIndex(session.roundIndex || 0);
+        dispatchSession({
+          type: "set",
+          payload: {
+            sessionActive: true,
+            queue: session.queue,
+            currentId: session.currentId,
+            flipped: session.flipped || false,
+            streaks: new Map(session.streaks || []),
+            doneIds: new Set(session.doneIds || []),
+            currentRound: session.currentRound || [],
+            roundIndex: session.roundIndex || 0,
+          },
+        });
         if (session.direction) setDirection(session.direction);
         setStatus("Test-Session wiederhergestellt");
       }
@@ -106,7 +175,7 @@ export default function Test() {
       console.error("Failed to restore test session:", e);
       localStorage.removeItem("testSession");
     }
-  }, [allVocab]);
+  }, [allVocab, lessonCache]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
@@ -116,8 +185,9 @@ export default function Test() {
         queue,
         currentId,
         flipped,
-        streaks,
-        doneIds,
+        // Convert Map/Set to arrays for JSON storage
+        streaks: Array.from(streaks.entries()),
+        doneIds: Array.from(doneIds),
         currentRound,
         roundIndex,
         direction,
@@ -145,23 +215,23 @@ export default function Test() {
       .map(([tag, count]) => ({ tag, count }));
   }, [allVocab]);
 
-  // Lektionen-Index
-  const allLessons = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const v of allVocab) {
-      if (v.lesson !== undefined && v.lesson > 0) {
-        map.set(v.lesson, (map.get(v.lesson) ?? 0) + 1);
-      }
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([lesson, count]) => ({ lesson, count }));
-  }, [allVocab]);
+  // Lektionen-Index (aus Metadaten, nicht aus allVocab)
+  const allLessons = lessonMetadata;
 
   const current = useMemo(() => {
     if (!currentId) return null;
-    return allVocab.find((v) => v.id === currentId) ?? null;
-  }, [allVocab, currentId]);
+    // Suche erst in allVocab, dann im Cache
+    let found = allVocab.find((v) => v.id === currentId);
+    if (found) return found;
+    
+    // Durchsuche Cache
+    for (const cachedVocab of lessonCache.values()) {
+      found = cachedVocab.find((v) => v.id === currentId);
+      if (found) return found;
+    }
+    
+    return null;
+  }, [allVocab, lessonCache, currentId]);
 
   // Front/Back abhängig von Richtung
   const frontText = useMemo(() => {
@@ -181,17 +251,17 @@ export default function Test() {
     const unique = new Set(queue);
     let c = 0;
     unique.forEach((id) => {
-      if (!doneIds[id]) c++;
+      if (!doneIds.has(id)) c++;
     });
     return c;
   }, [queue, doneIds]);
 
-  const completedCount = useMemo(() => Object.keys(doneIds).length, [doneIds]);
+  const completedCount = useMemo(() => doneIds.size, [doneIds]);
 
   // ===== Data loading =====
   async function loadAllVocab() {
     setError("");
-    setStatus("Lade Vokabeln …");
+    setStatus("Lade alle Vokabeln …");
     try {
       const vocab = await db.vocab.toArray();
 
@@ -212,8 +282,68 @@ export default function Test() {
     }
   }
 
+  function flipCard() {
+    if (!flipped) {
+      dispatchSession({ type: "set", payload: { flipped: true } });
+    }
+  }
+
+  async function loadLessonMetadata() {
+    setError("");
+    setStatus("Lade Lektionen …");
+    try {
+      // Hole nur eindeutige Lektionen und deren Counts
+      const lessons = await db.vocab
+        .orderBy("lesson")
+        .uniqueKeys();
+      
+      const metadata = await Promise.all(
+        lessons.map(async (lesson) => ({
+          lesson: lesson as number,
+          count: await db.vocab.where("lesson").equals(lesson).count()
+        }))
+      );
+      
+      setLessonMetadata(metadata.sort((a, b) => a.lesson - b.lesson));
+      setStatus(`${metadata.length} Lektionen verfügbar`);
+      return metadata;
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? String(e));
+      setStatus("");
+    }
+  }
+
+  async function loadLesson(lessonNumber: number): Promise<VocabEntry[]> {
+    // Prüfe Cache
+    if (lessonCache.has(lessonNumber)) {
+      return lessonCache.get(lessonNumber)!;
+    }
+    
+    setStatus(`Lade Lektion ${lessonNumber} …`);
+    
+    const vocab = await db.vocab
+      .where("lesson")
+      .equals(lessonNumber)
+      .toArray();
+    
+    // Ensure progress für diese Lektion
+    for (const v of vocab) {
+      if (v.id && !(await db.progress.get(v.id))) {
+        await ensureProgress(v.id);
+      }
+    }
+    
+    // Cache aktualisieren
+    setLessonCache(prev => new Map(prev).set(lessonNumber, vocab));
+    
+    setStatus(`Lektion ${lessonNumber} geladen: ${vocab.length} Karten`);
+    return vocab;
+  }
+
   useEffect(() => {
-    loadAllVocab().then(() => {
+    // Lade nur Metadaten beim Start (Lazy Loading)
+    loadLessonMetadata().then(() => {
       // Check if user came from Home with a lesson selected
       const selectedLesson = localStorage.getItem("selectedLessonForTest");
       if (selectedLesson) {
@@ -222,7 +352,6 @@ export default function Test() {
           setSelectedLesson(lesson);
           setTimeout(() => {
             startSessionWithFilters(lesson, false);
-            setSessionActive(true);
           }, 0);
           localStorage.removeItem("selectedLessonForTest");
         }
@@ -230,7 +359,143 @@ export default function Test() {
     });
   }, []);
 
+  // Focus Management: Fokussiere Flip-Button wenn Session startet oder neue Karte kommt
+  useEffect(() => {
+    if (sessionActive && currentId && flipButtonRef.current && !flipped) {
+      // Kleine Verzögerung damit die Karte gerendert ist
+      setTimeout(() => {
+        flipButtonRef.current?.focus();
+      }, 100);
+    }
+  }, [sessionActive, currentId, flipped]);
+
+  // Focus Management: Restore focus when dialog closes
+  useEffect(() => {
+    if (!dialogOpen && lastFocusedElement.current) {
+      // Restore focus nach Dialog-Close
+      setTimeout(() => {
+        lastFocusedElement.current?.focus();
+        lastFocusedElement.current = null;
+      }, 100);
+    }
+  }, [dialogOpen]);
+
+  // Keyboard Navigation
+  useEffect(() => {
+    if (!sessionActive || !currentId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignoriere wenn in Input-Feld
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key) {
+        case ' ': // Space
+        case 'Enter':
+          e.preventDefault();
+          flipCard();
+          break;
+
+        case 'ArrowRight':
+        case '1':
+          e.preventDefault();
+          if (flipped) {
+            gradeAnswer(true);
+          }
+          break;
+
+        case 'ArrowLeft':
+        case '0':
+          e.preventDefault();
+          if (flipped) {
+            gradeAnswer(false);
+          }
+          break;
+
+        case 'p':
+        case 'P':
+          e.preventDefault();
+          if (current) {
+            const text = flipped ? backText : frontText;
+            const lang = flipped ? backLang : frontLang;
+            void handleSpeak(text, lang, flipped ? "back" : "front");
+          }
+          break;
+
+        case 'Escape':
+          e.preventDefault();
+          endSessionConfirm();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sessionActive, currentId, flipped, current, frontText, backText, frontLang, backLang]);
+
+  // Focus Management: Restore focus when dialog closes
+  useEffect(() => {
+    if (!dialogOpen && lastFocusedElement.current) {
+      // Restore focus nach Dialog-Close
+      setTimeout(() => {
+        lastFocusedElement.current?.focus();
+        lastFocusedElement.current = null;
+      }, 100);
+    }
+  }, [dialogOpen]);
+
   // ===== Helpers =====
+  async function handleSpeak(text: string, lang: "th-TH" | "de-DE", key: string) {
+    if (!text.trim()) return;
+    setIsSpeaking(true);
+    setSpeakingKey(key);
+    try {
+      await speak(text, lang);
+    } finally {
+      setIsSpeaking(false);
+      setSpeakingKey(null);
+    }
+  }
+
+  function playFeedbackTone(type: "right" | "wrong") {
+    try {
+      const soundEnabled = localStorage.getItem("soundEnabled");
+      if (soundEnabled === "false") return;
+
+      const soundFile = type === "right" ? trueSoundFile : falseSoundFile;
+      console.log("Playing sound:", soundFile);
+      
+      const audio = new Audio(soundFile);
+      audio.volume = 0.8;
+      
+      audio.onerror = (e) => {
+        console.error("Audio error:", e);
+        alert(`Audio-Fehler: Datei konnte nicht geladen werden`);
+      };
+      
+      audio.onloadeddata = () => {
+        console.log("Audio loaded successfully");
+      };
+      
+      // Spiele Sound ab
+      audio.play()
+        .then(() => {
+          console.log("Sound playing successfully");
+        })
+        .catch((error) => {
+          console.error("Playback error:", error);
+        });
+      
+      // Stoppe nach 3 Sekunden automatisch
+      setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 0;
+      }, 3000);
+    } catch (error) {
+      console.error("Audio error:", error);
+    }
+  }
   // Helper: Build session IDs
   function buildSessionIds(): number[] {
     const ids: number[] = [];
@@ -245,42 +510,63 @@ export default function Test() {
   }
 
   // Helper: Start session with learned cards
-  function startSessionWithFilters(lesson?: number, viewedOnly: boolean = false) {
+  async function startSessionWithFilters(lesson?: number, viewedOnly: boolean = false) {
     setSelectedLesson(lesson);
     setOnlyViewed(viewedOnly);
 
+    let vocab: VocabEntry[];
+    
+    if (lesson !== undefined) {
+      // Lazy load nur diese Lektion
+      vocab = await loadLesson(lesson);
+    } else {
+      // Lade alle (nur wenn "Alle" gewählt)
+      if (allVocab.length === 0) {
+        await loadAllVocab();
+      }
+      vocab = allVocab;
+    }
+
     const ids: number[] = [];
-    for (const v of allVocab) {
+    for (const v of vocab) {
       if (!v.id) continue;
-      if (lesson !== undefined && v.lesson !== lesson) continue;
       if (viewedOnly && !v.viewed) continue;
       ids.push(v.id);
     }
 
     if (ids.length === 0) {
       setStatus("Keine Karten für diese Auswahl verfügbar.");
-      setSessionActive(false);
-      setQueue([]);
-      setCurrentId(null);
-      setFlipped(false);
-      setStreaks({});
-      setDoneIds({});
-      setCurrentRound([]);
-      setRoundIndex(0);
+      dispatchSession({
+        type: "set",
+        payload: {
+          sessionActive: false,
+          queue: [],
+          currentId: null,
+          flipped: false,
+          streaks: new Map(),
+          doneIds: new Set(),
+          currentRound: [],
+          roundIndex: 0,
+        },
+      });
       return;
     }
 
     const shuffled = shuffle(ids);
 
-    setSessionActive(true);
-    setQueue(ids); // Komplette Liste
-    setCurrentRound(shuffled); // Erste Runde gemischt
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-
-    setStreaks(Object.fromEntries(ids.map((id) => [id, 0])));
-    setDoneIds({});
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: true,
+        queue: ids,
+        currentRound: shuffled,
+        roundIndex: 0,
+        currentId: shuffled[0] ?? null,
+        flipped: false,
+        streaks: new Map(ids.map((id) => [id, 0])),
+        doneIds: new Set(),
+      },
+    });
 
     setStatus(`Session gestartet: ${ids.length} Karte(n)`);
   }
@@ -297,22 +583,22 @@ export default function Test() {
 
   // Quick-Start: Specific lesson, learned cards only
   function openLessonDialog(lesson: number) {
+    // Speichere aktuell fokussiertes Element
+    lastFocusedElement.current = document.activeElement as HTMLElement;
     setSelectedDialogLesson(lesson);
     setCardLimit(""); // Leer lassen, damit nichts markiert ist
     setDialogOpen(true);
   }
 
-  function startLessonFromDialog() {
+  async function startLessonFromDialog() {
     if (!selectedDialogLesson) return;
     
     const limit = cardLimit ? parseInt(cardLimit, 10) : 0;
     
-    // Hole alle Karten dieser Lektion (unabhängig vom viewed-Status)
-    const lessonCards = allVocab.filter(
-      (v) => v.id && v.lesson === selectedDialogLesson
-    );
+    // Lade Lektion on-demand
+    const lessonCards = await loadLesson(selectedDialogLesson);
     
-    let cardsToUse = lessonCards.map((v) => v.id!);
+    let cardsToUse = lessonCards.filter(v => v.id).map((v) => v.id!);
     
     // Limitiere auf gewünschte Anzahl
     if (limit > 0 && limit < cardsToUse.length) {
@@ -320,21 +606,26 @@ export default function Test() {
     }
     
     if (cardsToUse.length === 0) {
-      setStatus(`Keine gelernten Karten in Lektion ${selectedDialogLesson} verfügbar.`);
+      setStatus(`Keine Karten in Lektion ${selectedDialogLesson} verfügbar.`);
       setDialogOpen(false);
       return;
     }
     
     const shuffled = shuffle(cardsToUse);
     
-    setSessionActive(true);
-    setQueue(cardsToUse);
-    setCurrentRound(shuffled);
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-    setStreaks(Object.fromEntries(cardsToUse.map((id) => [id, 0])));
-    setDoneIds({});
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: true,
+        queue: cardsToUse,
+        currentRound: shuffled,
+        roundIndex: 0,
+        currentId: shuffled[0] ?? null,
+        flipped: false,
+        streaks: new Map(cardsToUse.map((id) => [id, 0])),
+        doneIds: new Set(),
+      },
+    });
     setStatus(`Session gestartet: ${cardsToUse.length} Karte(n) aus Lektion ${selectedDialogLesson}`);
     
     setDialogOpen(false);
@@ -379,9 +670,14 @@ export default function Test() {
     const ok = confirm("Wollen Sie die Test-Session beenden?\n\nIhr Fortschritt wird gespeichert.");
     if (!ok) return;
 
-    setSessionActive(false);
-    setCurrentId(null);
-    setFlipped(false);
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: false,
+        currentId: null,
+        flipped: false,
+      },
+    });
     setStatus("Session beendet");
   }
 
@@ -391,7 +687,7 @@ export default function Test() {
     
     // Suche nächste nicht-abgeschlossene Karte
     let searchIndex = nextIndex;
-    while (searchIndex < currentRound.length && doneIds[currentRound[searchIndex]]) {
+    while (searchIndex < currentRound.length && doneIds.has(currentRound[searchIndex])) {
       searchIndex++;
     }
 
@@ -399,30 +695,42 @@ export default function Test() {
       // Runde abgeschlossen - starte neue Runde
       startNewRound();
     } else {
-      setRoundIndex(searchIndex);
-      setCurrentId(currentRound[searchIndex] ?? null);
-      setFlipped(false);
+      dispatchSession({
+        type: "set",
+        payload: {
+          roundIndex: searchIndex,
+          currentId: currentRound[searchIndex] ?? null,
+          flipped: false,
+        },
+      });
     }
   }
 
   function startNewRound() {
     // Sammle alle noch nicht abgeschlossenen Karten
-    const remaining = queue.filter(id => !doneIds[id]);
+    const remaining = queue.filter(id => !doneIds.has(id));
     
     if (remaining.length === 0) {
       // Session beendet
-      setCurrentId(null);
-      setFlipped(false);
+      dispatchSession({
+        type: "set",
+        payload: { currentId: null, flipped: false },
+      });
       return;
     }
 
     // Mische für neue Runde
     const shuffled = shuffle(remaining);
     
-    setCurrentRound(shuffled);
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
+    dispatchSession({
+      type: "set",
+      payload: {
+        currentRound: shuffled,
+        roundIndex: 0,
+        currentId: shuffled[0] ?? null,
+        flipped: false,
+      },
+    });
   }
 
   function requeueCurrentToEnd() {
@@ -433,12 +741,12 @@ export default function Test() {
     const [removed] = newRound.splice(roundIndex, 1);
     newRound.push(removed);
     
-    setCurrentRound(newRound);
+    dispatchSession({ type: "set", payload: { currentRound: newRound } });
     
     // Zeige die Karte, die jetzt an der aktuellen Position ist
     // (da wir eine entfernt haben, rutscht die nächste nach)
     let searchIndex = roundIndex;
-    while (searchIndex < newRound.length && doneIds[newRound[searchIndex]]) {
+    while (searchIndex < newRound.length && doneIds.has(newRound[searchIndex])) {
       searchIndex++;
     }
     
@@ -446,63 +754,69 @@ export default function Test() {
       // Alle verbleibenden Karten dieser Runde sind done -> neue Runde
       startNewRound();
     } else {
-      setRoundIndex(searchIndex);
-      setCurrentId(newRound[searchIndex] ?? null);
-      setFlipped(false);
+      dispatchSession({
+        type: "set",
+        payload: {
+          roundIndex: searchIndex,
+          currentId: newRound[searchIndex] ?? null,
+          flipped: false,
+        },
+      });
     }
   }
 
-  async function markWrong() {
+  async function gradeAnswer(isRight: boolean) {
     if (!currentId) return;
-    
+
     if (!flipped) {
       alert("Bitte erst die Karte umdrehen, dann bewerten.");
       return;
     }
 
-    await gradeCard(currentId, 0);
-    setStreaks((prev) => ({ ...prev, [currentId]: 0 }));
-    requeueCurrentToEnd();
-  }
+    await gradeCard(currentId, isRight ? 2 : 0);
+    setLastAnswer(isRight ? "right" : "wrong");
+    setTimeout(() => setLastAnswer(null), 350);
+    playFeedbackTone(isRight ? "right" : "wrong");
 
-  async function markRight() {
-    if (!currentId) return;
-    
-    if (!flipped) {
-      alert("Bitte erst die Karte umdrehen, dann bewerten.");
+    if (!isRight) {
+      dispatchSession({ type: "resetStreak", id: currentId });
+      requeueCurrentToEnd();
       return;
     }
 
-    await gradeCard(currentId, 2);
-
-    const nextStreak = (streaks[currentId] ?? 0) + 1;
-    setStreaks((prev) => ({ ...prev, [currentId]: nextStreak }));
+    const nextStreak = (streaks.get(currentId) ?? 0) + 1;
+    dispatchSession({ type: "updateStreak", id: currentId, value: nextStreak });
 
     if (nextStreak >= 5) {
-      setDoneIds((prev) => ({ ...prev, [currentId]: true }));
-      
+      dispatchSession({ type: "addDone", id: currentId });
+
       const card = allVocab.find((v) => v.id === currentId);
       if (card && card.lesson) {
         // Markiere Karte als "viewed" und berechne Fortschritt neu
         await db.vocab.update(currentId, { viewed: true });
-        
+
         // Berechne neu: Wie viele Karten in dieser Lektion haben viewed=true?
         const viewedCards = await db.vocab
           .where("lesson")
           .equals(card.lesson)
           .and((v) => v.viewed === true)
           .count();
-        
+
         // Setze Fortschritt basierend auf echten gelernten Karten
         recalculateLearningProgress(card.lesson, viewedCards);
       }
     }
-    
+
     // Immer zur nächsten Karte im Durchgang (egal ob 5/5 oder nicht)
     goNext();
   }
 
-  function startSession() {
+  async function startSession() {
+    // Für erweiterte Filter: Lade alle Vokabeln falls noch nicht geladen
+    if (allVocab.length === 0) {
+      await loadAllVocab();
+    }
+    
     const ids = buildSessionIds();
 
     if (ids.length === 0) {
@@ -512,14 +826,19 @@ export default function Test() {
       if (onlyViewed) filters.push("(und gelernt)");
       const msg = filters.length > 0 ? `Keine Karten passend zur ${filters.join(" ")}` : "Keine Karten vorhanden.";
       setStatus(msg);
-      setSessionActive(false);
-      setQueue([]);
-      setCurrentId(null);
-      setFlipped(false);
-      setStreaks({});
-      setDoneIds({});
-      setCurrentRound([]);
-      setRoundIndex(0);
+      dispatchSession({
+        type: "set",
+        payload: {
+          sessionActive: false,
+          queue: [],
+          currentId: null,
+          flipped: false,
+          streaks: new Map(),
+          doneIds: new Set(),
+          currentRound: [],
+          roundIndex: 0,
+        },
+      });
       return;
     }
 
@@ -536,21 +855,25 @@ export default function Test() {
 
     const shuffled = shuffle(cardsToUse);
 
-    setSessionActive(true);
-    setQueue(cardsToUse); // Komplette Liste aller Karten
-    setCurrentRound(shuffled); // Erste Runde gemischt
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-
-    setStreaks(Object.fromEntries(cardsToUse.map((id) => [id, 0])));
-    setDoneIds({});
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: true,
+        queue: cardsToUse,
+        currentRound: shuffled,
+        roundIndex: 0,
+        currentId: shuffled[0] ?? null,
+        flipped: false,
+        streaks: new Map(cardsToUse.map((id) => [id, 0])),
+        doneIds: new Set(),
+      },
+    });
 
     setStatus(`Session gestartet: ${cardsToUse.length} Karte(n)`);
   }
 
   const finished = sessionActive && currentId == null;
-  const cardStreak = current?.id ? Math.min(streaks[current.id] ?? 0, 5) : 0;
+  const cardStreak = current?.id ? Math.min(streaks.get(current.id) ?? 0, 5) : 0;
   const progressPct = Math.round((cardStreak / 5) * 100);
 
   // ===== Render =====
@@ -560,10 +883,10 @@ export default function Test() {
       description="Teste dein Wissen! Karte umdrehen → bewerten. Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt."
     >
       {/* Status / Fehler */}
-      <div className="space-y-2">
+      <div className="space-y-2" role="status" aria-live="polite">
         {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
         {error ? (
-          <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap">
+          <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap" role="alert">
             {error}
           </pre>
         ) : null}
@@ -580,6 +903,7 @@ export default function Test() {
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
               title="Teste die Karten, die du bereits gelernt hast"
+              aria-label="Schnellstart: Teste bereits gelernte Karten"
             >
               📖 Teste gelernte Karten (empfohlen)
             </Button>
@@ -593,6 +917,7 @@ export default function Test() {
                     variant="secondary"
                     className="h-10 text-sm font-medium"
                     title={`Lektion ${lesson} testen (${count} Karten)`}
+                    aria-label={`Lektion ${lesson} starten, ${count} Karten verfügbar`}
                   >
                     L{lesson} <span className="text-xs opacity-75">({count})</span>
                   </Button>
@@ -604,6 +929,9 @@ export default function Test() {
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            aria-expanded={showAdvancedFilters}
+            aria-controls="advanced-filters"
+            aria-label={showAdvancedFilters ? "Erweiterte Filter ausblenden" : "Erweiterte Filter anzeigen"}
           >
             {showAdvancedFilters ? "⬆️" : "⬇️"} Erweiterte Filter {showAdvancedFilters ? "ausblenden" : "anzeigen"}
           </button>
@@ -612,7 +940,7 @@ export default function Test() {
 
       {/* Filter / Controls */}
       {!sessionActive && showAdvancedFilters ? (
-        <Card className="p-4">
+        <Card className="p-4" id="advanced-filters" role="region" aria-label="Erweiterte Filter-Optionen">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <label className="inline-flex items-center gap-2 text-sm">
@@ -621,12 +949,13 @@ export default function Test() {
                   className="h-4 w-4 accent-primary"
                   checked={onlyViewed}
                   onChange={(e) => setOnlyViewed(e.target.checked)}
+                  aria-label="Nur bereits gesehene Karten anzeigen"
                 />
                 nur gesehene Karten
               </label>
 
               {/* Richtung */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Lernrichtung wählen">
                 <span className="text-sm text-muted-foreground">Richtung:</span>
                 <Button
                   type="button"
@@ -634,6 +963,8 @@ export default function Test() {
                   variant={direction === "TH_DE" ? "secondary" : "outline"}
                   onClick={() => setDirection("TH_DE")}
                   title="Thai → Deutsch"
+                  aria-pressed={direction === "TH_DE"}
+                  aria-label="Richtung: Thai nach Deutsch"
                 >
                   Thai → Deutsch
                 </Button>
@@ -643,6 +974,8 @@ export default function Test() {
                   variant={direction === "DE_TH" ? "secondary" : "outline"}
                   onClick={() => setDirection("DE_TH")}
                   title="Deutsch → Thai"
+                  aria-pressed={direction === "DE_TH"}
+                  aria-label="Richtung: Deutsch nach Thai"
                 >
                   Deutsch → Thai
                 </Button>
@@ -652,13 +985,15 @@ export default function Test() {
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Lektionen auswählen:</div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Lektion filtern">
                 <Button
                   type="button"
                   size="sm"
                   variant={selectedLesson === undefined ? "secondary" : "outline"}
                   onClick={() => setSelectedLesson(undefined)}
                   className="h-8"
+                  aria-pressed={selectedLesson === undefined}
+                  aria-label="Alle Lektionen wählen"
                 >
                   Alle
                 </Button>
@@ -671,6 +1006,8 @@ export default function Test() {
                     onClick={() => setSelectedLesson(lesson)}
                     className="h-8"
                     title={`Lektion ${lesson}`}
+                    aria-pressed={selectedLesson === lesson}
+                    aria-label={`Lektion ${lesson} auswählen, ${count} Karten`}
                   >
                     L{lesson} <span className="text-muted-foreground">({count})</span>
                   </Button>
@@ -681,7 +1018,7 @@ export default function Test() {
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Tags auswählen:</div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Tags filtern">
                 {allTags.length === 0 ? (
                   <div className="text-sm text-muted-foreground">Keine Tags vorhanden.</div>
                 ) : (
@@ -697,6 +1034,8 @@ export default function Test() {
                         onClick={() => toggleTag(tag)}
                         className="h-8 rounded-full px-3"
                         title="Klicken zum Filtern"
+                        aria-pressed={selected}
+                        aria-label={`Tag ${tag} ${selected ? 'abwählen' : 'auswählen'}, ${count} Karten`}
                       >
                         <span className="inline-flex items-center gap-2">
                           <span className="font-normal">
@@ -741,8 +1080,9 @@ export default function Test() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Anzahl Karten (optional)</label>
+              <label className="text-sm font-medium" htmlFor="cardLimitAdvanced">Anzahl Karten (optional)</label>
               <input
+                id="cardLimitAdvanced"
                 type="number"
                 value={cardLimitAdvanced}
                 onChange={(e) => setCardLimitAdvanced(e.target.value)}
@@ -750,8 +1090,9 @@ export default function Test() {
                 min="1"
                 max={selectedCardsCount}
                 className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                aria-describedby="cardLimitAdvanced-description"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" id="cardLimitAdvanced-description">
                 Leer lassen für alle verfügbaren Karten ({selectedCardsCount})
               </p>
             </div>
@@ -796,7 +1137,11 @@ export default function Test() {
       {/* Session-Controls */}
       {sessionActive && !finished ? (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={restartSessionConfirm}>
+          <Button 
+            variant="outline" 
+            onClick={restartSessionConfirm}
+            aria-label="Test-Session neu starten"
+          >
             Session neu starten
           </Button>
         </div>
@@ -807,16 +1152,16 @@ export default function Test() {
         <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
 
           {/* Top-Status */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-            <span>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground" role="status" aria-live="polite">
+            <span aria-label={`${remainingUniqueCount} Karten verbleibend`}>
               Verbleibend: <b className="text-foreground">{remainingUniqueCount}</b>
             </span>
             <span>·</span>
-            <span>
+            <span aria-label={`${completedCount} Karten erledigt`}>
               Erledigt: <b className="text-foreground">{completedCount}</b>
             </span>
             <span>·</span>
-            <span>
+            <span aria-label={`Diese Karte: ${cardStreak} von 5 richtig`}>
               Diese Karte: <b className="text-foreground">{cardStreak}/5</b>
             </span>
           </div>
@@ -839,6 +1184,19 @@ export default function Test() {
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
                 Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt.
               </div>
+              {lastAnswer ? (
+                <div className="flex justify-center" aria-live="polite">
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
+                      lastAnswer === "right"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {lastAnswer === "right" ? "✅ Richtig" : "❌ Falsch"}
+                  </span>
+                </div>
+              ) : null}
               {!flipped ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -867,18 +1225,23 @@ export default function Test() {
                       className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        void speak(frontText, frontLang);
+                        void handleSpeak(frontText, frontLang, "front");
                       }}
                       title="Vorlesen"
+                      aria-label={`Vorderseite vorlesen: ${frontText}`}
+                      disabled={isSpeaking}
+                      aria-busy={isSpeaking && speakingKey === "front"}
                     >
-                      🔊 Vorlesen
+                      {isSpeaking && speakingKey === "front" ? "🔊 Spricht…" : "🔊 Vorlesen"}
                     </Button>
                   </div>
 
                   <div className="pt-4 border-t">
                     <Button
-                      onClick={() => setFlipped(true)}
+                      ref={flipButtonRef}
+                      onClick={flipCard}
                       className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                      aria-label="Karte umdrehen um Rückseite zu sehen"
                     >
                       👉 Karte umdrehen
                     </Button>
@@ -910,11 +1273,14 @@ export default function Test() {
                       className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        void speak(backText, backLang);
+                        void handleSpeak(backText, backLang, "back");
                       }}
                       title="Vorlesen"
+                      aria-label={`Rückseite vorlesen: ${backText}`}
+                      disabled={isSpeaking}
+                      aria-busy={isSpeaking && speakingKey === "back"}
                     >
-                      🔊 Vorlesen
+                      {isSpeaking && speakingKey === "back" ? "🔊 Spricht…" : "🔊 Vorlesen"}
                     </Button>
                   </div>
 
@@ -934,11 +1300,14 @@ export default function Test() {
                               variant="ghost"
                               onClick={(ev) => {
                                 ev.stopPropagation();
-                                void speak(current.exampleThai!, "th-TH");
+                                void handleSpeak(current.exampleThai!, "th-TH", "example-th");
                               }}
                               title="Beispiel Thai vorlesen"
+                              aria-label={`Thai Beispiel vorlesen: ${current.exampleThai}`}
+                              disabled={isSpeaking}
+                              aria-busy={isSpeaking && speakingKey === "example-th"}
                             >
-                              🔊
+                              {isSpeaking && speakingKey === "example-th" ? "⏳" : "🔊"}
                             </Button>
                           </div>
                         ) : null}
@@ -952,11 +1321,14 @@ export default function Test() {
                               variant="ghost"
                               onClick={(ev) => {
                                 ev.stopPropagation();
-                                void speak(current.exampleGerman!, "de-DE");
+                                void handleSpeak(current.exampleGerman!, "de-DE", "example-de");
                               }}
                               title="Beispiel Deutsch vorlesen"
+                              aria-label={`Deutsches Beispiel vorlesen: ${current.exampleGerman}`}
+                              disabled={isSpeaking}
+                              aria-busy={isSpeaking && speakingKey === "example-de"}
                             >
-                              🔊
+                              {isSpeaking && speakingKey === "example-de" ? "⏳" : "🔊"}
                             </Button>
                           </div>
                         ) : null}
@@ -968,22 +1340,40 @@ export default function Test() {
             </div>
           </Card>
 
+          {/* Keyboard Shortcuts Legende */}
+          <div className="mt-4 mb-2 text-center hidden sm:block">
+            <details className="inline-block text-xs text-muted-foreground">
+              <summary className="cursor-pointer hover:text-foreground transition-colors">
+                ⌨️ Tastatur-Shortcuts
+              </summary>
+              <div className="mt-2 p-3 rounded-md bg-muted/50 space-y-1 text-left">
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">Space</kbd> / <kbd className="px-2 py-0.5 rounded bg-background border">Enter</kbd> - Karte umdrehen</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">→</kbd> / <kbd className="px-2 py-0.5 rounded bg-background border">1</kbd> - Richtig</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">←</kbd> / <kbd className="px-2 py-0.5 rounded bg-background border">0</kbd> - Falsch</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">P</kbd> - Vorlesen</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">Esc</kbd> - Session beenden</div>
+              </div>
+            </details>
+          </div>
+
           {/* Bewertungs-Buttons */}
           <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
               <Button
-                onClick={markWrong}
+                onClick={() => gradeAnswer(false)}
                 variant="destructive"
                 size="sm"
                 className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
+                aria-label="Antwort als falsch markieren"
               >
                 ❌ Falsch
               </Button>
               <Button
-                onClick={markRight}
+                onClick={() => gradeAnswer(true)}
                 variant="default"
                 size="sm"
                 className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white"
+                aria-label="Antwort als richtig markieren"
               >
                 ✅ Richtig
               </Button>
@@ -994,6 +1384,7 @@ export default function Test() {
                 onClick={endSessionConfirm}
                 variant="destructive"
                 className="w-full h-10 text-sm shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
+                aria-label="Test-Session beenden"
               >
                 Test beenden
               </Button>
@@ -1029,8 +1420,9 @@ export default function Test() {
                 min="1"
                 className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Alle Karten"
+                aria-describedby="cardLimit-description"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" id="cardLimit-description">
                 Standard: alle verfügbaren Karten der Lektion
               </p>
             </div>

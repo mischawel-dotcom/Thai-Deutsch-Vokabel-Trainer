@@ -21,13 +21,13 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(false);
   const [dailyLimit, setDailyLimit] = useState<number>(30);
   const [inputValue, setInputValue] = useState<string>("30");
-  const [showVocabPage, setShowVocabPage] = useState<boolean>(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [learnDirection, setLearnDirection] = useState<LearnDirection>("TH_DE");
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -46,10 +46,10 @@ export default function Settings() {
       setLearnDirection(savedDirection);
     }
 
-    // Load showVocabPage from localStorage
-    const savedVocabPage = localStorage.getItem("showVocabPage");
-    if (savedVocabPage === "true") {
-      setShowVocabPage(true);
+    // Load soundEnabled from localStorage
+    const savedSoundEnabled = localStorage.getItem("soundEnabled");
+    if (savedSoundEnabled === "false") {
+      setSoundEnabled(false);
     }
 
     // Listen for PWA install prompt
@@ -97,15 +97,12 @@ export default function Settings() {
     }, 1500);
   }
 
-  function toggleVocabPage() {
-    const newValue = !showVocabPage;
-    setShowVocabPage(newValue);
-    localStorage.setItem("showVocabPage", String(newValue));
-    
-    // Dispatch event for immediate UI update
-    window.dispatchEvent(new CustomEvent("vocabPageVisibilityChanged", { detail: { visible: newValue } }));
-    
-    setMsg(newValue ? "✅ Vokabeln-Seite eingeblendet" : "✅ Vokabeln-Seite ausgeblendet");
+
+  function toggleSoundEnabled() {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    localStorage.setItem("soundEnabled", String(newValue));
+    setMsg(newValue ? "✅ Sound aktiviert" : "✅ Sound deaktiviert");
     setTimeout(() => setMsg(""), 3000);
   }
 
@@ -309,19 +306,20 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Vokabeln-Seite Toggle */}
+
+            {/* Sound Toggle */}
             <div className="pt-4 border-t">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={showVocabPage}
-                  onChange={toggleVocabPage}
+                  checked={soundEnabled}
+                  onChange={toggleSoundEnabled}
                   className="h-4 w-4 accent-primary"
                 />
-                <span className="text-sm font-medium">Vokabeln-Seite anzeigen</span>
+                <span className="text-sm font-medium">Sound-Effekte aktivieren</span>
               </label>
               <p className="text-xs text-muted-foreground mt-2">
-                Wenn aktiviert, wird ein "Vokabeln" Tab im Hauptmenü angezeigt, um alle Vokabeln zu durchsuchen.
+                Deaktiviere Soundeffekte, wenn du lieber ohne Audio lernen möchtest.
               </p>
             </div>
           </div>
@@ -635,7 +633,6 @@ export default function Settings() {
               <ul className="space-y-2 text-sm">
                 <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 30)</li>
                 <li><strong>Lernrichtung:</strong> Standard für Tests (Thai→Deutsch oder Deutsch→Thai)</li>
-                <li><strong>Vokabeln-Seite:</strong> Zusätzlicher Tab zum Durchsuchen aller Vokabeln</li>
                 <li><strong>Daten zurücksetzen:</strong> Alle Lernfortschritte löschen</li>
               </ul>
             </div>

@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { db } from "../db/db";
 import { ensureProgress } from "../db/srs";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getLessonProgress, getLessonExamScore, migrateProgressFromDb } from "../lib/lessonProgress";
 
@@ -29,6 +36,7 @@ export default function Home({ onNavigate }: HomeProps) {
   const [learnedToday, setLearnedToday] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
+  const [streakDialogOpen, setStreakDialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const run = async () => {
@@ -90,7 +98,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">25</div>
+      <div className="text-3xl font-bold text-red-600">54</div>
       
       {/* Welcome Header */}
       <div>
@@ -173,7 +181,10 @@ export default function Home({ onNavigate }: HomeProps) {
         </button>
 
         {/* Streak */}
-        <Card className="p-6 order-4 md:order-none">
+        <Card
+          className="p-6 order-4 md:order-none cursor-pointer hover:bg-accent transition-colors"
+          onClick={() => setStreakDialogOpen(true)}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Streak</p>
@@ -186,6 +197,26 @@ export default function Home({ onNavigate }: HomeProps) {
           </p>
         </Card>
       </div>
+
+      <Dialog open={streakDialogOpen} onOpenChange={setStreakDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Streak</DialogTitle>
+            <DialogDescription>
+              Deine aktuelle Lernserie
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border p-3">
+              <div className="text-xs text-muted-foreground">Aktuelle Streak</div>
+              <div className="text-2xl font-bold">{streak} Tage</div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Lerne täglich, um deine Serie zu halten.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Lesson Progress Cards */}
       <div className="space-y-3">
