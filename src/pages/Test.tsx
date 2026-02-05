@@ -10,6 +10,7 @@ import { useSessionNavigation } from "../hooks/useSessionNavigation";
 import { useSessionStart } from "../hooks/useSessionStart";
 import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
 import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
+import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -22,16 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  // Fisher-Yates Shuffle für echtes Mischen
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 type LearnDirection = "TH_DE" | "DE_TH";
 
@@ -319,6 +310,15 @@ export default function Test() {
     setStatus,
   });
 
+  const { startLessonFromDialog: startLessonFromDialogHook } = useStartLessonFromDialog({
+    selectedDialogLesson,
+    cardLimit,
+    loadLesson,
+    dispatchSession,
+    setStatus,
+    setDialogOpen,
+  });
+
   // gradeAnswer Hook
   const { gradeAnswer: gradeAnswerHook } = useCardGrading({
     dispatchSession,
@@ -363,6 +363,7 @@ export default function Test() {
 
   // startSessionWithFilters ist jetzt im useSessionStartWithFilters Hook
   // quickStartLearned ist jetzt im useQuickStartLearned Hook
+  // startLessonFromDialog ist jetzt im useStartLessonFromDialog Hook
 
   // Quick-Start: Specific lesson, learned cards only
   function openLessonDialog(lesson: number) {
@@ -371,47 +372,6 @@ export default function Test() {
     setSelectedDialogLesson(lesson);
     setCardLimit(""); // Leer lassen, damit nichts markiert ist
     setDialogOpen(true);
-  }
-
-  async function startLessonFromDialog() {
-    if (!selectedDialogLesson) return;
-    
-    const limit = cardLimit ? parseInt(cardLimit, 10) : 0;
-    
-    // Lade Lektion on-demand
-    const lessonCards = await loadLesson(selectedDialogLesson);
-    
-    let cardsToUse = lessonCards.filter(v => v.id).map((v) => v.id!);
-    
-    // Limitiere auf gewünschte Anzahl
-    if (limit > 0 && limit < cardsToUse.length) {
-      cardsToUse = shuffle(cardsToUse).slice(0, limit);
-    }
-    
-    if (cardsToUse.length === 0) {
-      setStatus(`Keine Karten in Lektion ${selectedDialogLesson} verfügbar.`);
-      setDialogOpen(false);
-      return;
-    }
-    
-    const shuffled = shuffle(cardsToUse);
-    
-    dispatchSession({
-      type: "set",
-      payload: {
-        sessionActive: true,
-        queue: cardsToUse,
-        currentRound: shuffled,
-        roundIndex: 0,
-        currentId: shuffled[0] ?? null,
-        flipped: false,
-        streaks: new Map(cardsToUse.map((id) => [id, 0])),
-        doneIds: new Set(),
-      },
-    });
-    setStatus(`Session gestartet: ${cardsToUse.length} Karte(n) aus Lektion ${selectedDialogLesson}`);
-    
-    setDialogOpen(false);
   }
 
   function toggleTag(tag: string) {
@@ -1037,7 +997,7 @@ export default function Test() {
                   active.blur();
                 }
               }}
-              onClick={startLessonFromDialog}
+              onClick={startLessonFromDialogHook}
               className="shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
             >
               Test starten
