@@ -9,6 +9,7 @@ import { useCardGrading } from "../hooks/useCardGrading";
 import { useSessionNavigation } from "../hooks/useSessionNavigation";
 import { useSessionStart } from "../hooks/useSessionStart";
 import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
+import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -312,6 +313,12 @@ export default function Test() {
     setStatus,
   });
 
+  const { quickStartLearned: quickStartLearnedHook } = useQuickStartLearned({
+    dispatchSession,
+    setAllVocab,
+    setStatus,
+  });
+
   // gradeAnswer Hook
   const { gradeAnswer: gradeAnswerHook } = useCardGrading({
     dispatchSession,
@@ -355,48 +362,7 @@ export default function Test() {
   }
 
   // startSessionWithFilters ist jetzt im useSessionStartWithFilters Hook
-
-  // Quick-Start: Learned cards (alle gelernten Karten über alle Lektionen)
-  async function quickStartLearned() {
-    // Lade alle Vokabeln direkt aus der DB
-    const vocab = await db.vocab.toArray();
-
-    // Ensure progress für alle
-    for (const v of vocab) {
-      if (v.id) {
-        await ensureProgress(v.id);
-      }
-    }
-
-    // Filtere auf viewed = true
-    const ids = vocab.filter((v) => v.viewed === true && v.id).map((v) => v.id!);
-
-    if (ids.length === 0) {
-      setStatus("Keine gelernten Karten verfügbar.");
-      return;
-    }
-
-    // Update allVocab damit current die Karten finden kann
-    setAllVocab(vocab);
-
-    const shuffled = shuffle(ids);
-
-    dispatchSession({
-      type: "set",
-      payload: {
-        sessionActive: true,
-        queue: ids,
-        currentRound: shuffled,
-        roundIndex: 0,
-        currentId: shuffled[0] ?? null,
-        flipped: false,
-        streaks: new Map(ids.map((id) => [id, 0])),
-        doneIds: new Set(),
-      },
-    });
-
-    setStatus(`Session gestartet: ${ids.length} gelernte Karte(n)`);
-  }
+  // quickStartLearned ist jetzt im useQuickStartLearned Hook
 
   // Quick-Start: Specific lesson, learned cards only
   function openLessonDialog(lesson: number) {
@@ -527,7 +493,7 @@ export default function Test() {
           
           <div className="grid grid-cols-1 gap-2">
             <Button
-              onClick={() => void quickStartLearned()}
+              onClick={() => void quickStartLearnedHook()}
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
               title="Teste die Karten, die du bereits gelernt hast"
