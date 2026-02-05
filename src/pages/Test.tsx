@@ -6,6 +6,7 @@ import { useAudioFeedback } from "../hooks/useAudioFeedback";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 import { useSessionState } from "../hooks/useSessionState";
 import { useCardGrading } from "../hooks/useCardGrading";
+import { useSessionNavigation } from "../hooks/useSessionNavigation";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -322,6 +323,16 @@ export default function Test() {
     }
   }, [dialogOpen]);
 
+  // Session Navigation Hook (muss vor gradeAnswer Hook kommen)
+  const { goNext, requeueCurrentToEnd } = useSessionNavigation({
+    dispatchSession,
+    roundIndex,
+    doneIds,
+    currentRound,
+    currentId,
+    queue,
+  });
+
   // gradeAnswer Hook
   const { gradeAnswer: gradeAnswerHook } = useCardGrading({
     dispatchSession,
@@ -566,92 +577,6 @@ export default function Test() {
       },
     });
     setStatus("Session beendet");
-  }
-
-  function goNext(treatedDoneId?: number) {
-    const effectiveDoneIds = treatedDoneId ? new Set(doneIds).add(treatedDoneId) : doneIds;
-
-    // Gehe zur nächsten Karte in der aktuellen Runde
-    const nextIndex = roundIndex + 1;
-    
-    // Suche nächste nicht-abgeschlossene Karte
-    let searchIndex = nextIndex;
-    while (searchIndex < currentRound.length && effectiveDoneIds.has(currentRound[searchIndex])) {
-      searchIndex++;
-    }
-
-    if (searchIndex >= currentRound.length) {
-      // Runde abgeschlossen - starte neue Runde
-      startNewRound(effectiveDoneIds);
-    } else {
-      dispatchSession({
-        type: "set",
-        payload: {
-          roundIndex: searchIndex,
-          currentId: currentRound[searchIndex] ?? null,
-          flipped: false,
-        },
-      });
-    }
-  }
-
-  function startNewRound(effectiveDoneIds: Set<number> = doneIds) {
-    // Sammle alle noch nicht abgeschlossenen Karten
-    const remaining = queue.filter(id => !effectiveDoneIds.has(id));
-    
-    if (remaining.length === 0) {
-      // Session beendet
-      dispatchSession({
-        type: "set",
-        payload: { currentId: null, flipped: false },
-      });
-      return;
-    }
-
-    // Mische für neue Runde
-    const shuffled = shuffle(remaining);
-    
-    dispatchSession({
-      type: "set",
-      payload: {
-        currentRound: shuffled,
-        roundIndex: 0,
-        currentId: shuffled[0] ?? null,
-        flipped: false,
-      },
-    });
-  }
-
-  function requeueCurrentToEnd() {
-    if (!currentId) return;
-    
-    // Verschiebe aktuelle Karte ans Ende der Runde
-    const newRound = [...currentRound];
-    const [removed] = newRound.splice(roundIndex, 1);
-    newRound.push(removed);
-    
-    dispatchSession({ type: "set", payload: { currentRound: newRound } });
-    
-    // Zeige die Karte, die jetzt an der aktuellen Position ist
-    // (da wir eine entfernt haben, rutscht die nächste nach)
-    let searchIndex = roundIndex;
-    while (searchIndex < newRound.length && doneIds.has(newRound[searchIndex])) {
-      searchIndex++;
-    }
-    
-    if (searchIndex >= newRound.length) {
-      // Alle verbleibenden Karten dieser Runde sind done -> neue Runde
-      startNewRound();
-    } else {
-      dispatchSession({
-        type: "set",
-        payload: {
-          roundIndex: searchIndex,
-          currentId: newRound[searchIndex] ?? null,
-          flipped: false,
-        },
-      });
-    }
   }
 
   async function startSession() {
