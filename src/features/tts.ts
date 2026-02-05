@@ -103,7 +103,19 @@ export async function speak(text: string, lang: TtsLang) {
   // Some engines need a tiny async gap after cancel()
   await wait(20);
 
-  synth.speak(utter);
+  await new Promise<void>((resolve) => {
+    const safety = setTimeout(resolve, 15000);
+    utter.onend = () => {
+      clearTimeout(safety);
+      resolve();
+    };
+    utter.onerror = () => {
+      clearTimeout(safety);
+      resolve();
+    };
+
+    synth.speak(utter);
+  });
 }
 
 export function stopSpeak() {

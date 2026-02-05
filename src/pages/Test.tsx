@@ -3,7 +3,7 @@ import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
 import { speak } from "../features/tts";
-import { getNextLesson, recalculateLearningProgress } from "../lib/lessonProgress";
+import { recalculateLearningProgress } from "../lib/lessonProgress";
 import trueSoundFile from "@/assets/true.wav";
 import falseSoundFile from "@/assets/false.wav";
 
@@ -571,14 +571,46 @@ export default function Test() {
     setStatus(`Session gestartet: ${ids.length} Karte(n)`);
   }
 
-  // Quick-Start: Learned cards
-  function quickStartLearned() {
-    const nextLesson = getNextLesson();
-    if (nextLesson !== null) {
-      startSessionWithFilters(nextLesson, true);
-    } else {
-      startSessionWithFilters(1, true);
+  // Quick-Start: Learned cards (alle gelernten Karten über alle Lektionen)
+  async function quickStartLearned() {
+    // Lade alle Vokabeln direkt aus der DB
+    const vocab = await db.vocab.toArray();
+
+    // Ensure progress für alle
+    for (const v of vocab) {
+      if (v.id) {
+        await ensureProgress(v.id);
+      }
     }
+
+    // Filtere auf viewed = true
+    const ids = vocab.filter((v) => v.viewed === true && v.id).map((v) => v.id!);
+
+    if (ids.length === 0) {
+      setStatus("Keine gelernten Karten verfügbar.");
+      return;
+    }
+
+    // Update allVocab damit current die Karten finden kann
+    setAllVocab(vocab);
+
+    const shuffled = shuffle(ids);
+
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: true,
+        queue: ids,
+        currentRound: shuffled,
+        roundIndex: 0,
+        currentId: shuffled[0] ?? null,
+        flipped: false,
+        streaks: new Map(ids.map((id) => [id, 0])),
+        doneIds: new Set(),
+      },
+    });
+
+    setStatus(`Session gestartet: ${ids.length} gelernte Karte(n)`);
   }
 
   // Quick-Start: Specific lesson, learned cards only
@@ -681,19 +713,21 @@ export default function Test() {
     setStatus("Session beendet");
   }
 
-  function goNext() {
+  function goNext(treatedDoneId?: number) {
+    const effectiveDoneIds = treatedDoneId ? new Set(doneIds).add(treatedDoneId) : doneIds;
+
     // Gehe zur nächsten Karte in der aktuellen Runde
     const nextIndex = roundIndex + 1;
     
     // Suche nächste nicht-abgeschlossene Karte
     let searchIndex = nextIndex;
-    while (searchIndex < currentRound.length && doneIds.has(currentRound[searchIndex])) {
+    while (searchIndex < currentRound.length && effectiveDoneIds.has(currentRound[searchIndex])) {
       searchIndex++;
     }
 
     if (searchIndex >= currentRound.length) {
       // Runde abgeschlossen - starte neue Runde
-      startNewRound();
+      startNewRound(effectiveDoneIds);
     } else {
       dispatchSession({
         type: "set",
@@ -706,9 +740,9 @@ export default function Test() {
     }
   }
 
-  function startNewRound() {
+  function startNewRound(effectiveDoneIds: Set<number> = doneIds) {
     // Sammle alle noch nicht abgeschlossenen Karten
-    const remaining = queue.filter(id => !doneIds.has(id));
+    const remaining = queue.filter(id => !effectiveDoneIds.has(id));
     
     if (remaining.length === 0) {
       // Session beendet
@@ -779,36 +813,58 @@ export default function Test() {
     playFeedbackTone(isRight ? "right" : "wrong");
 
     if (!isRight) {
+      // Falsch: Streak zurücksetzen, dueAt auf jetzt setzen
+      const now = Date.now();
+      await db.progress.update(currentId, {
+        dueAt: now,
+        intervalDays: 0,
+        updatedAt: now,
+      });
       dispatchSession({ type: "resetStreak", id: currentId });
       requeueCurrentToEnd();
       return;
     }
 
+    // Richtig: Streak erhöhen
     const nextStreak = (streaks.get(currentId) ?? 0) + 1;
     dispatchSession({ type: "updateStreak", id: currentId, value: nextStreak });
 
-    if (nextStreak >= 5) {
+    if (nextStreak < 5) {
+      // Noch nicht 5x: dueAt auf jetzt setzen
+      const now = Date.now();
+      await db.progress.update(currentId, {
+        dueAt: now,
+        intervalDays: 0,
+        updatedAt: now,
+      });
+    } else {
+      // 5x RICHTIG: Markiere als erledigt + set dueAt to tomorrow
       dispatchSession({ type: "addDone", id: currentId });
 
-      const card = allVocab.find((v) => v.id === currentId);
-      if (card && card.lesson) {
-        // Markiere Karte als "viewed" und berechne Fortschritt neu
-        await db.vocab.update(currentId, { viewed: true });
+      const now = Date.now();
+      const tomorrow = now + 24 * 60 * 60 * 1000;
+      
+      // Update SRS: Setze viewed=true + dueAt tomorrow
+      await db.progress.update(currentId, {
+        dueAt: tomorrow,
+        intervalDays: 1,
+        updatedAt: now,
+      });
+      await db.vocab.update(currentId, { viewed: true });
 
-        // Berechne neu: Wie viele Karten in dieser Lektion haben viewed=true?
-        const viewedCards = await db.vocab
+      const card = current;
+      if (card && card.lesson) {
+        const viewedCount = await db.vocab
           .where("lesson")
           .equals(card.lesson)
           .and((v) => v.viewed === true)
           .count();
-
-        // Setze Fortschritt basierend auf echten gelernten Karten
-        recalculateLearningProgress(card.lesson, viewedCards);
+        recalculateLearningProgress(card.lesson, viewedCount);
       }
     }
 
-    // Immer zur nächsten Karte im Durchgang (egal ob 5/5 oder nicht)
-    goNext();
+    // Immer zur nächsten Karte im Durchgang
+    goNext(nextStreak >= 5 ? currentId : undefined);
   }
 
   async function startSession() {
@@ -899,7 +955,7 @@ export default function Test() {
           
           <div className="grid grid-cols-1 gap-2">
             <Button
-              onClick={quickStartLearned}
+              onClick={() => void quickStartLearned()}
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
               title="Teste die Karten, die du bereits gelernt hast"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useReducer } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
@@ -15,16 +15,68 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Session-State für Learn
+type SessionState = {
+  sessionActive: boolean;
+  lessonCards: VocabEntry[];
+  currentIndex: number;
+};
+
+type SessionAction =
+  | { type: "SET"; payload: { lessonCards: VocabEntry[] } }
+  | { type: "NEXT_CARD" }
+  | { type: "PREV_CARD" }
+  | { type: "END_SESSION" }
+  | { type: "UPDATE_CARD"; payload: VocabEntry };
+
+function sessionReducer(state: SessionState, action: SessionAction): SessionState {
+  switch (action.type) {
+    case "SET":
+      return {
+        sessionActive: true,
+        lessonCards: action.payload.lessonCards,
+        currentIndex: 0,
+      };
+    case "NEXT_CARD":
+      return {
+        ...state,
+        currentIndex: Math.min(state.currentIndex + 1, state.lessonCards.length - 1),
+      };
+    case "PREV_CARD":
+      return {
+        ...state,
+        currentIndex: Math.max(state.currentIndex - 1, 0),
+      };
+    case "END_SESSION":
+      return {
+        sessionActive: false,
+        lessonCards: [],
+        currentIndex: 0,
+      };
+    case "UPDATE_CARD":
+      return {
+        ...state,
+        lessonCards: state.lessonCards.map((c) =>
+          c.id === action.payload.id ? action.payload : c
+        ),
+      };
+    default:
+      return state;
+  }
+}
+
 export default function Learn() {
-    // Automatischer Dialog-Start für Lektion aus Home
-  const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
+  // Session-State mit useReducer
+  const [sessionState, dispatchSession] = useReducer(sessionReducer, {
+    sessionActive: false,
+    lessonCards: [],
+    currentIndex: 0,
+  });
+
+  // UI-State
+  const [allLessons, setAllLessons] = useState<Array<{ lesson: number; count: number }>>([]);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
-
-  // Session-State für lineares Durchgehen
-  const [sessionActive, setSessionActive] = useState(false);
-  const [lessonCards, setLessonCards] = useState<VocabEntry[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
   // Dialog-State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -32,26 +84,35 @@ export default function Learn() {
   const [includeViewed, setIncludeViewed] = useState(true);
   const [cardLimit, setCardLimit] = useState<string>("");
 
-  // Lektionen-Index
-  const allLessons = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const v of allVocab) {
-      if (v.lesson !== undefined && v.lesson > 0) {
-        map.set(v.lesson, (map.get(v.lesson) ?? 0) + 1);
-      }
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([lesson, count]) => ({ lesson, count }));
-  }, [allVocab]);
+  // Lesson Cache für bereits geladene Lektionen
+  const lessonCacheRef = useMemo(() => new Map<number, VocabEntry[]>(), []);
 
-  async function loadAllVocab() {
+  async function loadLessonMetadata() {
     setError("");
-    setStatus("Lade Vokabeln …");
+    setStatus("Lade Lektionen-Index …");
     try {
-      const vocab = await db.vocab.toArray();
-      setAllVocab(vocab);
-      setStatus(vocab.length ? `Geladen: ${vocab.length} Einträge` : "Keine Einträge vorhanden.");
+      // Nur Metadaten: alle Vokabeln zählen ohne Inhalte zu laden
+      const count = await db.vocab.count();
+      if (count === 0) {
+        setStatus("Keine Einträge vorhanden.");
+        setAllLessons([]);
+        return;
+      }
+
+      // Höchste Lesson-ID + Count pro Lektion
+      const lessonsMap = new Map<number, number>();
+      await db.vocab.each((v) => {
+        if (v.lesson !== undefined && v.lesson > 0) {
+          lessonsMap.set(v.lesson, (lessonsMap.get(v.lesson) ?? 0) + 1);
+        }
+      });
+
+      const lessons = Array.from(lessonsMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([lesson, count]) => ({ lesson, count }));
+
+      setAllLessons(lessons);
+      setStatus(lessons.length ? `Geladen: ${lessons.length} Lektionen` : "Keine Lektionen vorhanden.");
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? String(e));
@@ -59,13 +120,29 @@ export default function Learn() {
     }
   }
 
+  async function loadLesson(lessonNum: number): Promise<VocabEntry[]> {
+    // Check cache first
+    if (lessonCacheRef.has(lessonNum)) {
+      return lessonCacheRef.get(lessonNum) ?? [];
+    }
+
+    try {
+      const cards = await db.vocab.where("lesson").equals(lessonNum).toArray();
+      lessonCacheRef.set(lessonNum, cards);
+      return cards;
+    } catch (e) {
+      console.error(`Fehler beim Laden von Lektion ${lessonNum}:`, e);
+      return [];
+    }
+  }
+
   useEffect(() => {
-    void loadAllVocab();
+    void loadLessonMetadata();
   }, []);
 
   // Restore session on mount
   useEffect(() => {
-    if (!allVocab.length) return;
+    if (!allLessons.length) return;
 
     const savedSession = localStorage.getItem("learnSession");
     if (!savedSession) return;
@@ -73,36 +150,37 @@ export default function Learn() {
     try {
       const session = JSON.parse(savedSession);
       if (session.sessionActive && session.lessonCards && session.lessonCards.length > 0) {
-        setLessonCards(session.lessonCards);
-        setCurrentIndex(session.currentIndex || 0);
-        setSessionActive(true);
+        dispatchSession({
+          type: "SET",
+          payload: { lessonCards: session.lessonCards },
+        });
         setStatus(`Session wiederhergestellt: ${session.lessonCards.length} Karte(n)`);
       }
     } catch (e) {
       console.error("Failed to restore learn session:", e);
       localStorage.removeItem("learnSession");
     }
-  }, [allVocab]);
+  }, [allLessons]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
-    if (sessionActive && lessonCards.length > 0) {
+    if (sessionState.sessionActive && sessionState.lessonCards.length > 0) {
       const sessionData = {
-        sessionActive,
-        lessonCards,
-        currentIndex,
+        sessionActive: sessionState.sessionActive,
+        lessonCards: sessionState.lessonCards,
+        currentIndex: sessionState.currentIndex,
       };
       localStorage.setItem("learnSession", JSON.stringify(sessionData));
     } else {
       localStorage.removeItem("learnSession");
     }
-  }, [sessionActive, lessonCards, currentIndex]);
+  }, [sessionState]);
 
   useEffect(() => {
     const shouldAutoStart = localStorage.getItem("autoStartLearnDue") === "true";
     if (!shouldAutoStart) return;
-    if (sessionActive) return;
-    if (!allVocab.length) return;
+    if (sessionState.sessionActive) return;
+    if (!allLessons.length) return;
 
     const rawLimit = localStorage.getItem("dailyLimit");
     const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 30;
@@ -112,105 +190,108 @@ export default function Learn() {
     const dueParsed = rawDueCount ? parseInt(rawDueCount, 10) : validLimit;
     const targetLimit = !isNaN(dueParsed) && dueParsed > 0 ? Math.min(dueParsed, validLimit) : validLimit;
 
-    let cards = allVocab.filter((v) => !v.viewed);
-    cards.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
-    cards = cards.slice(0, targetLimit);
+    // Load unviewed cards on-demand
+    (async () => {
+      try {
+        const allCards = await db.vocab.toArray();
+        let cards = allCards.filter((v) => !v.viewed);
+        cards.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+        cards = cards.slice(0, targetLimit);
 
-    if (cards.length === 0) {
-      setStatus("Keine ungelernten Karten verfügbar.");
-    } else {
-      setLessonCards(cards);
-      setCurrentIndex(0);
-      setSessionActive(true);
-      setStatus(`Heute fällig: ${cards.length} Karte(n)`);
-    }
+        if (cards.length === 0) {
+          setStatus("Keine ungelernten Karten verfügbar.");
+        } else {
+          dispatchSession({
+            type: "SET",
+            payload: { lessonCards: cards },
+          });
+          setStatus(`Heute fällig: ${cards.length} Karte(n)`);
+        }
+      } catch (e) {
+        console.error("Fehler beim Laden der fälligen Karten:", e);
+        setError("Fehler beim Laden der fälligen Karten");
+      }
+    })();
 
     localStorage.removeItem("autoStartLearnDue");
     localStorage.removeItem("autoStartLearnDueCount");
-  }, [allVocab, sessionActive]);
+  }, [allLessons, sessionState.sessionActive]);
 
   function openLessonDialog(lesson: number) {
-    const cards = allVocab.filter((v) => v.lesson === lesson);
+    // Lesson count from metadata
+    const lessonInfo = allLessons.find(l => l.lesson === lesson);
+    const totalCards = lessonInfo?.count ?? 0;
+    
     setSelectedLesson(lesson);
-    setCardLimit(String(cards.length)); // Standard: alle Karten
+    setCardLimit(String(totalCards)); // Standard: alle Karten
     setIncludeViewed(true);
     setDialogOpen(true);
   }
 
-  function startSession() {
-    let cards = allVocab.filter((v) => v.lesson === selectedLesson);
+  async function startSession() {
+    try {
+      // Load lesson on-demand
+      let cards = await loadLesson(selectedLesson);
 
-    // Filter: nur ungesehene Karten
-    if (!includeViewed) {
-      cards = cards.filter((v) => !v.viewed);
-    }
+      // Filter: nur ungesehene Karten
+      if (!includeViewed) {
+        cards = cards.filter((v) => !v.viewed);
+      }
 
-    // Sortieren nach ID
-    cards.sort((a, b) => {
-      const aId = a.id ?? 0;
-      const bId = b.id ?? 0;
-      return aId - bId;
-    });
+      // Sortieren nach ID
+      cards.sort((a, b) => {
+        const aId = a.id ?? 0;
+        const bId = b.id ?? 0;
+        return aId - bId;
+      });
 
-    // Limit anwenden
-    const limit = parseInt(cardLimit, 10);
-    if (!isNaN(limit) && limit > 0) {
-      cards = cards.slice(0, limit);
-    }
+      // Limit anwenden
+      const limit = parseInt(cardLimit, 10);
+      if (!isNaN(limit) && limit > 0) {
+        cards = cards.slice(0, limit);
+      }
 
-    if (cards.length === 0) {
-      setStatus(`Keine Karten in Lektion ${selectedLesson} vorhanden.`);
+      if (cards.length === 0) {
+        setStatus(`Keine Karten in Lektion ${selectedLesson} vorhanden.`);
+        setDialogOpen(false);
+        return;
+      }
+
+      dispatchSession({
+        type: "SET",
+        payload: { lessonCards: cards },
+      });
+      setStatus(`Lektion ${selectedLesson}: ${cards.length} Karte(n)`);
       setDialogOpen(false);
-      return;
+    } catch (e) {
+      console.error("Fehler beim Starten der Session:", e);
+      setError("Fehler beim Starten der Session");
     }
-
-    setLessonCards(cards);
-    setCurrentIndex(0);
-    setSessionActive(true);
-    setStatus(`Lektion ${selectedLesson}: ${cards.length} Karte(n)`);
-    setDialogOpen(false);
   }
 
   function endSession() {
-    setSessionActive(false);
-    setLessonCards([]);
-    setCurrentIndex(0);
+    dispatchSession({ type: "END_SESSION" });
     setStatus("Session beendet");
   }
 
   async function markCurrentAsViewed() {
-    if (currentIndex < lessonCards.length) {
-      const card = lessonCards[currentIndex];
+    if (sessionState.currentIndex < sessionState.lessonCards.length) {
+      const card = sessionState.lessonCards[sessionState.currentIndex];
       if (card.id) {
         try {
+          // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
           const newViewedState = !card.viewed;
           await db.vocab.update(card.id, { viewed: newViewedState });
           
-          // Wenn als "nicht gelernt" markiert, setze SRS-Fortschritt zurück
-          if (!newViewedState) {
-            const progress = await db.progress.get(card.id);
-            if (progress) {
-              const now = Date.now();
-              await db.progress.update(card.id, {
-                ease: 2.5,
-                intervalDays: 0,
-                repetitions: 0,
-                dueAt: now,
-                lastReviewed: 0,
-                updatedAt: now,
-              });
-            }
-          }
-          
-          setLessonCards((prev) => {
-            const updated = [...prev];
-            updated[currentIndex] = { ...updated[currentIndex], viewed: newViewedState };
-            return updated;
+          const updatedCard = { ...card, viewed: newViewedState };
+          dispatchSession({
+            type: "UPDATE_CARD",
+            payload: updatedCard,
           });
           
-          const statusMsg = newViewedState 
-            ? `✅ Karte ${currentIndex + 1}/${lessonCards.length} als gelernt markiert`
-            : `↩️ Karte ${currentIndex + 1}/${lessonCards.length} als nicht gelernt markiert (Fortschritt zurückgesetzt)`;
+          const statusMsg = newViewedState
+            ? `✅ Karte ${sessionState.currentIndex + 1}/${sessionState.lessonCards.length} als gelernt markiert`
+            : `↩️ Karte ${sessionState.currentIndex + 1}/${sessionState.lessonCards.length} als ungelernt markiert`;
           setStatus(statusMsg);
         } catch (e) {
           console.error("Fehler beim Speichern:", e);
@@ -221,20 +302,20 @@ export default function Learn() {
   }
 
   function goNext() {
-    if (currentIndex < lessonCards.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    if (sessionState.currentIndex < sessionState.lessonCards.length - 1) {
+      dispatchSession({ type: "NEXT_CARD" });
     } else {
       setStatus("Ende der Lektion erreicht!");
     }
   }
 
   function goPrev() {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
+    if (sessionState.currentIndex > 0) {
+      dispatchSession({ type: "PREV_CARD" });
     }
   }
 
-  const current = lessonCards[currentIndex];
+  const current = sessionState.lessonCards[sessionState.currentIndex];
   const thaiLang = "th-TH";
   const germanLang = "de-DE";
 
@@ -254,7 +335,7 @@ export default function Learn() {
       </div>
 
       {/* Lektion-Auswahl (nur wenn keine Session läuft) */}
-      {!sessionActive ? (
+      {!sessionState.sessionActive ? (
         <Card className="p-4">
           <div className="space-y-3">
             <div className="text-sm font-semibold text-muted-foreground">📚 Lektion auswählen:</div>
@@ -280,12 +361,12 @@ export default function Learn() {
       ) : null}
 
       {/* Lern-Session */}
-      {sessionActive && current ? (
+      {sessionState.sessionActive && current ? (
         <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
           {/* Top-Status */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>
-              Karte: <b className="text-foreground">{currentIndex + 1}</b> / <b className="text-foreground">{lessonCards.length}</b>
+              Karte: <b className="text-foreground">{sessionState.currentIndex + 1}</b> / <b className="text-foreground">{sessionState.lessonCards.length}</b>
             </span>
             <span>·</span>
             <span>
@@ -298,8 +379,8 @@ export default function Learn() {
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: `${((currentIndex + 1) / lessonCards.length) * 100}%` }}
-                aria-label={`Fortschritt ${Math.round(((currentIndex + 1) / lessonCards.length) * 100)}%`}
+                style={{ width: `${((sessionState.currentIndex + 1) / sessionState.lessonCards.length) * 100}%` }}
+                aria-label={`Fortschritt ${Math.round(((sessionState.currentIndex + 1) / sessionState.lessonCards.length) * 100)}%`}
               />
             </div>
           </div>
@@ -403,16 +484,15 @@ export default function Learn() {
               onClick={markCurrentAsViewed}
               size="sm"
               className="w-full h-10 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
-              variant={current.viewed ? "secondary" : "default"}
             >
-              {current.viewed ? "↩️ Markiere als nicht gelernt" : "✅ Markiere als gelernt"}
+              {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
             </Button>
 
             {/* Navigation */}
             <div className="flex flex-wrap justify-center gap-2">
               <Button
                 onClick={goPrev}
-                disabled={currentIndex === 0}
+                disabled={sessionState.currentIndex === 0}
                 variant="outline"
                 className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
               >
@@ -421,7 +501,7 @@ export default function Learn() {
 
               <Button
                 onClick={goNext}
-                disabled={currentIndex === lessonCards.length - 1}
+                disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
                 className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
               >
                 Weiter ➡️
@@ -439,7 +519,7 @@ export default function Learn() {
           </div>
 
           {/* Info: Ende der Lektion */}
-          {currentIndex === lessonCards.length - 1 ? (
+          {sessionState.currentIndex === sessionState.lessonCards.length - 1 ? (
             <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 text-center">
               <p className="text-sm font-medium text-green-800 dark:text-green-200">
                 🎉 Ende der Lektion erreicht!
@@ -450,7 +530,7 @@ export default function Learn() {
       ) : null}
 
       {/* Leer-Zustand */}
-      {!sessionActive && allLessons.length === 0 ? (
+      {!sessionState.sessionActive && allLessons.length === 0 ? (
         <Card className="p-6 text-center">
           <p className="text-muted-foreground">Keine Lektionen gefunden. Bitte importiere zuerst Vokabeln.</p>
         </Card>
@@ -505,7 +585,7 @@ export default function Learn() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg">
               Abbrechen
             </Button>
-            <Button onClick={startSession} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg">
+            <Button onClick={() => void startSession()} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg">
               Starten
             </Button>
           </DialogFooter>

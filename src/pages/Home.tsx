@@ -52,7 +52,6 @@ export default function Home({ onNavigate }: HomeProps) {
       }
       
       const now = Date.now();
-      const allDue = await db.progress.where("dueAt").belowOrEqual(now).toArray();
       const vocab = await db.vocab.count();
       
       // Read daily limit from localStorage (default: 30)
@@ -61,18 +60,18 @@ export default function Home({ onNavigate }: HomeProps) {
       const validLimit = !isNaN(limit) && limit > 0 ? limit : 30;
       setDailyLimit(validLimit);
 
-      // Calculate learned today (cards reviewed today)
+      // Calculate learned today: only cards mastered (dueAt moved to future after correct streak)
       const todayStart = new Date().setHours(0, 0, 0, 0);
-      const reviewedToday = await db.progress
+      const masteredToday = await db.progress
         .where("lastReviewed")
         .above(todayStart)
+        .and((p) => p.dueAt > now && p.lastGrade === 2)
         .count();
-      setLearnedToday(reviewedToday);
+      setLearnedToday(masteredToday);
       
-      // Berechne verbleibende Karten bis Tagesziel
-      const remaining = Math.max(0, validLimit - reviewedToday);
-      const limited = Math.min(allDue.length, remaining);
-      setDueCount(limited);
+      // Heute fällig: gleicher Countdown wie Heutiges Lernziel
+      const remainingToday = Math.max(0, validLimit - masteredToday);
+      setDueCount(remainingToday);
       setTotal(vocab);
 
       // Calculate streak (consecutive days with reviews)
@@ -88,6 +87,17 @@ export default function Home({ onNavigate }: HomeProps) {
 
     };
     run();
+
+    // Aktualisiere Lektionen-Fortschritt regelmäßig (z.B. wenn User von Test zurück kommt)
+    const interval = setInterval(async () => {
+      const progress: Record<number, number> = {};
+      for (let i = 1; i <= 5; i++) {
+        progress[i] = getLessonProgress(i);
+      }
+      setLessonProgress(progress);
+    }, 1000); // Alle 1 Sekunde
+
+    return () => clearInterval(interval);
   }, []);
 
   const progress = dailyLimit > 0 ? Math.min((learnedToday / dailyLimit) * 100, 100) : 0;
@@ -98,7 +108,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">54</div>
+      <div className="text-3xl font-bold text-red-600">66</div>
       
       {/* Welcome Header */}
       <div>
