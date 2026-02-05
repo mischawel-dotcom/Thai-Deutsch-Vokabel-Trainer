@@ -7,6 +7,7 @@ import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 import { useSessionState } from "../hooks/useSessionState";
 import { useCardGrading } from "../hooks/useCardGrading";
 import { useSessionNavigation } from "../hooks/useSessionNavigation";
+import { useSessionStart } from "../hooks/useSessionStart";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -333,6 +334,19 @@ export default function Test() {
     queue,
   });
 
+  // Session Start Hook
+  const { startSession: startSessionHook } = useSessionStart({
+    dispatchSession,
+    allVocab,
+    loadAllVocab,
+    buildSessionIds,
+    cardLimitAdvanced,
+    selectedTags,
+    selectedLesson,
+    onlyViewed,
+    setStatus,
+  });
+
   // gradeAnswer Hook
   const { gradeAnswer: gradeAnswerHook } = useCardGrading({
     dispatchSession,
@@ -561,7 +575,7 @@ export default function Test() {
     const ok = confirm("Wollen Sie die Test-Session neu starten?\n\nAlle Session-Zähler werden zurückgesetzt.");
     if (!ok) return;
 
-    startSession();
+    startSessionHook();
   }
 
   async function endSessionConfirm() {
@@ -579,66 +593,7 @@ export default function Test() {
     setStatus("Session beendet");
   }
 
-  async function startSession() {
-    // Für erweiterte Filter: Lade alle Vokabeln falls noch nicht geladen
-    if (allVocab.length === 0) {
-      await loadAllVocab();
-    }
-    
-    const ids = buildSessionIds();
-
-    if (ids.length === 0) {
-      const filters = [];
-      if (selectedTags.length > 0) filters.push("Tag-Auswahl");
-      if (selectedLesson !== undefined) filters.push("Lektion-Auswahl");
-      if (onlyViewed) filters.push("(und gelernt)");
-      const msg = filters.length > 0 ? `Keine Karten passend zur ${filters.join(" ")}` : "Keine Karten vorhanden.";
-      setStatus(msg);
-      dispatchSession({
-        type: "set",
-        payload: {
-          sessionActive: false,
-          queue: [],
-          currentId: null,
-          flipped: false,
-          streaks: new Map(),
-          doneIds: new Set(),
-          currentRound: [],
-          roundIndex: 0,
-        },
-      });
-      return;
-    }
-
-    // Limitiere auf gewünschte Anzahl
-    const limit = cardLimitAdvanced ? parseInt(cardLimitAdvanced, 10) : 0;
-    let cardsToUse = ids;
-    
-    if (limit > 0 && limit < ids.length) {
-      cardsToUse = shuffle(ids).slice(0, limit);
-    } else if (limit > ids.length) {
-      setStatus(`⚠️ Nur ${ids.length} Karten verfügbar, nicht ${limit}`);
-      return;
-    }
-
-    const shuffled = shuffle(cardsToUse);
-
-    dispatchSession({
-      type: "set",
-      payload: {
-        sessionActive: true,
-        queue: cardsToUse,
-        currentRound: shuffled,
-        roundIndex: 0,
-        currentId: shuffled[0] ?? null,
-        flipped: false,
-        streaks: new Map(cardsToUse.map((id) => [id, 0])),
-        doneIds: new Set(),
-      },
-    });
-
-    setStatus(`Session gestartet: ${cardsToUse.length} Karte(n)`);
-  }
+  // startSession ist jetzt im useSessionStart Hook
 
   const finished = sessionActive && currentId == null;
   const cardStreak = current?.id ? Math.min(streaks.get(current.id) ?? 0, 5) : 0;
@@ -867,7 +822,7 @@ export default function Test() {
 
             <div className="pt-4 border-t">
               <Button 
-                onClick={startSession}
+                onClick={startSessionHook}
                 size="lg"
                 className="w-full h-14 text-lg font-semibold"
               >
