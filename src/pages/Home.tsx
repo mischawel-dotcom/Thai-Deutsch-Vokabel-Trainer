@@ -108,7 +108,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">66</div>
+      <div className="text-3xl font-bold text-red-600">68</div>
       
       {/* Welcome Header */}
       <div>

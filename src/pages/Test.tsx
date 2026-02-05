@@ -2,10 +2,9 @@
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { ensureProgress, gradeCard } from "../db/srs";
-import { speak } from "../features/tts";
 import { recalculateLearningProgress } from "../lib/lessonProgress";
-import trueSoundFile from "@/assets/true.wav";
-import falseSoundFile from "@/assets/false.wav";
+import { useAudioFeedback } from "../hooks/useAudioFeedback";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -113,9 +112,9 @@ export default function Test() {
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speakingKey, setSpeakingKey] = useState<string | null>(null);
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
+
+  const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
 
   // Session-State
   const [session, dispatchSession] = useReducer(sessionReducer, initialSessionState);
@@ -380,122 +379,22 @@ export default function Test() {
     }
   }, [dialogOpen]);
 
-  // Keyboard Navigation
-  useEffect(() => {
-    if (!sessionActive || !currentId) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignoriere wenn in Input-Feld
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case ' ': // Space
-        case 'Enter':
-          e.preventDefault();
-          flipCard();
-          break;
-
-        case 'ArrowRight':
-        case '1':
-          e.preventDefault();
-          if (flipped) {
-            gradeAnswer(true);
-          }
-          break;
-
-        case 'ArrowLeft':
-        case '0':
-          e.preventDefault();
-          if (flipped) {
-            gradeAnswer(false);
-          }
-          break;
-
-        case 'p':
-        case 'P':
-          e.preventDefault();
-          if (current) {
-            const text = flipped ? backText : frontText;
-            const lang = flipped ? backLang : frontLang;
-            void handleSpeak(text, lang, flipped ? "back" : "front");
-          }
-          break;
-
-        case 'Escape':
-          e.preventDefault();
-          endSessionConfirm();
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [sessionActive, currentId, flipped, current, frontText, backText, frontLang, backLang]);
-
-  // Focus Management: Restore focus when dialog closes
-  useEffect(() => {
-    if (!dialogOpen && lastFocusedElement.current) {
-      // Restore focus nach Dialog-Close
-      setTimeout(() => {
-        lastFocusedElement.current?.focus();
-        lastFocusedElement.current = null;
-      }, 100);
-    }
-  }, [dialogOpen]);
+  useKeyboardNavigation({
+    sessionActive,
+    currentId,
+    flipped,
+    current,
+    frontText,
+    backText,
+    frontLang,
+    backLang,
+    flipCard,
+    gradeAnswer,
+    handleSpeak,
+    endSessionConfirm,
+  });
 
   // ===== Helpers =====
-  async function handleSpeak(text: string, lang: "th-TH" | "de-DE", key: string) {
-    if (!text.trim()) return;
-    setIsSpeaking(true);
-    setSpeakingKey(key);
-    try {
-      await speak(text, lang);
-    } finally {
-      setIsSpeaking(false);
-      setSpeakingKey(null);
-    }
-  }
-
-  function playFeedbackTone(type: "right" | "wrong") {
-    try {
-      const soundEnabled = localStorage.getItem("soundEnabled");
-      if (soundEnabled === "false") return;
-
-      const soundFile = type === "right" ? trueSoundFile : falseSoundFile;
-      console.log("Playing sound:", soundFile);
-      
-      const audio = new Audio(soundFile);
-      audio.volume = 0.8;
-      
-      audio.onerror = (e) => {
-        console.error("Audio error:", e);
-        alert(`Audio-Fehler: Datei konnte nicht geladen werden`);
-      };
-      
-      audio.onloadeddata = () => {
-        console.log("Audio loaded successfully");
-      };
-      
-      // Spiele Sound ab
-      audio.play()
-        .then(() => {
-          console.log("Sound playing successfully");
-        })
-        .catch((error) => {
-          console.error("Playback error:", error);
-        });
-      
-      // Stoppe nach 3 Sekunden automatisch
-      setTimeout(() => {
-        audio.pause();
-        audio.currentTime = 0;
-      }, 3000);
-    } catch (error) {
-      console.error("Audio error:", error);
-    }
-  }
   // Helper: Build session IDs
   function buildSessionIds(): number[] {
     const ids: number[] = [];
