@@ -8,6 +8,7 @@ import { useSessionState } from "../hooks/useSessionState";
 import { useCardGrading } from "../hooks/useCardGrading";
 import { useSessionNavigation } from "../hooks/useSessionNavigation";
 import { useSessionStart } from "../hooks/useSessionStart";
+import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,6 @@ export default function Test() {
 
   // Lektion-Auswahl
   const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
-
   // Nur gelernte Karten
   const [onlyViewed, setOnlyViewed] = useState<boolean>(false);
 
@@ -65,9 +65,9 @@ export default function Test() {
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
 
-  const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
+  const flipButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusedElement = useRef<HTMLElement | null>(null);
 
-  // Session-State
   const { session, dispatchSession, flipCard } = useSessionState();
   const {
     sessionActive,
@@ -80,52 +80,7 @@ export default function Test() {
     roundIndex,
   } = session;
 
-  // Refs für Focus-Management
-  const flipButtonRef = useRef<HTMLButtonElement>(null);
-  const lastFocusedElement = useRef<HTMLElement | null>(null);
-
-  // ===== Effects =====
-  // Persist direction
-  useEffect(() => {
-    const saved = localStorage.getItem("learnDirection");
-    if (saved === "TH_DE" || saved === "DE_TH") setDirection(saved);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("learnDirection", direction);
-  }, [direction]);
-
-  // Restore session on mount - AFTER allVocab is loaded
-  useEffect(() => {
-    if (!allVocab.length && lessonCache.size === 0) return; // Wait for vocab to load first
-
-    const savedSession = localStorage.getItem("testSession");
-    if (!savedSession) return;
-
-    try {
-      const session = JSON.parse(savedSession);
-      if (session.sessionActive && session.queue && session.queue.length > 0) {
-        dispatchSession({
-          type: "set",
-          payload: {
-            sessionActive: true,
-            queue: session.queue,
-            currentId: session.currentId,
-            flipped: session.flipped || false,
-            streaks: new Map(session.streaks || []),
-            doneIds: new Set(session.doneIds || []),
-            currentRound: session.currentRound || [],
-            roundIndex: session.roundIndex || 0,
-          },
-        });
-        if (session.direction) setDirection(session.direction);
-        setStatus("Test-Session wiederhergestellt");
-      }
-    } catch (e) {
-      console.error("Failed to restore test session:", e);
-      localStorage.removeItem("testSession");
-    }
-  }, [allVocab, lessonCache]);
+  const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
@@ -295,7 +250,7 @@ export default function Test() {
         if (!isNaN(lesson) && [1, 2, 3, 4, 5].includes(lesson)) {
           setSelectedLesson(lesson);
           setTimeout(() => {
-            startSessionWithFilters(lesson, false);
+            startSessionWithFiltersHook(lesson, false);
           }, 0);
           localStorage.removeItem("selectedLessonForTest");
         }
@@ -347,6 +302,16 @@ export default function Test() {
     setStatus,
   });
 
+  const { startSessionWithFilters: startSessionWithFiltersHook } = useSessionStartWithFilters({
+    dispatchSession,
+    allVocab,
+    loadAllVocab,
+    loadLesson,
+    setSelectedLesson,
+    setOnlyViewed,
+    setStatus,
+  });
+
   // gradeAnswer Hook
   const { gradeAnswer: gradeAnswerHook } = useCardGrading({
     dispatchSession,
@@ -389,67 +354,7 @@ export default function Test() {
     return ids;
   }
 
-  // Helper: Start session with learned cards
-  async function startSessionWithFilters(lesson?: number, viewedOnly: boolean = false) {
-    setSelectedLesson(lesson);
-    setOnlyViewed(viewedOnly);
-
-    let vocab: VocabEntry[];
-    
-    if (lesson !== undefined) {
-      // Lazy load nur diese Lektion
-      vocab = await loadLesson(lesson);
-    } else {
-      // Lade alle (nur wenn "Alle" gewählt)
-      if (allVocab.length === 0) {
-        await loadAllVocab();
-      }
-      vocab = allVocab;
-    }
-
-    const ids: number[] = [];
-    for (const v of vocab) {
-      if (!v.id) continue;
-      if (viewedOnly && !v.viewed) continue;
-      ids.push(v.id);
-    }
-
-    if (ids.length === 0) {
-      setStatus("Keine Karten für diese Auswahl verfügbar.");
-      dispatchSession({
-        type: "set",
-        payload: {
-          sessionActive: false,
-          queue: [],
-          currentId: null,
-          flipped: false,
-          streaks: new Map(),
-          doneIds: new Set(),
-          currentRound: [],
-          roundIndex: 0,
-        },
-      });
-      return;
-    }
-
-    const shuffled = shuffle(ids);
-
-    dispatchSession({
-      type: "set",
-      payload: {
-        sessionActive: true,
-        queue: ids,
-        currentRound: shuffled,
-        roundIndex: 0,
-        currentId: shuffled[0] ?? null,
-        flipped: false,
-        streaks: new Map(ids.map((id) => [id, 0])),
-        doneIds: new Set(),
-      },
-    });
-
-    setStatus(`Session gestartet: ${ids.length} Karte(n)`);
-  }
+  // startSessionWithFilters ist jetzt im useSessionStartWithFilters Hook
 
   // Quick-Start: Learned cards (alle gelernten Karten über alle Lektionen)
   async function quickStartLearned() {
