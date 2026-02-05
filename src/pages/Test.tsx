@@ -54,6 +54,7 @@ export default function Test() {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
+    const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
 
@@ -313,6 +314,7 @@ export default function Test() {
   const { startLessonFromDialog: startLessonFromDialogHook } = useStartLessonFromDialog({
     selectedDialogLesson,
     cardLimit,
+      includeLearnedCards: includeLearnedInDialog,
     loadLesson,
     dispatchSession,
     setStatus,
@@ -390,8 +392,12 @@ export default function Test() {
   }
 
   function matchesViewedFilter(v: VocabEntry): boolean {
-    if (!onlyViewed) return true;
-    return v.viewed === true;
+     // Option 1: Nur gelernte Karten
+     if (onlyViewed) {
+      return v.viewed === true;
+     }
+     // Option 2: Standard - schließe gelernte Karten aus
+     return !v.viewed;
   }
 
   function clearSelectedTags() {
@@ -980,6 +986,23 @@ export default function Test() {
                 Standard: alle verfügbaren Karten der Lektion
               </p>
             </div>
+
+              {/* Checkbox: Bereits bestandene Karten einschließen */}
+              <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                  id="includeLearnedInDialog"
+                  checked={includeLearnedInDialog}
+                    onChange={(e) => setIncludeLearnedInDialog(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                />
+                <label
+                  htmlFor="includeLearnedInDialog"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Bereits bestandene Karten einschließen
+                </label>
+              </div>
           </div>
 
           <DialogFooter className="flex flex-row gap-2">

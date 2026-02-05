@@ -57,6 +57,8 @@ export function useSessionStartWithFilters({
       for (const v of vocab) {
         if (!v.id) continue;
         if (viewedOnly && !v.viewed) continue;
+          // Standardmäßig gelernte Karten ausschließen (außer viewedOnly ist true)
+          if (!viewedOnly && v.viewed) continue;
         ids.push(v.id);
       }
 

@@ -3,6 +3,7 @@
 interface UseStartLessonFromDialogProps {
   selectedDialogLesson: number | null;
   cardLimit: string;
+  includeLearnedCards: boolean;
   loadLesson: (lessonNumber: number) => Promise<any[]>;
   dispatchSession: (action: any) => void;
   setStatus: (msg: string) => void;
@@ -27,6 +28,7 @@ function shuffle<T>(arr: T[]): T[] {
 export function useStartLessonFromDialog({
   selectedDialogLesson,
   cardLimit,
+  includeLearnedCards,
   loadLesson,
   dispatchSession,
   setStatus,
@@ -41,7 +43,10 @@ export function useStartLessonFromDialog({
       // Lade Lektion on-demand
       const lessonCards = await loadLesson(selectedDialogLesson);
 
-      let cardsToUse = lessonCards.filter((v) => v.id).map((v) => v.id!);
+        // Filtere: nur mit ID + optional gelernte Karten ausschließen
+        let cardsToUse = lessonCards
+          .filter((v) => v.id && (includeLearnedCards || !v.viewed))
+          .map((v) => v.id!);
 
       // Limitiere auf gewuenschte Anzahl
       if (limit > 0 && limit < cardsToUse.length) {
@@ -78,6 +83,7 @@ export function useStartLessonFromDialog({
     [
       selectedDialogLesson,
       cardLimit,
+        includeLearnedCards,
       loadLesson,
       dispatchSession,
       setStatus,
