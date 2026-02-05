@@ -1,10 +1,11 @@
-﻿import { useEffect, useMemo, useState, useRef, useReducer } from "react";
+﻿import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
-import { ensureProgress, gradeCard } from "../db/srs";
-import { recalculateLearningProgress } from "../lib/lessonProgress";
+import { ensureProgress } from "../db/srs";
 import { useAudioFeedback } from "../hooks/useAudioFeedback";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
+import { useSessionState } from "../hooks/useSessionState";
+import { useCardGrading } from "../hooks/useCardGrading";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -29,58 +30,6 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 type LearnDirection = "TH_DE" | "DE_TH";
-
-type SessionState = {
-  sessionActive: boolean;
-  queue: number[];
-  currentId: number | null;
-  flipped: boolean;
-  streaks: Map<number, number>;
-  doneIds: Set<number>;
-  currentRound: number[];
-  roundIndex: number;
-};
-
-type SessionAction =
-  | { type: "set"; payload: Partial<SessionState> }
-  | { type: "updateStreak"; id: number; value: number }
-  | { type: "resetStreak"; id: number }
-  | { type: "addDone"; id: number };
-
-const initialSessionState: SessionState = {
-  sessionActive: false,
-  queue: [],
-  currentId: null,
-  flipped: false,
-  streaks: new Map(),
-  doneIds: new Set(),
-  currentRound: [],
-  roundIndex: 0,
-};
-
-function sessionReducer(state: SessionState, action: SessionAction): SessionState {
-  switch (action.type) {
-    case "set":
-      return { ...state, ...action.payload };
-    case "updateStreak": {
-      const newStreaks = new Map(state.streaks);
-      newStreaks.set(action.id, action.value);
-      return { ...state, streaks: newStreaks };
-    }
-    case "resetStreak": {
-      const newStreaks = new Map(state.streaks);
-      newStreaks.set(action.id, 0);
-      return { ...state, streaks: newStreaks };
-    }
-    case "addDone": {
-      const newDoneIds = new Set(state.doneIds);
-      newDoneIds.add(action.id);
-      return { ...state, doneIds: newDoneIds };
-    }
-    default:
-      return state;
-  }
-}
 
 export default function Test() {
   // ===== State =====
@@ -117,7 +66,7 @@ export default function Test() {
   const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
 
   // Session-State
-  const [session, dispatchSession] = useReducer(sessionReducer, initialSessionState);
+  const { session, dispatchSession, flipCard } = useSessionState();
   const {
     sessionActive,
     queue,
@@ -281,12 +230,6 @@ export default function Test() {
     }
   }
 
-  function flipCard() {
-    if (!flipped) {
-      dispatchSession({ type: "set", payload: { flipped: true } });
-    }
-  }
-
   async function loadLessonMetadata() {
     setError("");
     setStatus("Lade Lektionen …");
@@ -379,6 +322,19 @@ export default function Test() {
     }
   }, [dialogOpen]);
 
+  // gradeAnswer Hook
+  const { gradeAnswer: gradeAnswerHook } = useCardGrading({
+    dispatchSession,
+    currentId,
+    flipped,
+    streaks,
+    current,
+    playFeedbackTone,
+    setLastAnswer,
+    requeueCurrentToEnd,
+    goNext,
+  });
+
   useKeyboardNavigation({
     sessionActive,
     currentId,
@@ -389,7 +345,7 @@ export default function Test() {
     frontLang,
     backLang,
     flipCard,
-    gradeAnswer,
+    gradeAnswer: gradeAnswerHook,
     handleSpeak,
     endSessionConfirm,
   });
@@ -696,74 +652,6 @@ export default function Test() {
         },
       });
     }
-  }
-
-  async function gradeAnswer(isRight: boolean) {
-    if (!currentId) return;
-
-    if (!flipped) {
-      alert("Bitte erst die Karte umdrehen, dann bewerten.");
-      return;
-    }
-
-    await gradeCard(currentId, isRight ? 2 : 0);
-    setLastAnswer(isRight ? "right" : "wrong");
-    setTimeout(() => setLastAnswer(null), 350);
-    playFeedbackTone(isRight ? "right" : "wrong");
-
-    if (!isRight) {
-      // Falsch: Streak zurücksetzen, dueAt auf jetzt setzen
-      const now = Date.now();
-      await db.progress.update(currentId, {
-        dueAt: now,
-        intervalDays: 0,
-        updatedAt: now,
-      });
-      dispatchSession({ type: "resetStreak", id: currentId });
-      requeueCurrentToEnd();
-      return;
-    }
-
-    // Richtig: Streak erhöhen
-    const nextStreak = (streaks.get(currentId) ?? 0) + 1;
-    dispatchSession({ type: "updateStreak", id: currentId, value: nextStreak });
-
-    if (nextStreak < 5) {
-      // Noch nicht 5x: dueAt auf jetzt setzen
-      const now = Date.now();
-      await db.progress.update(currentId, {
-        dueAt: now,
-        intervalDays: 0,
-        updatedAt: now,
-      });
-    } else {
-      // 5x RICHTIG: Markiere als erledigt + set dueAt to tomorrow
-      dispatchSession({ type: "addDone", id: currentId });
-
-      const now = Date.now();
-      const tomorrow = now + 24 * 60 * 60 * 1000;
-      
-      // Update SRS: Setze viewed=true + dueAt tomorrow
-      await db.progress.update(currentId, {
-        dueAt: tomorrow,
-        intervalDays: 1,
-        updatedAt: now,
-      });
-      await db.vocab.update(currentId, { viewed: true });
-
-      const card = current;
-      if (card && card.lesson) {
-        const viewedCount = await db.vocab
-          .where("lesson")
-          .equals(card.lesson)
-          .and((v) => v.viewed === true)
-          .count();
-        recalculateLearningProgress(card.lesson, viewedCount);
-      }
-    }
-
-    // Immer zur nächsten Karte im Durchgang
-    goNext(nextStreak >= 5 ? currentId : undefined);
   }
 
   async function startSession() {
@@ -1315,7 +1203,7 @@ export default function Test() {
           <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
             <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
               <Button
-                onClick={() => gradeAnswer(false)}
+                onClick={() => gradeAnswerHook(false)}
                 variant="destructive"
                 size="sm"
                 className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
@@ -1324,7 +1212,7 @@ export default function Test() {
                 ❌ Falsch
               </Button>
               <Button
-                onClick={() => gradeAnswer(true)}
+                onClick={() => gradeAnswerHook(true)}
                 variant="default"
                 size="sm"
                 className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white"
