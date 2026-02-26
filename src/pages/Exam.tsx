@@ -1,8 +1,16 @@
-﻿import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
 import { completeLessonViaExam } from "../lib/lessonProgress";
+import {
+  isExamSessionData,
+  type ExamDirection,
+  type ExamQuestionData,
+  type ExamSessionData,
+  type ExamState,
+} from "../lib/sessionTypes";
+import { usePersistedSession } from "../hooks/usePersistedSession";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,9 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type ExamState = "selection" | "direction" | "testing" | "result";
-type ExamDirection = "TH_DE" | "DE_TH";
 
 interface Question {
   entryId: number;
@@ -44,6 +49,15 @@ export default function Exam() {
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState<Record<number, string>>({});
   const [nextQuestionTimer, setNextQuestionTimer] = useState<NodeJS.Timeout | null>(null);
+  const {
+    hydrated: examSessionHydrated,
+    restoredSession: restoredExamSession,
+    savePersistedSession: saveExamSession,
+    clearPersistedSession: clearExamSession,
+  } = usePersistedSession<ExamSessionData>({
+    key: "examSession",
+    isValid: isExamSessionData,
+  });
 
   // Load vocab auf Component Mount
   useEffect(() => {
@@ -53,43 +67,42 @@ export default function Exam() {
   // Restore session after vocabByLesson loads
   useEffect(() => {
     if (Object.keys(vocabByLesson).length === 0) return;
-    const savedSession = localStorage.getItem("examSession");
-    if (!savedSession) return;
-    
-    try {
-      const session = JSON.parse(savedSession);
-      if (session.state === "testing" && session.questions?.length > 0) {
-        setSelectedLesson(session.selectedLesson);
-        setDirection(session.direction);
-        setQuestions(session.questions);
-        setCurrentQuestionIndex(session.currentQuestionIndex || 0);
-        setScore(session.score || 0);
-        setAnswered(session.answered || {});
-        setState("testing");
-      }
-    } catch (e) {
-      console.error("Failed to restore exam session:", e);
-      localStorage.removeItem("examSession");
+    const session = restoredExamSession;
+    if (!session) return;
+
+    const restoredQuestions = session.questions as Question[];
+    if (session.state === "testing" && restoredQuestions.length > 0) {
+      setSelectedLesson(session.selectedLesson);
+      setDirection(session.direction);
+      setQuestions(restoredQuestions);
+      setCurrentQuestionIndex(session.currentQuestionIndex);
+      setScore(session.score);
+      setAnswered(session.answered);
+      setState("testing");
+    } else {
+      clearExamSession();
     }
-  }, [vocabByLesson]);
+  }, [vocabByLesson, restoredExamSession, clearExamSession]);
 
   // Save session on every change
   useEffect(() => {
+    if (!examSessionHydrated) return;
+
     if (state === "testing" && questions.length > 0) {
       const sessionData = {
         state,
         selectedLesson,
         direction,
-        questions,
+        questions: questions as ExamQuestionData[],
         currentQuestionIndex,
         score,
         answered,
-      };
-      localStorage.setItem("examSession", JSON.stringify(sessionData));
+      } satisfies ExamSessionData;
+      saveExamSession(sessionData);
     } else {
-      localStorage.removeItem("examSession");
+      clearExamSession();
     }
-  }, [state, selectedLesson, direction, questions, currentQuestionIndex, score, answered]);
+  }, [examSessionHydrated, state, selectedLesson, direction, questions, currentQuestionIndex, score, answered, saveExamSession, clearExamSession]);
 
   // Handle exam completion
   useEffect(() => {
@@ -199,7 +212,7 @@ export default function Exam() {
 
   function resetExam() {
     if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
-    localStorage.removeItem("examSession");
+    clearExamSession();
     setState("selection");
     setSelectedLesson(null);
     setQuestions([]);

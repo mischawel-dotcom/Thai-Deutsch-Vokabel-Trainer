@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useReducer } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
+import { isLearnSessionData, type LearnSessionData } from "../lib/sessionTypes";
+import { usePersistedSession } from "../hooks/usePersistedSession";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -90,6 +92,15 @@ export default function Learn() {
 
   // Lesson Cache für bereits geladene Lektionen
   const lessonCacheRef = useMemo(() => new Map<number, VocabEntry[]>(), []);
+  const {
+    hydrated: learnSessionHydrated,
+    restoredSession: restoredLearnSession,
+    savePersistedSession: saveLearnSession,
+    clearPersistedSession: clearLearnSession,
+  } = usePersistedSession<LearnSessionData>({
+    key: "learnSession",
+    isValid: isLearnSessionData,
+  });
 
   async function loadLessonMetadata() {
     setError("");
@@ -148,41 +159,39 @@ export default function Learn() {
   useEffect(() => {
     if (!allLessons.length) return;
 
-    const savedSession = localStorage.getItem("learnSession");
-    if (!savedSession) return;
+    const session = restoredLearnSession;
+    if (!session) return;
 
-    try {
-      const session = JSON.parse(savedSession);
-      if (session.sessionActive && session.lessonCards && session.lessonCards.length > 0) {
-        dispatchSession({
-          type: "SET",
-          payload: {
-            lessonCards: session.lessonCards,
-            currentIndex:
-              typeof session.currentIndex === "number" ? session.currentIndex : 0,
-          },
-        });
-        setStatus(`Session wiederhergestellt: ${session.lessonCards.length} Karte(n)`);
-      }
-    } catch (e) {
-      console.error("Failed to restore learn session:", e);
-      localStorage.removeItem("learnSession");
+    if (session.sessionActive && session.lessonCards && session.lessonCards.length > 0) {
+      dispatchSession({
+        type: "SET",
+        payload: {
+          lessonCards: session.lessonCards,
+          currentIndex:
+            typeof session.currentIndex === "number" ? session.currentIndex : 0,
+        },
+      });
+      setStatus(`Session wiederhergestellt: ${session.lessonCards.length} Karte(n)`);
+    } else {
+      clearLearnSession();
     }
-  }, [allLessons]);
+  }, [allLessons, restoredLearnSession]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
+    if (!learnSessionHydrated) return;
+
     if (sessionState.sessionActive && sessionState.lessonCards.length > 0) {
       const sessionData = {
         sessionActive: sessionState.sessionActive,
         lessonCards: sessionState.lessonCards,
         currentIndex: sessionState.currentIndex,
       };
-      localStorage.setItem("learnSession", JSON.stringify(sessionData));
+      saveLearnSession(sessionData);
     } else {
-      localStorage.removeItem("learnSession");
+      clearLearnSession();
     }
-  }, [sessionState]);
+  }, [learnSessionHydrated, sessionState, saveLearnSession, clearLearnSession]);
 
   useEffect(() => {
     const shouldAutoStart = localStorage.getItem("autoStartLearnDue") === "true";

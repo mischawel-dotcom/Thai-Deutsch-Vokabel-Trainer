@@ -11,6 +11,17 @@ import { useSessionStart } from "../hooks/useSessionStart";
 import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
 import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
 import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
+import { loadSession } from "../lib/sessionStorage";
+import { usePersistedSession } from "../hooks/usePersistedSession";
+import {
+  restoreTestSession,
+  serializeTestSession,
+} from "../lib/testSessionCodec";
+import {
+  isPersistedTestSessionData,
+  type LearnDirection,
+  type PersistedTestSessionData,
+} from "../lib/sessionTypes";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -23,8 +34,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type LearnDirection = "TH_DE" | "DE_TH";
 
 export default function Test() {
   // ===== State =====
@@ -59,10 +68,18 @@ export default function Test() {
     const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
-  const [sessionHydrated, setSessionHydrated] = useState<boolean>(false);
 
   const flipButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
+  const {
+    hydrated: testSessionHydrated,
+    restoredSession: restoredTestSession,
+    savePersistedSession: saveTestSession,
+    clearPersistedSession: clearTestSession,
+  } = usePersistedSession<PersistedTestSessionData>({
+    key: "testSession",
+    isValid: isPersistedTestSessionData,
+  });
 
   const { session, dispatchSession, flipCard } = useSessionState();
   const {
@@ -83,41 +100,14 @@ export default function Test() {
     let cancelled = false;
 
     const restoreSession = async () => {
-      const raw = localStorage.getItem("testSession");
-      if (!raw) {
-        if (!cancelled) setSessionHydrated(true);
+      if (!restoredTestSession) {
         return;
       }
 
       try {
-        const parsed = JSON.parse(raw);
-        if (parsed?.sessionActive !== true) {
-          localStorage.removeItem("testSession");
-          if (!cancelled) setSessionHydrated(true);
-          return;
-        }
-
-        const queue: number[] = Array.isArray(parsed?.queue)
-          ? parsed.queue.filter((id: unknown): id is number => typeof id === "number")
-          : [];
-        const currentRound: number[] = Array.isArray(parsed?.currentRound)
-          ? parsed.currentRound.filter((id: unknown): id is number => typeof id === "number")
-          : [];
-        const currentId = typeof parsed?.currentId === "number" ? parsed.currentId : null;
-        const flipped = Boolean(parsed?.flipped);
-        const restoredDirection: LearnDirection =
-          parsed?.direction === "DE_TH" ? "DE_TH" : "TH_DE";
-        const restoredOnlyDue = Boolean(parsed?.onlyDue);
-
-        if (queue.length === 0) {
-          localStorage.removeItem("testSession");
-          if (!cancelled) setSessionHydrated(true);
-          return;
-        }
-        if (currentId == null || !queue.includes(currentId)) {
-          // Finished or invalid session -> do not auto-resume.
-          localStorage.removeItem("testSession");
-          if (!cancelled) setSessionHydrated(true);
+        const restored = restoreTestSession(restoredTestSession);
+        if (!restored) {
+          clearTestSession();
           return;
         }
 
@@ -125,39 +115,25 @@ export default function Test() {
         const vocab = await db.vocab.toArray();
         if (!cancelled) {
           setAllVocab(vocab);
-          setDirection(restoredDirection);
-          setOnlyDue(restoredOnlyDue);
-        }
-
-        const safeRound = currentRound.length > 0 ? currentRound : queue;
-        const rawRoundIndex = typeof parsed?.roundIndex === "number" ? parsed.roundIndex : 0;
-        const safeRoundIndex = Math.max(0, Math.min(rawRoundIndex, safeRound.length - 1));
-        const safeCurrentId = currentId;
-        const freshStreaks = new Map<number, number>(
-          queue.map((id: number) => [id, 0] as const)
-        );
-
-        if (!cancelled) {
+          setDirection(restored.direction);
+          setOnlyDue(restored.onlyDue);
           dispatchSession({
             type: "set",
             payload: {
               sessionActive: true,
-              queue,
-              currentId: safeCurrentId,
-              flipped,
-              // Safety: always require 5 correct answers in a reopened session.
-              streaks: freshStreaks,
-              doneIds: new Set(),
-              currentRound: safeRound,
-              roundIndex: safeRoundIndex,
+              queue: restored.queue,
+              currentId: restored.currentId,
+              flipped: restored.flipped,
+              streaks: restored.streaks,
+              doneIds: restored.doneIds,
+              currentRound: restored.currentRound,
+              roundIndex: restored.roundIndex,
             },
           });
-          setStatus(`Session wiederhergestellt: ${queue.length} Karte(n)`);
+          setStatus(`Session wiederhergestellt: ${restored.queue.length} Karte(n)`);
         }
       } catch {
-        localStorage.removeItem("testSession");
-      } finally {
-        if (!cancelled) setSessionHydrated(true);
+        clearTestSession();
       }
     };
 
@@ -165,31 +141,29 @@ export default function Test() {
     return () => {
       cancelled = true;
     };
-  }, [dispatchSession]);
+  }, [dispatchSession, restoredTestSession, clearTestSession]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
-    if (!sessionHydrated) return;
+    if (!testSessionHydrated) return;
 
     if (sessionActive && queue.length > 0 && currentId != null) {
-      const sessionData = {
-        sessionActive,
+      const sessionData = serializeTestSession({
         queue,
+        currentRound,
         currentId,
         flipped,
-        // Convert Map/Set to arrays for JSON storage
-        streaks: Array.from(streaks.entries()),
-        doneIds: Array.from(doneIds),
-        currentRound,
         roundIndex,
         direction,
         onlyDue,
-      };
-      localStorage.setItem("testSession", JSON.stringify(sessionData));
+        streaks,
+        doneIds,
+      });
+      saveTestSession(sessionData);
     } else {
-      localStorage.removeItem("testSession");
+      clearTestSession();
     }
-  }, [sessionHydrated, sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction, onlyDue]);
+  }, [testSessionHydrated, sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction, onlyDue, saveTestSession, clearTestSession]);
 
 
   // ===== Derived data =====
@@ -325,7 +299,7 @@ export default function Test() {
   useEffect(() => {
     // Lade nur Metadaten beim Start (Lazy Loading)
     loadLessonMetadata().then(() => {
-      if (localStorage.getItem("testSession")) return;
+      if (loadSession("testSession")) return;
 
       // Check if user came from Home with a lesson selected
       const selectedLesson = localStorage.getItem("selectedLessonForTest");
