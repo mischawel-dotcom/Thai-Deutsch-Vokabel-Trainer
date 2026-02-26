@@ -1,7 +1,7 @@
-﻿import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
-import { ensureProgress } from "../db/srs";
+import { ensureProgressForEntries } from "../db/srs";
 import { useAudioFeedback } from "../hooks/useAudioFeedback";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 import { useSessionState } from "../hooks/useSessionState";
@@ -49,6 +49,8 @@ export default function Test() {
   const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
   // Nur gelernte Karten
   const [onlyViewed, setOnlyViewed] = useState<boolean>(false);
+  // Nur fällige Karten (SRS dueAt <= now)
+  const [onlyDue, setOnlyDue] = useState<boolean>(false);
 
   // Dialog für Lektion-Auswahl
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -57,6 +59,7 @@ export default function Test() {
     const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
+  const [sessionHydrated, setSessionHydrated] = useState<boolean>(false);
 
   const flipButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -75,9 +78,100 @@ export default function Test() {
 
   const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
 
+  // Restore saved test session once on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      const raw = localStorage.getItem("testSession");
+      if (!raw) {
+        if (!cancelled) setSessionHydrated(true);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed?.sessionActive !== true) {
+          localStorage.removeItem("testSession");
+          if (!cancelled) setSessionHydrated(true);
+          return;
+        }
+
+        const queue: number[] = Array.isArray(parsed?.queue)
+          ? parsed.queue.filter((id: unknown): id is number => typeof id === "number")
+          : [];
+        const currentRound: number[] = Array.isArray(parsed?.currentRound)
+          ? parsed.currentRound.filter((id: unknown): id is number => typeof id === "number")
+          : [];
+        const currentId = typeof parsed?.currentId === "number" ? parsed.currentId : null;
+        const flipped = Boolean(parsed?.flipped);
+        const restoredDirection: LearnDirection =
+          parsed?.direction === "DE_TH" ? "DE_TH" : "TH_DE";
+        const restoredOnlyDue = Boolean(parsed?.onlyDue);
+
+        if (queue.length === 0) {
+          localStorage.removeItem("testSession");
+          if (!cancelled) setSessionHydrated(true);
+          return;
+        }
+        if (currentId == null || !queue.includes(currentId)) {
+          // Finished or invalid session -> do not auto-resume.
+          localStorage.removeItem("testSession");
+          if (!cancelled) setSessionHydrated(true);
+          return;
+        }
+
+        // Ensure card data is available so current card can be rendered immediately.
+        const vocab = await db.vocab.toArray();
+        if (!cancelled) {
+          setAllVocab(vocab);
+          setDirection(restoredDirection);
+          setOnlyDue(restoredOnlyDue);
+        }
+
+        const safeRound = currentRound.length > 0 ? currentRound : queue;
+        const rawRoundIndex = typeof parsed?.roundIndex === "number" ? parsed.roundIndex : 0;
+        const safeRoundIndex = Math.max(0, Math.min(rawRoundIndex, safeRound.length - 1));
+        const safeCurrentId = currentId;
+        const freshStreaks = new Map<number, number>(
+          queue.map((id: number) => [id, 0] as const)
+        );
+
+        if (!cancelled) {
+          dispatchSession({
+            type: "set",
+            payload: {
+              sessionActive: true,
+              queue,
+              currentId: safeCurrentId,
+              flipped,
+              // Safety: always require 5 correct answers in a reopened session.
+              streaks: freshStreaks,
+              doneIds: new Set(),
+              currentRound: safeRound,
+              roundIndex: safeRoundIndex,
+            },
+          });
+          setStatus(`Session wiederhergestellt: ${queue.length} Karte(n)`);
+        }
+      } catch {
+        localStorage.removeItem("testSession");
+      } finally {
+        if (!cancelled) setSessionHydrated(true);
+      }
+    };
+
+    void restoreSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatchSession]);
+
   // Save session to localStorage whenever it changes
   useEffect(() => {
-    if (sessionActive && queue.length > 0) {
+    if (!sessionHydrated) return;
+
+    if (sessionActive && queue.length > 0 && currentId != null) {
       const sessionData = {
         sessionActive,
         queue,
@@ -89,12 +183,13 @@ export default function Test() {
         currentRound,
         roundIndex,
         direction,
+        onlyDue,
       };
       localStorage.setItem("testSession", JSON.stringify(sessionData));
     } else {
       localStorage.removeItem("testSession");
     }
-  }, [sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction]);
+  }, [sessionHydrated, sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction, onlyDue]);
 
 
   // ===== Derived data =====
@@ -162,13 +257,10 @@ export default function Test() {
     setStatus("Lade alle Vokabeln …");
     try {
       const vocab = await db.vocab.toArray();
-
-      // Ensure progress exists (für SRS + gradeCard)
-      for (const v of vocab) {
-        if (v.id && !(await db.progress.get(v.id))) {
-          await ensureProgress(v.id);
-        }
-      }
+      const ids = vocab
+        .map((v) => v.id)
+        .filter((id): id is number => typeof id === "number");
+      await ensureProgressForEntries(ids);
 
       setAllVocab(vocab);
 
@@ -218,13 +310,10 @@ export default function Test() {
       .where("lesson")
       .equals(lessonNumber)
       .toArray();
-    
-    // Ensure progress für diese Lektion
-    for (const v of vocab) {
-      if (v.id && !(await db.progress.get(v.id))) {
-        await ensureProgress(v.id);
-      }
-    }
+    const ids = vocab
+      .map((v) => v.id)
+      .filter((id): id is number => typeof id === "number");
+    await ensureProgressForEntries(ids);
     
     // Cache aktualisieren
     setLessonCache(prev => new Map(prev).set(lessonNumber, vocab));
@@ -236,6 +325,8 @@ export default function Test() {
   useEffect(() => {
     // Lade nur Metadaten beim Start (Lazy Loading)
     loadLessonMetadata().then(() => {
+      if (localStorage.getItem("testSession")) return;
+
       // Check if user came from Home with a lesson selected
       const selectedLesson = localStorage.getItem("selectedLessonForTest");
       if (selectedLesson) {
@@ -292,6 +383,7 @@ export default function Test() {
     selectedTags,
     selectedLesson,
     onlyViewed,
+    onlyDue,
     setStatus,
   });
 
@@ -392,12 +484,12 @@ export default function Test() {
   }
 
   function matchesViewedFilter(v: VocabEntry): boolean {
-     // Option 1: Nur gelernte Karten
-     if (onlyViewed) {
+    // Option 1: Nur gelernte Karten
+    if (onlyViewed) {
       return v.viewed === true;
-     }
-     // Option 2: Standard - schließe gelernte Karten aus
-     return !v.viewed;
+    }
+    // Option 2 (Standard): keine Einschränkung über viewed
+    return true;
   }
 
   function clearSelectedTags() {
@@ -512,6 +604,16 @@ export default function Test() {
                   aria-label="Nur bereits gesehene Karten anzeigen"
                 />
                 nur gesehene Karten
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={onlyDue}
+                  onChange={(e) => setOnlyDue(e.target.checked)}
+                  aria-label="Nur fällige Karten anzeigen"
+                />
+                nur fällige Karten
               </label>
 
               {/* Richtung */}

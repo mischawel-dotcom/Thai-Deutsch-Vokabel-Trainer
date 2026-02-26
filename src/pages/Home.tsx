@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../db/db";
-import { ensureProgress } from "../db/srs";
+import { ensureProgressForEntries } from "../db/srs";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
@@ -35,8 +35,62 @@ export default function Home({ onNavigate }: HomeProps) {
   const [dailyLimit, setDailyLimit] = useState<number>(initialDailyLimit);
   const [learnedToday, setLearnedToday] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
+  const [lessons, setLessons] = useState<number[]>([]);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
   const [streakDialogOpen, setStreakDialogOpen] = useState<boolean>(false);
+
+  async function refreshDashboardStats() {
+    const now = Date.now();
+    const vocab = await db.vocab.count();
+
+    // Read daily limit from localStorage (default: 30)
+    const savedLimit = localStorage.getItem("dailyLimit");
+    const limit = savedLimit ? parseInt(savedLimit, 10) : 30;
+    const validLimit = !isNaN(limit) && limit > 0 ? limit : 30;
+    setDailyLimit(validLimit);
+
+    // Calculate learned today: only cards mastered (dueAt moved to future after correct streak)
+    const todayStart = new Date().setHours(0, 0, 0, 0);
+    const masteredToday = await db.progress
+      .where("lastReviewed")
+      .above(todayStart)
+      .and((p) => p.dueAt > now && p.lastGrade === 2)
+      .count();
+    setLearnedToday(masteredToday);
+
+    // Heute fällig: echte SRS-Fälligkeit, aber auf Tageslimit gedeckelt
+    const realDueCount = await db.progress
+      .where("dueAt")
+      .belowOrEqual(now)
+      .count();
+    const remainingDailyBudget = Math.max(0, validLimit - masteredToday);
+    const dueToday = Math.min(realDueCount, remainingDailyBudget);
+    setDueCount(dueToday);
+    setTotal(vocab);
+
+    // Calculate streak (consecutive days with reviews)
+    const lastStreak = localStorage.getItem("learningStreak");
+    setStreak(lastStreak ? parseInt(lastStreak, 10) : 0);
+  }
+
+  async function refreshLessonProgress() {
+    const lessonKeys = await db.vocab.orderBy("lesson").uniqueKeys();
+    const dynamicLessons = lessonKeys
+      .map((l) => Number(l))
+      .filter((l) => Number.isFinite(l) && l > 0)
+      .sort((a, b) => a - b);
+
+    setLessons(dynamicLessons);
+    if (dynamicLessons.length === 0) {
+      setLessonProgress({});
+      return;
+    }
+
+    const progressEntries = await Promise.all(
+      dynamicLessons.map(async (lesson) => [lesson, await getLessonProgress(lesson)] as const)
+    );
+    setLessonProgress(Object.fromEntries(progressEntries) as Record<number, number>);
+  }
 
   useEffect(() => {
     const run = async () => {
@@ -45,59 +99,43 @@ export default function Home({ onNavigate }: HomeProps) {
       
       // Ensure all vocab has progress records before querying
       const allVocab = await db.vocab.toArray();
-      for (const v of allVocab) {
-        if (v.id) {
-          await ensureProgress(v.id);
-        }
-      }
-      
-      const now = Date.now();
-      const vocab = await db.vocab.count();
-      
-      // Read daily limit from localStorage (default: 30)
-      const savedLimit = localStorage.getItem("dailyLimit");
-      const limit = savedLimit ? parseInt(savedLimit, 10) : 30;
-      const validLimit = !isNaN(limit) && limit > 0 ? limit : 30;
-      setDailyLimit(validLimit);
-
-      // Calculate learned today: only cards mastered (dueAt moved to future after correct streak)
-      const todayStart = new Date().setHours(0, 0, 0, 0);
-      const masteredToday = await db.progress
-        .where("lastReviewed")
-        .above(todayStart)
-        .and((p) => p.dueAt > now && p.lastGrade === 2)
-        .count();
-      setLearnedToday(masteredToday);
-      
-      // Heute fällig: gleicher Countdown wie Heutiges Lernziel
-      const remainingToday = Math.max(0, validLimit - masteredToday);
-      setDueCount(remainingToday);
-      setTotal(vocab);
-
-      // Calculate streak (consecutive days with reviews)
-      const lastStreak = localStorage.getItem("learningStreak");
-      setStreak(lastStreak ? parseInt(lastStreak, 10) : 0);
+      const allIds = allVocab
+        .map((v) => v.id)
+        .filter((id): id is number => typeof id === "number");
+      await ensureProgressForEntries(allIds);
 
       // Load lesson progress for all lessons
-      const progress: Record<number, number> = {};
-      for (let i = 1; i <= 5; i++) {
-        progress[i] = getLessonProgress(i);
-      }
-      setLessonProgress(progress);
+      await refreshDashboardStats();
+      await refreshLessonProgress();
 
     };
     run();
 
-    // Aktualisiere Lektionen-Fortschritt regelmäßig (z.B. wenn User von Test zurück kommt)
-    const interval = setInterval(async () => {
-      const progress: Record<number, number> = {};
-      for (let i = 1; i <= 5; i++) {
-        progress[i] = getLessonProgress(i);
+    // Keep progress fresh without aggressive 1s polling.
+    const refreshOnFocus = () => {
+      void refreshDashboardStats();
+      void refreshLessonProgress();
+    };
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshDashboardStats();
+        void refreshLessonProgress();
       }
-      setLessonProgress(progress);
-    }, 1000); // Alle 1 Sekunde
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      void refreshDashboardStats();
+      void refreshLessonProgress();
+    }, 15000); // Alle 15 Sekunden
+
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnVisibility);
+    };
   }, []);
 
   const progress = dailyLimit > 0 ? Math.min((learnedToday / dailyLimit) * 100, 100) : 0;
@@ -108,7 +146,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">77</div>
+      <div className="text-3xl font-bold text-red-600">89</div>
       
       {/* Welcome Header */}
       <div>
@@ -231,8 +269,13 @@ export default function Home({ onNavigate }: HomeProps) {
       {/* Lesson Progress Cards */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold">Lektionen-Fortschritt</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[1, 2, 3, 4, 5].map((lesson) => {
+        {lessons.length === 0 ? (
+          <Card className="p-4">
+            <p className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {lessons.map((lesson) => {
             const prog = lessonProgress[lesson] ?? 0;
             const examScore = getLessonExamScore(lesson);
             const examPassed = examScore !== null && examScore >= 85;
@@ -308,8 +351,9 @@ export default function Home({ onNavigate }: HomeProps) {
                 )}
               </button>
             );
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

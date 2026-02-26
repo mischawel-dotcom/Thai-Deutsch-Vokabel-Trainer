@@ -1,4 +1,4 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
 import type { VocabEntry } from "../db/db";
 
 interface UseSessionStartWithFiltersProps {
@@ -57,8 +57,7 @@ export function useSessionStartWithFilters({
       for (const v of vocab) {
         if (!v.id) continue;
         if (viewedOnly && !v.viewed) continue;
-          // Standardmäßig gelernte Karten ausschließen (außer viewedOnly ist true)
-          if (!viewedOnly && v.viewed) continue;
+        // Wenn viewedOnly=false, werden alle Karten zugelassen.
         ids.push(v.id);
       }
 

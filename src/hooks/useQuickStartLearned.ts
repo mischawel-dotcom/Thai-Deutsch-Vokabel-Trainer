@@ -1,6 +1,6 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
 import { db } from "../db/db";
-import { ensureProgress } from "../db/srs";
+import { ensureProgressForEntries } from "../db/srs";
 import type { VocabEntry } from "../db/db";
 
 interface UseQuickStartLearnedProps {
@@ -35,11 +35,10 @@ export function useQuickStartLearned({
       const vocab = await db.vocab.toArray();
 
       // Ensure progress fuer alle
-      for (const v of vocab) {
-        if (v.id) {
-          await ensureProgress(v.id);
-        }
-      }
+      const idsToEnsure = vocab
+        .map((v) => v.id)
+        .filter((id): id is number => typeof id === "number");
+      await ensureProgressForEntries(idsToEnsure);
 
       // Filtere auf viewed = true
       const ids = vocab.filter((v) => v.viewed === true && v.id).map((v) => v.id!);

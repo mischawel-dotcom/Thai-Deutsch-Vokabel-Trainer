@@ -7,7 +7,7 @@ import Test from "./pages/Test";
 import Exam from "./pages/Exam";
 import Settings from "./pages/Settings";
 import { db } from "./db/db";
-import { ensureProgress } from "./db/srs";
+import { ensureProgressForEntries } from "./db/srs";
 import { DEFAULT_VOCAB } from "./data/defaultVocab";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,9 +75,7 @@ export default function App() {
               // Initialize progress records for all vocab so they're immediately due
               const ids = (await db.vocab.toCollection().primaryKeys()) as number[];
               console.log(`[App Init] Initialized ${ids.length} vocab entries, creating progress records...`);
-              for (const id of ids) {
-                await ensureProgress(id);
-              }
+              await ensureProgressForEntries(ids);
               console.log(`[App Init] Created progress records for ${ids.length} entries`);
             }
           });
@@ -86,48 +84,21 @@ export default function App() {
           const newCount = await db.vocab.count();
           const progressCount = await db.progress.count();
           console.log(`✅ [App Init] Default vocab loaded: ${expectedCount} entries, DB now has ${newCount} total, ${progressCount} progress records`);
-        } else if (count > expectedCount * 1.5) {
-          // Detect suspicious duplication (more than 150% of expected)
-          console.warn(`⚠️ [App Init] POSSIBLE DUPLICATE DETECTED: DB has ${count} entries but expected ~${expectedCount}`);
-          console.warn(`[App Init] Clearing database and reloading fresh...`);
-          
-          // Clear and reload
-          await db.transaction('rw', db.vocab, db.progress, async () => {
-            await db.vocab.clear();
-            await db.progress.clear();
-          });
-          
-          const now = Date.now();
-          const entries = DEFAULT_VOCAB.map(v => ({
-            ...v,
-            createdAt: now,
-            updatedAt: now,
-          }));
-          await db.vocab.bulkAdd(entries);
-
-          const ids = (await db.vocab.toCollection().primaryKeys()) as number[];
-          for (const id of ids) {
-            await ensureProgress(id);
-          }
-
-          const newCount = await db.vocab.count();
-          const progressCount = await db.progress.count();
-          console.log(`✅ [App Init] Database reset and reloaded: ${newCount} entries, ${progressCount} progress records`);
-        } else if (count !== expectedCount) {
-          // Warn if count mismatch (possible duplicate loading)
-          console.warn(`⚠️ [App Init] Vocab count mismatch: DB has ${count}, expected ${expectedCount}`);
         } else {
+          // Never auto-delete user data. If data exists, we only repair missing progress records.
           const progressCount = await db.progress.count();
-          if (progressCount === 0) {
+          if (progressCount < count) {
             const ids = (await db.vocab.toCollection().primaryKeys()) as number[];
-            console.log(`[App Init] DB populated but progress empty, creating ${ids.length} progress records...`);
-            for (const id of ids) {
-              await ensureProgress(id);
-            }
+            console.log(
+              `[App Init] DB populated (${count} entries), repairing progress records (${progressCount} -> ${ids.length})...`
+            );
+            await ensureProgressForEntries(ids);
             const newProgressCount = await db.progress.count();
-            console.log(`✅ [App Init] Progress records created: ${newProgressCount}`);
+            console.log(`✅ [App Init] Progress records repaired: ${newProgressCount}`);
           } else {
-            console.log(`[App Init] DB already populated with ${count} entries, skipping load`);
+            console.log(
+              `[App Init] DB already populated with ${count} entries and ${progressCount} progress records, skipping load`
+            );
           }
         }
       } catch (err) {

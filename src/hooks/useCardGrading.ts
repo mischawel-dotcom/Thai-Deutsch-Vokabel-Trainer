@@ -1,4 +1,4 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
 import { db } from "../db/db";
 import { gradeCard } from "../db/srs";
 import { recalculateLearningProgress } from "../lib/lessonProgress";
@@ -91,7 +91,7 @@ export function useCardGrading({
             .equals(current.lesson)
             .and((v) => v.viewed === true)
             .count();
-          recalculateLearningProgress(current.lesson, viewedCount);
+          await recalculateLearningProgress(current.lesson, viewedCount);
         }
       }
 

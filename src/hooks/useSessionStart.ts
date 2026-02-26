@@ -1,4 +1,5 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
+import { db } from "../db/db";
 
 interface UseSessionStartProps {
   dispatchSession: (action: any) => void;
@@ -9,6 +10,7 @@ interface UseSessionStartProps {
   selectedTags: string[];
   selectedLesson: number | undefined;
   onlyViewed: boolean;
+  onlyDue: boolean;
   setStatus: (msg: string) => void;
 }
 
@@ -37,6 +39,7 @@ export function useSessionStart({
   selectedTags,
   selectedLesson,
   onlyViewed,
+  onlyDue,
   setStatus,
 }: UseSessionStartProps) {
   const startSession = useCallback(
@@ -47,12 +50,24 @@ export function useSessionStart({
       }
 
       const ids = buildSessionIds();
+      let idsAfterDueFilter = ids;
 
-      if (ids.length === 0) {
+      if (onlyDue) {
+        const dueProgress = await db.progress.where("dueAt").belowOrEqual(Date.now()).toArray();
+        const dueIds = new Set(
+          dueProgress
+            .map((p) => p.entryId)
+            .filter((id): id is number => typeof id === "number")
+        );
+        idsAfterDueFilter = ids.filter((id) => dueIds.has(id));
+      }
+
+      if (idsAfterDueFilter.length === 0) {
         const filters = [];
         if (selectedTags.length > 0) filters.push("Tag-Auswahl");
         if (selectedLesson !== undefined) filters.push("Lektion-Auswahl");
         if (onlyViewed) filters.push("(und gelernt)");
+        if (onlyDue) filters.push("(und fällig)");
         const msg = filters.length > 0 ? `Keine Karten passend zur ${filters.join(" ")}` : "Keine Karten vorhanden.";
         setStatus(msg);
         dispatchSession({
@@ -73,12 +88,12 @@ export function useSessionStart({
 
       // Limitiere auf gewünschte Anzahl
       const limit = cardLimitAdvanced ? parseInt(cardLimitAdvanced, 10) : 0;
-      let cardsToUse = ids;
+      let cardsToUse = idsAfterDueFilter;
 
-      if (limit > 0 && limit < ids.length) {
-        cardsToUse = shuffle(ids).slice(0, limit);
-      } else if (limit > ids.length) {
-        setStatus(`⚠️ Nur ${ids.length} Karten verfügbar, nicht ${limit}`);
+      if (limit > 0 && limit < idsAfterDueFilter.length) {
+        cardsToUse = shuffle(idsAfterDueFilter).slice(0, limit);
+      } else if (limit > idsAfterDueFilter.length) {
+        setStatus(`⚠️ Nur ${idsAfterDueFilter.length} Karten verfügbar, nicht ${limit}`);
         return;
       }
 
@@ -109,6 +124,7 @@ export function useSessionStart({
       selectedTags,
       selectedLesson,
       onlyViewed,
+      onlyDue,
       setStatus,
     ]
   );

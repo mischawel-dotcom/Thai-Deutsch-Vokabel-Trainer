@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { importCsv, exportCsv } from "../features/vocab/csv";
 import { db } from "../db/db";
+import { ensureProgressForEntries } from "../db/srs";
 import { DEFAULT_VOCAB } from "../data/defaultVocab";
 import { listVoices, hasThaiVoice } from "../features/tts";
 import PageShell from "@/components/PageShell";
@@ -230,6 +231,24 @@ export default function Settings() {
     }
   }
 
+  async function repairProgressRecords() {
+    try {
+      setIsLoading(true);
+      const vocab = await db.vocab.toArray();
+      const ids = vocab
+        .map((entry) => entry.id)
+        .filter((id): id is number => typeof id === "number");
+      await ensureProgressForEntries(ids);
+      const progressCount = await db.progress.count();
+      setMsg(`✅ Reparatur abgeschlossen: ${progressCount} Fortschritts-Einträge geprüft`);
+      setTimeout(() => setMsg(""), 3000);
+    } catch (err: any) {
+      setMsg(`❌ Fehler bei Reparatur: ${err?.message ?? String(err)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <PageShell title="Einstellungen">
       <div className="space-y-6">
@@ -447,6 +466,20 @@ export default function Settings() {
                 className="w-full bg-red-600 hover:bg-red-700 text-white"
               >
                 🗑️ Alle Daten löschen
+              </Button>
+            </div>
+            <div className="pt-2 border-t">
+              <label className="text-sm font-medium block mb-2">Lernfortschritt reparieren</label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Erstellt fehlende Fortschritts-Einträge für vorhandene Vokabeln, ohne Vokabeln zu löschen.
+              </p>
+              <Button
+                onClick={repairProgressRecords}
+                disabled={isLoading}
+                variant="outline"
+                className="w-full"
+              >
+                🔧 Fortschritt reparieren
               </Button>
             </div>
           </div>

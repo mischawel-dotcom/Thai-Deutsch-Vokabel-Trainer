@@ -23,7 +23,7 @@ type SessionState = {
 };
 
 type SessionAction =
-  | { type: "SET"; payload: { lessonCards: VocabEntry[] } }
+  | { type: "SET"; payload: { lessonCards: VocabEntry[]; currentIndex?: number } }
   | { type: "NEXT_CARD" }
   | { type: "PREV_CARD" }
   | { type: "END_SESSION" }
@@ -32,10 +32,14 @@ type SessionAction =
 function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
     case "SET":
+      const safeIndex = Math.min(
+        Math.max(action.payload.currentIndex ?? 0, 0),
+        Math.max(action.payload.lessonCards.length - 1, 0)
+      );
       return {
         sessionActive: true,
         lessonCards: action.payload.lessonCards,
-        currentIndex: 0,
+        currentIndex: safeIndex,
       };
     case "NEXT_CARD":
       return {
@@ -152,7 +156,11 @@ export default function Learn() {
       if (session.sessionActive && session.lessonCards && session.lessonCards.length > 0) {
         dispatchSession({
           type: "SET",
-          payload: { lessonCards: session.lessonCards },
+          payload: {
+            lessonCards: session.lessonCards,
+            currentIndex:
+              typeof session.currentIndex === "number" ? session.currentIndex : 0,
+          },
         });
         setStatus(`Session wiederhergestellt: ${session.lessonCards.length} Karte(n)`);
       }
@@ -180,7 +188,6 @@ export default function Learn() {
     const shouldAutoStart = localStorage.getItem("autoStartLearnDue") === "true";
     if (!shouldAutoStart) return;
     if (sessionState.sessionActive) return;
-    if (!allLessons.length) return;
 
     const rawLimit = localStorage.getItem("dailyLimit");
     const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 30;
@@ -190,16 +197,29 @@ export default function Learn() {
     const dueParsed = rawDueCount ? parseInt(rawDueCount, 10) : validLimit;
     const targetLimit = !isNaN(dueParsed) && dueParsed > 0 ? Math.min(dueParsed, validLimit) : validLimit;
 
-    // Load unviewed cards on-demand
+    // Load due cards on-demand
     (async () => {
       try {
-        const allCards = await db.vocab.toArray();
-        let cards = allCards.filter((v) => !v.viewed);
-        cards.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+        const dueProgress = await db.progress
+          .where("dueAt")
+          .belowOrEqual(Date.now())
+          .toArray();
+        dueProgress.sort((a, b) => {
+          if (a.dueAt !== b.dueAt) return a.dueAt - b.dueAt;
+          return a.entryId - b.entryId;
+        });
+
+        const dueIds = dueProgress
+          .map((p) => p.entryId)
+          .filter((id): id is number => typeof id === "number");
+
+        let cards = (await db.vocab.bulkGet(dueIds)).filter(
+          (v): v is VocabEntry => v !== undefined
+        );
         cards = cards.slice(0, targetLimit);
 
         if (cards.length === 0) {
-          setStatus("Keine ungelernten Karten verfügbar.");
+          setStatus("Keine fälligen Karten verfügbar.");
         } else {
           dispatchSession({
             type: "SET",
@@ -215,6 +235,44 @@ export default function Learn() {
 
     localStorage.removeItem("autoStartLearnDue");
     localStorage.removeItem("autoStartLearnDueCount");
+  }, [sessionState.sessionActive]);
+
+  // Auto-start from Home lesson cards
+  useEffect(() => {
+    const raw = localStorage.getItem("selectedLessonForLearn");
+    if (!raw) return;
+    if (sessionState.sessionActive) return;
+    if (!allLessons.length) return;
+
+    const lessonNum = parseInt(raw, 10);
+    if (isNaN(lessonNum) || lessonNum <= 0) {
+      localStorage.removeItem("selectedLessonForLearn");
+      return;
+    }
+
+    (async () => {
+      try {
+        let cards = await loadLesson(lessonNum);
+        cards = cards
+          .filter((v) => !v.viewed)
+          .sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+
+        if (cards.length > 0) {
+          dispatchSession({
+            type: "SET",
+            payload: { lessonCards: cards },
+          });
+          setStatus(`Lektion ${lessonNum}: ${cards.length} ungelernte Karte(n)`);
+        } else {
+          setStatus(`Lektion ${lessonNum}: keine ungelernten Karten verfügbar`);
+        }
+      } catch (e) {
+        console.error("Fehler beim Start aus Home-Lektion:", e);
+        setError("Fehler beim Start der Lektion");
+      } finally {
+        localStorage.removeItem("selectedLessonForLearn");
+      }
+    })();
   }, [allLessons, sessionState.sessionActive]);
 
   function openLessonDialog(lesson: number) {
