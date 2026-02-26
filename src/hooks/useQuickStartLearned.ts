@@ -2,9 +2,10 @@ import { useCallback } from "react";
 import { db } from "../db/db";
 import { ensureProgressForEntries } from "../db/srs";
 import type { VocabEntry } from "../db/db";
+import type { SessionDispatch } from "./useSessionState";
 
 interface UseQuickStartLearnedProps {
-  dispatchSession: (action: any) => void;
+  dispatchSession: SessionDispatch;
   setAllVocab: (vocab: VocabEntry[]) => void;
   setStatus: (msg: string) => void;
 }

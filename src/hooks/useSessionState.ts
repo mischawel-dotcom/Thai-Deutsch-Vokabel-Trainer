@@ -1,4 +1,4 @@
-﻿import { useReducer, useCallback } from "react";
+import { useReducer, useCallback } from "react";
 
 export type SessionState = {
   sessionActive: boolean;
@@ -16,6 +16,8 @@ export type SessionAction =
   | { type: "updateStreak"; id: number; value: number }
   | { type: "resetStreak"; id: number }
   | { type: "addDone"; id: number };
+
+export type SessionDispatch = (action: SessionAction) => void;
 
 const initialSessionState: SessionState = {
   sessionActive: false,

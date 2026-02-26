@@ -1,7 +1,8 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
+import type { SessionDispatch } from "./useSessionState";
 
 interface UseSessionNavigationProps {
-  dispatchSession: (action: any) => void;
+  dispatchSession: SessionDispatch;
   roundIndex: number;
   doneIds: Set<number>;
   currentRound: number[];
@@ -33,6 +34,36 @@ export function useSessionNavigation({
   currentId,
   queue,
 }: UseSessionNavigationProps) {
+  const startNewRound = useCallback(
+    (effectiveDoneIds: Set<number> = doneIds) => {
+      // Sammle alle noch nicht abgeschlossenen Karten
+      const remaining = queue.filter((id) => !effectiveDoneIds.has(id));
+
+      if (remaining.length === 0) {
+        // Session beendet
+        dispatchSession({
+          type: "set",
+          payload: { currentId: null, flipped: false },
+        });
+        return;
+      }
+
+      // Mische für neue Runde
+      const shuffled = shuffle(remaining);
+
+      dispatchSession({
+        type: "set",
+        payload: {
+          currentRound: shuffled,
+          roundIndex: 0,
+          currentId: shuffled[0] ?? null,
+          flipped: false,
+        },
+      });
+    },
+    [queue, doneIds, dispatchSession]
+  );
+
   const goNext = useCallback(
     (treatedDoneId?: number) => {
       const effectiveDoneIds = treatedDoneId
@@ -65,37 +96,7 @@ export function useSessionNavigation({
         });
       }
     },
-    [roundIndex, doneIds, currentRound, dispatchSession]
-  );
-
-  const startNewRound = useCallback(
-    (effectiveDoneIds: Set<number> = doneIds) => {
-      // Sammle alle noch nicht abgeschlossenen Karten
-      const remaining = queue.filter((id) => !effectiveDoneIds.has(id));
-
-      if (remaining.length === 0) {
-        // Session beendet
-        dispatchSession({
-          type: "set",
-          payload: { currentId: null, flipped: false },
-        });
-        return;
-      }
-
-      // Mische für neue Runde
-      const shuffled = shuffle(remaining);
-
-      dispatchSession({
-        type: "set",
-        payload: {
-          currentRound: shuffled,
-          roundIndex: 0,
-          currentId: shuffled[0] ?? null,
-          flipped: false,
-        },
-      });
-    },
-    [queue, doneIds, dispatchSession]
+    [roundIndex, doneIds, currentRound, dispatchSession, startNewRound]
   );
 
   const requeueCurrentToEnd = useCallback(() => {

@@ -1,8 +1,9 @@
 import { useCallback } from "react";
 import type { VocabEntry } from "../db/db";
+import type { SessionDispatch } from "./useSessionState";
 
 interface UseSessionStartWithFiltersProps {
-  dispatchSession: (action: any) => void;
+  dispatchSession: SessionDispatch;
   allVocab: VocabEntry[];
   loadAllVocab: () => Promise<void>;
   loadLesson: (lessonNumber: number) => Promise<VocabEntry[]>;

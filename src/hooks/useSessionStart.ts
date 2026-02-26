@@ -1,9 +1,11 @@
 import { useCallback } from "react";
 import { db } from "../db/db";
+import type { VocabEntry } from "../db/db";
+import type { SessionDispatch } from "./useSessionState";
 
 interface UseSessionStartProps {
-  dispatchSession: (action: any) => void;
-  allVocab: any[];
+  dispatchSession: SessionDispatch;
+  allVocab: VocabEntry[];
   loadAllVocab: () => Promise<void>;
   buildSessionIds: () => number[];
   cardLimitAdvanced: string;

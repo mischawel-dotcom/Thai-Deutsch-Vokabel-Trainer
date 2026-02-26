@@ -3,9 +3,10 @@ import { db } from "../db/db";
 import { gradeCard } from "../db/srs";
 import { recalculateLearningProgress } from "../lib/lessonProgress";
 import type { VocabEntry } from "../db/db";
+import type { SessionDispatch } from "./useSessionState";
 
 interface UseCardGradingProps {
-  dispatchSession: (action: any) => void;
+  dispatchSession: SessionDispatch;
   currentId: number | null;
   flipped: boolean;
   streaks: Map<number, number>;

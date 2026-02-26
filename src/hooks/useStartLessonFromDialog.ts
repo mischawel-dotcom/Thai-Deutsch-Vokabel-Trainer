@@ -1,11 +1,13 @@
-﻿import { useCallback } from "react";
+import { useCallback } from "react";
+import type { VocabEntry } from "../db/db";
+import type { SessionDispatch } from "./useSessionState";
 
 interface UseStartLessonFromDialogProps {
   selectedDialogLesson: number | null;
   cardLimit: string;
   includeLearnedCards: boolean;
-  loadLesson: (lessonNumber: number) => Promise<any[]>;
-  dispatchSession: (action: any) => void;
+  loadLesson: (lessonNumber: number) => Promise<VocabEntry[]>;
+  dispatchSession: SessionDispatch;
   setStatus: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
 }
