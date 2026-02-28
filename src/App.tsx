@@ -303,6 +303,7 @@ export default function App() {
                 <ul className="space-y-2 text-sm">
                   <li><strong>Blitzrunde:</strong> 60 Sekunden, so viele Antworten wie möglich</li>
                   <li><strong>4er-Quiz:</strong> 10 Multiple-Choice-Fragen mit Punktewertung</li>
+                  <li><strong>Hör-Spiel:</strong> Audio abspielen und passende Übersetzung wählen</li>
                   <li><strong>Filter:</strong> Spiele optional nur mit fälligen Karten oder pro Lektion</li>
                 </ul>
               </div>

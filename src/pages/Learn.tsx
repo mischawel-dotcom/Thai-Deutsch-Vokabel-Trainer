@@ -80,7 +80,9 @@ export default function Learn() {
   });
 
   // UI-State
-  const [allLessons, setAllLessons] = useState<Array<{ lesson: number; count: number }>>([]);
+  const [allLessons, setAllLessons] = useState<
+    Array<{ lesson: number; count: number; learnedCount: number }>
+  >([]);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -114,17 +116,24 @@ export default function Learn() {
         return;
       }
 
-      // Höchste Lesson-ID + Count pro Lektion
-      const lessonsMap = new Map<number, number>();
+      // Count + learnedCount pro Lektion
+      const lessonsMap = new Map<number, { count: number; learnedCount: number }>();
       await db.vocab.each((v) => {
         if (v.lesson !== undefined && v.lesson > 0) {
-          lessonsMap.set(v.lesson, (lessonsMap.get(v.lesson) ?? 0) + 1);
+          const current = lessonsMap.get(v.lesson) ?? { count: 0, learnedCount: 0 };
+          current.count += 1;
+          if (v.viewed) current.learnedCount += 1;
+          lessonsMap.set(v.lesson, current);
         }
       });
 
       const lessons = Array.from(lessonsMap.entries())
         .sort((a, b) => a[0] - b[0])
-        .map(([lesson, count]) => ({ lesson, count }));
+        .map(([lesson, stats]) => ({
+          lesson,
+          count: stats.count,
+          learnedCount: stats.learnedCount,
+        }));
 
       setAllLessons(lessons);
       setStatus(lessons.length ? `Geladen: ${lessons.length} Lektionen` : "Keine Lektionen vorhanden.");
@@ -286,9 +295,9 @@ export default function Learn() {
 
   function openLessonDialog(lesson: number) {
     // Lesson count from metadata
-    const lessonInfo = allLessons.find(l => l.lesson === lesson);
+    const lessonInfo = allLessons.find((l) => l.lesson === lesson);
     const totalCards = lessonInfo?.count ?? 0;
-    
+
     setSelectedLesson(lesson);
     setCardLimit(String(totalCards)); // Standard: alle Karten
     setIncludeViewed(true);
@@ -349,13 +358,29 @@ export default function Learn() {
           // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
           const newViewedState = !card.viewed;
           await db.vocab.update(card.id, { viewed: newViewedState });
-          
+
           const updatedCard = { ...card, viewed: newViewedState };
           dispatchSession({
             type: "UPDATE_CARD",
             payload: updatedCard,
           });
-          
+
+          // Update lesson metadata counters in-place for immediate UI feedback.
+          if (typeof card.lesson === "number" && card.lesson > 0) {
+            setAllLessons((prev) =>
+              prev.map((lessonMeta) => {
+                if (lessonMeta.lesson !== card.lesson) return lessonMeta;
+                const safeLearnedCount = Number.isFinite(lessonMeta.learnedCount)
+                  ? lessonMeta.learnedCount
+                  : 0;
+                const nextLearnedCount = newViewedState
+                  ? Math.min(lessonMeta.count, safeLearnedCount + 1)
+                  : Math.max(0, safeLearnedCount - 1);
+                return { ...lessonMeta, learnedCount: nextLearnedCount };
+              })
+            );
+          }
+
           const statusMsg = newViewedState
             ? `✅ Karte ${sessionState.currentIndex + 1}/${sessionState.lessonCards.length} als gelernt markiert`
             : `↩️ Karte ${sessionState.currentIndex + 1}/${sessionState.lessonCards.length} als ungelernt markiert`;
@@ -383,6 +408,8 @@ export default function Learn() {
   }
 
   const current = sessionState.lessonCards[sessionState.currentIndex];
+  const selectedLessonMeta = allLessons.find((l) => l.lesson === selectedLesson);
+  const selectedLessonLearnedCount = selectedLessonMeta?.learnedCount ?? 0;
   const thaiLang = "th-TH";
   const germanLang = "de-DE";
 
@@ -411,14 +438,17 @@ export default function Learn() {
               {allLessons.length === 0 ? (
                 <div className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</div>
               ) : (
-                allLessons.map(({ lesson, count }) => (
+                allLessons.map(({ lesson, count, learnedCount = 0 }) => (
                   <Button
                     key={lesson}
                     onClick={() => openLessonDialog(lesson)}
                     className="h-12 px-6 text-base font-medium"
-                    title={`Lektion ${lesson} starten (${count} Karten)`}
+                    title={`Lektion ${lesson} starten (${learnedCount}/${count} gelernt)`}
                   >
-                    Lektion {lesson} <span className="text-xs opacity-75 ml-2">({count})</span>
+                    Lektion {lesson}{" "}
+                    <span className="text-xs opacity-75 ml-2">
+                      ({learnedCount}/{count})
+                    </span>
                   </Button>
                 ))
               )}
@@ -624,7 +654,7 @@ export default function Learn() {
                 className="h-4 w-4 accent-primary"
               />
               <label htmlFor="includeViewed" className="text-sm font-medium cursor-pointer">
-                Bereits gelernte Karten anzeigen
+                Bereits gelernte Karten anzeigen ({selectedLessonLearnedCount})
               </label>
             </div>
 
