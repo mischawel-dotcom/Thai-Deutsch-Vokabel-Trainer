@@ -2,24 +2,13 @@ import { useCallback } from "react";
 import { db } from "../db/db";
 import { ensureProgressForEntries } from "../db/srs";
 import type { VocabEntry } from "../db/db";
+import { shuffle } from "../lib/shuffle";
 import type { SessionDispatch } from "./useSessionState";
 
 interface UseQuickStartLearnedProps {
   dispatchSession: SessionDispatch;
   setAllVocab: (vocab: VocabEntry[]) => void;
   setStatus: (msg: string) => void;
-}
-
-/**
- * Shuffle-Utility fuer Array-Mischen (Fisher-Yates)
- */
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 /**

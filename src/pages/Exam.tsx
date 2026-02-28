@@ -3,6 +3,7 @@ import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
 import { completeLessonViaExam } from "../lib/lessonProgress";
+import { shuffle } from "../lib/shuffle";
 import {
   isExamSessionData,
   type ExamDirection,
@@ -28,12 +29,6 @@ interface Question {
   correctAnswer: string;
   options: string[];
   questionText: string; // Das Wort, das abgefragt wird
-}
-
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  a.sort(() => Math.random() - 0.5);
-  return a;
 }
 
 export default function Exam() {

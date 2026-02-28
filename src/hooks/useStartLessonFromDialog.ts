@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { VocabEntry } from "../db/db";
+import { shuffle } from "../lib/shuffle";
 import type { SessionDispatch } from "./useSessionState";
 
 interface UseStartLessonFromDialogProps {
@@ -10,18 +11,6 @@ interface UseStartLessonFromDialogProps {
   dispatchSession: SessionDispatch;
   setStatus: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
-}
-
-/**
- * Shuffle-Utility fuer Array-Mischen (Fisher-Yates)
- */
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 /**
