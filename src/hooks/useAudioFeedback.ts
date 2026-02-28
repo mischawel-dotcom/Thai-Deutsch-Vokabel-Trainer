@@ -1,11 +1,39 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { speak } from "../features/tts";
-import trueSoundFile from "@/assets/true.wav";
-import falseSoundFile from "@/assets/false.wav";
 
 type FeedbackTone = "right" | "wrong";
 
 type SpeakLang = "th-TH" | "de-DE";
+
+let toneAssetsPromise: Promise<Record<FeedbackTone, string>> | null = null;
+const toneAudioCache: Partial<Record<FeedbackTone, HTMLAudioElement>> = {};
+
+async function loadToneAssets(): Promise<Record<FeedbackTone, string>> {
+  if (!toneAssetsPromise) {
+    toneAssetsPromise = (async () => {
+      const [rightMod, wrongMod] = await Promise.all([
+        import("@/assets/true.wav"),
+        import("@/assets/false.wav"),
+      ]);
+      return {
+        right: rightMod.default,
+        wrong: wrongMod.default,
+      };
+    })();
+  }
+  return toneAssetsPromise;
+}
+
+async function getToneAudio(type: FeedbackTone): Promise<HTMLAudioElement> {
+  const cached = toneAudioCache[type];
+  if (cached) return cached;
+
+  const assets = await loadToneAssets();
+  const audio = new Audio(assets[type]);
+  audio.volume = 0.8;
+  toneAudioCache[type] = audio;
+  return audio;
+}
 
 export function useAudioFeedback() {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -24,30 +52,19 @@ export function useAudioFeedback() {
   }
 
   function playFeedbackTone(type: FeedbackTone) {
-    try {
-      const soundEnabled = localStorage.getItem("soundEnabled");
-      if (soundEnabled === "false") return;
+    const soundEnabled = localStorage.getItem("soundEnabled");
+    if (soundEnabled === "false") return;
 
-      const soundFile = type === "right" ? trueSoundFile : falseSoundFile;
-      const audio = new Audio(soundFile);
-      audio.volume = 0.8;
-
-      audio.onerror = (e) => {
-        console.error("Audio error:", e);
-        alert("Audio-Fehler: Datei konnte nicht geladen werden");
-      };
-
-      audio.play().catch((error) => {
-        console.error("Playback error:", error);
-      });
-
-      setTimeout(() => {
-        audio.pause();
+    void (async () => {
+      try {
+        const audio = await getToneAudio(type);
         audio.currentTime = 0;
-      }, 3000);
-    } catch (error) {
-      console.error("Audio error:", error);
-    }
+        await audio.play();
+      } catch (error) {
+        // Keep this non-blocking and silent for users; debug in console only.
+        console.error("Feedback sound playback error:", error);
+      }
+    })();
   }
 
   return {

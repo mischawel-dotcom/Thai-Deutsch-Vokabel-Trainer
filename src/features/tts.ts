@@ -1,6 +1,7 @@
 export type TtsLang = "th-TH" | "de-DE";
 
 let voicesCache: SpeechSynthesisVoice[] = [];
+let loadVoicesPromise: Promise<SpeechSynthesisVoice[]> | null = null;
 
 function getVoicesNow(): SpeechSynthesisVoice[] {
   try {
@@ -18,6 +19,9 @@ function wait(ms: number) {
  * Loads voices reliably across browsers (voices can be empty at first).
  */
 async function loadVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (loadVoicesPromise) return loadVoicesPromise;
+
+  loadVoicesPromise = (async () => {
   const synth = window.speechSynthesis;
   if (!synth) return [];
 
@@ -46,6 +50,13 @@ async function loadVoices(): Promise<SpeechSynthesisVoice[]> {
   voices = getVoicesNow();
   voicesCache = voices;
   return voicesCache;
+  })();
+
+  try {
+    return await loadVoicesPromise;
+  } finally {
+    loadVoicesPromise = null;
+  }
 }
 
 function pickVoice(lang: TtsLang): SpeechSynthesisVoice | undefined {
