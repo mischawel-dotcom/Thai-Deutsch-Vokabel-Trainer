@@ -5,6 +5,7 @@ const VocabList = lazy(() => import("./pages/VocabList"));
 const Learn = lazy(() => import("./pages/Learn"));
 const Test = lazy(() => import("./pages/Test"));
 const Exam = lazy(() => import("./pages/Exam"));
+const Games = lazy(() => import("./pages/Games"));
 const Settings = lazy(() => import("./pages/Settings"));
 import { db } from "./db/db";
 import { ensureProgressForEntries } from "./db/srs";
@@ -20,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type Route = "home" | "list" | "learn" | "test" | "exam" | "settings";
+type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
 
 function getInitialDarkMode(): boolean {
   // 1) gespeicherte Präferenz
@@ -134,7 +135,7 @@ export default function App() {
   useEffect(() => {
     const handleAppNavigate = (event: any) => {
       const next = event?.detail;
-      if (next === "home" || next === "list" || next === "learn" || next === "test" || next === "exam" || next === "settings") {
+      if (next === "home" || next === "list" || next === "learn" || next === "test" || next === "exam" || next === "games" || next === "settings") {
         setRoute(next);
       }
     };
@@ -147,7 +148,7 @@ export default function App() {
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "home" || hash === "list" || hash === "learn" || hash === "test" || hash === "exam" || hash === "settings") {
+      if (hash === "home" || hash === "list" || hash === "learn" || hash === "test" || hash === "exam" || hash === "games" || hash === "settings") {
         setRoute(hash as Route);
       }
     };
@@ -219,6 +220,7 @@ export default function App() {
               <TabsTrigger value="learn">Lernen</TabsTrigger>
               <TabsTrigger value="test">Tests</TabsTrigger>
               <TabsTrigger value="exam">Examen</TabsTrigger>
+              <TabsTrigger value="games">Spiele</TabsTrigger>
               <TabsTrigger value="settings" title="Einstellungen">⚙️</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -236,6 +238,7 @@ export default function App() {
           {route === "learn" && <Learn />}
           {route === "test" && <Test />}
           {route === "exam" && <Exam />}
+          {route === "games" && <Games />}
           {route === "settings" && <Settings />}
         </Suspense>
 
@@ -291,6 +294,16 @@ export default function App() {
                   <li>Formale Prüfung mit Bestehensgrenze (85% richtig = bestanden)</li>
                   <li>Detailliertes Ergebnis am Ende</li>
                   <li>Nutze das für realistische Lernzielkontrolle</li>
+                </ul>
+              </div>
+
+              {/* Games Section */}
+              <div>
+                <h3 className="font-bold text-lg mb-3">🎮 Spiele</h3>
+                <ul className="space-y-2 text-sm">
+                  <li><strong>Blitzrunde:</strong> 60 Sekunden, so viele Antworten wie möglich</li>
+                  <li><strong>4er-Quiz:</strong> 10 Multiple-Choice-Fragen mit Punktewertung</li>
+                  <li><strong>Filter:</strong> Spiele optional nur mit fälligen Karten oder pro Lektion</li>
                 </ul>
               </div>
 
