@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
-import Home from "./pages/Home";
-import VocabList from "./pages/VocabList";
-import Learn from "./pages/Learn";
-import Test from "./pages/Test";
-import Exam from "./pages/Exam";
-import Settings from "./pages/Settings";
+const Home = lazy(() => import("./pages/Home"));
+const VocabList = lazy(() => import("./pages/VocabList"));
+const Learn = lazy(() => import("./pages/Learn"));
+const Test = lazy(() => import("./pages/Test"));
+const Exam = lazy(() => import("./pages/Exam"));
+const Settings = lazy(() => import("./pages/Settings"));
 import { db } from "./db/db";
 import { ensureProgressForEntries } from "./db/srs";
 import { DEFAULT_VOCAB } from "./data/defaultVocab";
@@ -224,12 +224,20 @@ export default function App() {
           </Tabs>
         </header>
 
-        {route === "home" && <Home onNavigate={setRoute} />}
-        {route === "list" && <VocabList />}
-        {route === "learn" && <Learn />}
-        {route === "test" && <Test />}
-        {route === "exam" && <Exam />}
-        {route === "settings" && <Settings />}
+        <Suspense
+          fallback={
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+              Lade Seite...
+            </div>
+          }
+        >
+          {route === "home" && <Home onNavigate={setRoute} />}
+          {route === "list" && <VocabList />}
+          {route === "learn" && <Learn />}
+          {route === "test" && <Test />}
+          {route === "exam" && <Exam />}
+          {route === "settings" && <Settings />}
+        </Suspense>
 
         {/* Help Dialog */}
         <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
