@@ -1,4 +1,13 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  FlaskConical,
+  Gamepad2,
+  GraduationCap,
+  Home as HomeIcon,
+  MoreHorizontal,
+  NotebookTabs,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
 const Home = lazy(() => import("./pages/Home"));
 const VocabList = lazy(() => import("./pages/VocabList"));
@@ -40,6 +49,8 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [showVocabPage, setShowVocabPage] = useState<boolean>(true);
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const mobileMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize default vocab on app load
   useEffect(() => {
@@ -164,6 +175,21 @@ export default function App() {
     }
   }, [route]);
 
+  useEffect(() => {
+    setIsMobileMoreOpen(false);
+  }, [route]);
+
+  useEffect(() => {
+    if (!isMobileMoreOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (mobileMoreRef.current && !mobileMoreRef.current.contains(event.target as Node)) {
+        setIsMobileMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [isMobileMoreOpen]);
+
   // Auto-redirect from list route if page is hidden
   useEffect(() => {
     if (route === "list" && !showVocabPage) {
@@ -202,9 +228,11 @@ export default function App() {
     localStorage.setItem("theme", next ? "dark" : "light");
   }
 
+  const mobileMoreActive = route === "exam" || route === "settings" || route === "list";
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-3xl p-4">
+      <div className="mx-auto max-w-3xl p-4 pb-24 md:pb-4">
         <header className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Thai–Deutsch Vokabeltrainer</h2>
@@ -214,7 +242,7 @@ export default function App() {
             </Button>
           </div>
 
-          <Tabs value={route} onValueChange={(v) => setRoute(v as Route)}>
+          <Tabs value={route} onValueChange={(v) => setRoute(v as Route)} className="hidden md:block">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="home">Home</TabsTrigger>
               <TabsTrigger value="learn">Lernen</TabsTrigger>
@@ -322,6 +350,126 @@ export default function App() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 md:hidden [padding-bottom:env(safe-area-inset-bottom)]"
+        aria-label="Mobile Navigation"
+      >
+        <div className="mx-auto grid max-w-3xl grid-cols-5">
+          <button
+            type="button"
+            onClick={() => setRoute("home")}
+            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
+              route === "home" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-current={route === "home" ? "page" : undefined}
+          >
+            {route === "home" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
+            <HomeIcon className="h-4 w-4" />
+            Home
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoute("learn")}
+            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
+              route === "learn" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-current={route === "learn" ? "page" : undefined}
+          >
+            {route === "learn" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
+            <GraduationCap className="h-4 w-4" />
+            Lernen
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoute("test")}
+            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
+              route === "test" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-current={route === "test" ? "page" : undefined}
+          >
+            {route === "test" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
+            <FlaskConical className="h-4 w-4" />
+            Tests
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoute("games")}
+            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
+              route === "games" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-current={route === "games" ? "page" : undefined}
+          >
+            {route === "games" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
+            <Gamepad2 className="h-4 w-4" />
+            Spiele
+          </button>
+
+          <div className="relative" ref={mobileMoreRef}>
+            <button
+              type="button"
+              onClick={() => setIsMobileMoreOpen((prev) => !prev)}
+              className={`relative flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
+                mobileMoreActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-expanded={isMobileMoreOpen}
+              aria-controls="mobile-more-menu"
+            >
+              {mobileMoreActive ? (
+                <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" />
+              ) : null}
+              <MoreHorizontal className="h-4 w-4" />
+              Mehr
+            </button>
+
+            {isMobileMoreOpen ? (
+              <div
+                id="mobile-more-menu"
+                className="absolute bottom-full right-2 mb-2 w-48 rounded-2xl border bg-background/98 p-2 shadow-2xl backdrop-blur"
+              >
+                <button
+                  type="button"
+                  onClick={() => setRoute("exam")}
+                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                    route === "exam"
+                      ? "bg-muted font-medium text-foreground"
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                  }`}
+                >
+                  <NotebookTabs className="h-4 w-4" />
+                  Examen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoute("settings")}
+                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                    route === "settings"
+                      ? "bg-muted font-medium text-foreground"
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                  }`}
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                  Einstellungen
+                </button>
+                {showVocabPage ? (
+                  <button
+                    type="button"
+                    onClick={() => setRoute("list")}
+                    className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                      route === "list"
+                        ? "bg-muted font-medium text-foreground"
+                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                    }`}
+                  >
+                    <NotebookTabs className="h-4 w-4" />
+                    Vokabeln
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </nav>
     </div>
   );
 }
