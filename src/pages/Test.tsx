@@ -589,6 +589,9 @@ export default function Test() {
                 />
                 nur fällige Karten
               </label>
+              <p className="w-full text-xs text-muted-foreground">
+                Hinweis: "nur fällige Karten" nutzt SRS-Fälligkeit (dueAt kleiner/gleich jetzt). Ohne diesen Filter testest du alle Karten der aktuellen Auswahl.
+              </p>
 
               {/* Richtung */}
               <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Lernrichtung wählen">
@@ -766,7 +769,7 @@ export default function Test() {
       {/* Keine Session */}
       {!sessionActive ? (
         <p className="text-center text-sm text-muted-foreground">
-          Wähle Richtung + optional Lektion/Tags/Filter und klicke auf <b>Session starten</b>.
+          Wähle Richtung + optional Lektion/Tags/Filter und klicke auf <b>Session starten</b>. Für einen SRS-fokussierten Durchgang aktiviere "nur fällige Karten".
         </p>
       ) : null}
 

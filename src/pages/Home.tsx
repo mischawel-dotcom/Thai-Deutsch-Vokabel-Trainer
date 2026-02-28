@@ -146,7 +146,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">96</div>
+      <div className="text-3xl font-bold text-red-600">97</div>
       
       {/* Welcome Header */}
       <div>
@@ -174,7 +174,7 @@ export default function Home({ onNavigate }: HomeProps) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Heute fällig</p>
+              <p className="text-sm font-medium text-muted-foreground">Heute fällig (Tageslimit)</p>
               <p className="text-3xl font-bold mt-2">{dueCount}</p>
             </div>
             <div className="text-4xl">⭐</div>
