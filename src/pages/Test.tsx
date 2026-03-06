@@ -11,12 +11,8 @@ import { useSessionStart } from "../hooks/useSessionStart";
 import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
 import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
 import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
-import { loadSession } from "../lib/sessionStorage";
 import { usePersistedSession } from "../hooks/usePersistedSession";
-import {
-  restoreTestSession,
-  serializeTestSession,
-} from "../lib/testSessionCodec";
+import { serializeTestSession } from "../lib/testSessionCodec";
 import {
   isPersistedTestSessionData,
   type LearnDirection,
@@ -60,20 +56,27 @@ export default function Test() {
   const [onlyViewed, setOnlyViewed] = useState<boolean>(false);
   // Nur fällige Karten (SRS dueAt <= now)
   const [onlyDue, setOnlyDue] = useState<boolean>(false);
+  // Lautschrift unter Thai ein-/ausblenden
+  const [showTransliteration, setShowTransliteration] = useState<boolean>(() => {
+    const saved = localStorage.getItem("showTransliterationInTest");
+    if (saved === "false") return false;
+    return true;
+  });
 
   // Dialog für Lektion-Auswahl
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
-    const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
+  const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
+  const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
+  const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
 
   const flipButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
   const {
     hydrated: testSessionHydrated,
-    restoredSession: restoredTestSession,
     savePersistedSession: saveTestSession,
     clearPersistedSession: clearTestSession,
   } = usePersistedSession<PersistedTestSessionData>({
@@ -95,53 +98,12 @@ export default function Test() {
 
   const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
 
-  // Restore saved test session once on mount
+  // Always start on the Test overview when entering this page.
+  // We intentionally clear any persisted in-page session state.
   useEffect(() => {
-    let cancelled = false;
-
-    const restoreSession = async () => {
-      if (!restoredTestSession) {
-        return;
-      }
-
-      try {
-        const restored = restoreTestSession(restoredTestSession);
-        if (!restored) {
-          clearTestSession();
-          return;
-        }
-
-        // Ensure card data is available so current card can be rendered immediately.
-        const vocab = await db.vocab.toArray();
-        if (!cancelled) {
-          setAllVocab(vocab);
-          setDirection(restored.direction);
-          setOnlyDue(restored.onlyDue);
-          dispatchSession({
-            type: "set",
-            payload: {
-              sessionActive: true,
-              queue: restored.queue,
-              currentId: restored.currentId,
-              flipped: restored.flipped,
-              streaks: restored.streaks,
-              doneIds: restored.doneIds,
-              currentRound: restored.currentRound,
-              roundIndex: restored.roundIndex,
-            },
-          });
-          setStatus(`Session wiederhergestellt: ${restored.queue.length} Karte(n)`);
-        }
-      } catch {
-        clearTestSession();
-      }
-    };
-
-    void restoreSession();
-    return () => {
-      cancelled = true;
-    };
-  }, [dispatchSession, restoredTestSession, clearTestSession]);
+    if (!testSessionHydrated) return;
+    clearTestSession();
+  }, [testSessionHydrated, clearTestSession]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
@@ -164,6 +126,10 @@ export default function Test() {
       clearTestSession();
     }
   }, [testSessionHydrated, sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction, onlyDue, saveTestSession, clearTestSession]);
+
+  useEffect(() => {
+    localStorage.setItem("showTransliterationInTest", showTransliteration ? "true" : "false");
+  }, [showTransliteration]);
 
 
   // ===== Derived data =====
@@ -299,8 +265,6 @@ export default function Test() {
   useEffect(() => {
     // Lade nur Metadaten beim Start (Lazy Loading)
     loadLessonMetadata().then(() => {
-      if (loadSession("testSession")) return;
-
       // Check if user came from Home with a lesson selected
       const selectedLesson = localStorage.getItem("selectedLessonForTest");
       if (selectedLesson) {
@@ -501,6 +465,7 @@ export default function Test() {
   const finished = sessionActive && currentId == null;
   const cardStreak = current?.id ? Math.min(streaks.get(current.id) ?? 0, 5) : 0;
   const progressPct = Math.round((cardStreak / 5) * 100);
+  const statusIsWarning = status.startsWith("Keine ");
 
   // ===== Render =====
   return (
@@ -510,7 +475,17 @@ export default function Test() {
     >
       {/* Status / Fehler */}
       <div className="space-y-2" role="status" aria-live="polite">
-        {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
+        {status ? (
+          <p
+            className={
+              statusIsWarning
+                ? "rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                : "text-sm text-muted-foreground"
+            }
+          >
+            {status}
+          </p>
+        ) : null}
         {error ? (
           <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap" role="alert">
             {error}
@@ -525,14 +500,54 @@ export default function Test() {
           
           <div className="grid grid-cols-1 gap-2">
             <Button
-              onClick={() => void quickStartLearnedHook()}
+              onClick={() => {
+                const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
+                const quickLimit =
+                  Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+                void quickStartLearnedHook({
+                  includeAllLearned: quickStartIncludeAllLearned,
+                  limit: quickLimit,
+                });
+              }}
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-              title="Teste die Karten, die du bereits gelernt hast"
-              aria-label="Schnellstart: Teste bereits gelernte Karten"
+              title="Teste standardmäßig fällige gelernte Karten"
+              aria-label="Schnellstart: Teste fällige gelernte Karten"
             >
-              📖 Teste gelernte Karten (empfohlen)
+              📖 Fällige Karten testen
             </Button>
+            <div className="rounded-md border bg-muted/30 p-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={quickStartIncludeAllLearned}
+                    onChange={(e) => setQuickStartIncludeAllLearned(e.target.checked)}
+                    aria-label="Alle gelernten Karten statt nur fällige Karten testen"
+                  />
+                  Alle gelernten Karten (statt nur fällige)
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  Kartenlimit
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={500}
+                    className="h-8 w-24 rounded-md border bg-background px-2 text-sm"
+                    placeholder="z.B. 20"
+                    value={quickStartLimit}
+                    onChange={(e) => setQuickStartLimit(e.target.value)}
+                    aria-label="Optionales Kartenlimit für Schnellstart"
+                  />
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Standard ist SRS-orientiert (nur fällige gelernte Karten). Für Voll-Review optional
+                "Alle gelernten Karten" aktivieren.
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
               {allLessons.length > 0 ? (
@@ -575,9 +590,9 @@ export default function Test() {
                   className="h-4 w-4 accent-primary"
                   checked={onlyViewed}
                   onChange={(e) => setOnlyViewed(e.target.checked)}
-                  aria-label="Nur bereits gesehene Karten anzeigen"
+                  aria-label="Nur bereits gelernte Karten anzeigen"
                 />
-                nur gesehene Karten
+                nur gelernte Karten
               </label>
               <label className="inline-flex items-center gap-2 text-sm">
                 <input
@@ -588,6 +603,16 @@ export default function Test() {
                   aria-label="Nur fällige Karten anzeigen"
                 />
                 nur fällige Karten
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={showTransliteration}
+                  onChange={(e) => setShowTransliteration(e.target.checked)}
+                  aria-label="Lautschrift unter Thai anzeigen"
+                />
+                Lautschrift anzeigen
               </label>
               <p className="w-full text-xs text-muted-foreground">
                 Hinweis: "nur fällige Karten" nutzt SRS-Fälligkeit (dueAt kleiner/gleich jetzt). Ohne diesen Filter testest du alle Karten der aktuellen Auswahl.
@@ -788,10 +813,25 @@ export default function Test() {
 
       {/* Karte */}
       {!finished && sessionActive && current && current.id ? (
-        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
+        <div className="fixed inset-0 z-50 bg-background w-screen h-screen flex flex-col items-center justify-start p-2 sm:p-3 m-0 overflow-hidden">
+          <div className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3">
+            <Button
+              onClick={endSessionConfirm}
+              variant="outline"
+              size="sm"
+              className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              aria-label="Test-Session beenden"
+            >
+              Test beenden
+            </Button>
+          </div>
 
           {/* Top-Status */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground" role="status" aria-live="polite">
+          <div
+            className="mt-1 flex w-full max-w-2xl translate-y-4 flex-wrap items-center justify-center gap-2 pr-24 text-xs text-muted-foreground sm:pr-28"
+            role="status"
+            aria-live="polite"
+          >
             <span aria-label={`${remainingUniqueCount} Karten verbleibend`}>
               Verbleibend: <b className="text-foreground">{remainingUniqueCount}</b>
             </span>
@@ -806,7 +846,7 @@ export default function Test() {
           </div>
 
           {/* Fortschrittsbalken */}
-          <div className="mx-auto w-full max-w-2xl mt-2">
+          <div className="mx-auto w-full max-w-2xl mt-1">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
@@ -817,7 +857,7 @@ export default function Test() {
           </div>
 
           {/* Testkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/90 dark:bg-slate-900/80 backdrop-blur mt-3">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-5 md:p-7 shadow-xl border border-slate-200/70 dark:border-slate-800/70 bg-background mt-[2cm]">
             <div className="space-y-4">
               <div className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed">
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
@@ -851,7 +891,7 @@ export default function Test() {
                     {frontText}
                   </div>
 
-                  {direction === "TH_DE" && current.transliteration ? (
+                  {showTransliteration && direction === "TH_DE" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -899,7 +939,7 @@ export default function Test() {
 
                   <div className="text-3xl sm:text-4xl font-semibold text-center leading-tight">{backText}</div>
 
-                  {direction === "DE_TH" && current.transliteration ? (
+                  {showTransliteration && direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -996,13 +1036,18 @@ export default function Test() {
           </div>
 
           {/* Bewertungs-Buttons */}
-          <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
+          <div className="space-y-2 mt-2 w-full max-w-md px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
             <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
               <Button
                 onClick={() => gradeAnswerHook(false)}
                 variant="destructive"
                 size="sm"
-                className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
+                disabled={!flipped}
+                className={`flex-1 shadow-lg transition-all duration-150 ${
+                  flipped
+                    ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                }`}
                 aria-label="Antwort als falsch markieren"
               >
                 ❌ Falsch
@@ -1011,23 +1056,18 @@ export default function Test() {
                 onClick={() => gradeAnswerHook(true)}
                 variant="default"
                 size="sm"
-                className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white"
+                disabled={!flipped}
+                className={`flex-1 shadow-lg transition-all duration-150 ${
+                  flipped
+                    ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                }`}
                 aria-label="Antwort als richtig markieren"
               >
                 ✅ Richtig
               </Button>
             </div>
 
-            <div className="pt-2 border-t">
-              <Button
-                onClick={endSessionConfirm}
-                variant="destructive"
-                className="w-full h-10 text-sm shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
-                aria-label="Test-Session beenden"
-              >
-                Test beenden
-              </Button>
-            </div>
           </div>
         </div>
       ) : null}

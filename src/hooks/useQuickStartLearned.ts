@@ -11,8 +11,14 @@ interface UseQuickStartLearnedProps {
   setStatus: (msg: string) => void;
 }
 
+interface QuickStartLearnedOptions {
+  includeAllLearned?: boolean;
+  limit?: number;
+}
+
 /**
- * Hook fuer Quick-Start mit allen gelernten Karten
+ * Hook fuer Quick-Start mit gelernten Karten.
+ * Standard: nur faellige gelernte Karten (SRS-orientiert).
  */
 export function useQuickStartLearned({
   dispatchSession,
@@ -20,9 +26,14 @@ export function useQuickStartLearned({
   setStatus,
 }: UseQuickStartLearnedProps) {
   const quickStartLearned = useCallback(
-    async () => {
+    async (options?: QuickStartLearnedOptions) => {
       // Lade alle Vokabeln direkt aus der DB
       const vocab = await db.vocab.toArray();
+      const includeAllLearned = options?.includeAllLearned ?? false;
+      const limit =
+        typeof options?.limit === "number" && Number.isFinite(options.limit) && options.limit > 0
+          ? Math.floor(options.limit)
+          : undefined;
 
       // Ensure progress fuer alle
       const idsToEnsure = vocab
@@ -30,34 +41,55 @@ export function useQuickStartLearned({
         .filter((id): id is number => typeof id === "number");
       await ensureProgressForEntries(idsToEnsure);
 
-      // Filtere auf viewed = true
-      const ids = vocab.filter((v) => v.viewed === true && v.id).map((v) => v.id!);
+      // Filtere auf gelernt (viewed=true)
+      const learnedIds = vocab
+        .filter((v) => v.viewed === true && typeof v.id === "number")
+        .map((v) => v.id as number);
+
+      // Standard: nur faellige gelernte Karten (dueAt <= now)
+      let ids = learnedIds;
+      if (!includeAllLearned) {
+        const dueProgress = await db.progress.where("dueAt").belowOrEqual(Date.now()).toArray();
+        const dueIds = new Set(
+          dueProgress
+            .map((p) => p.entryId)
+            .filter((id): id is number => typeof id === "number")
+        );
+        ids = learnedIds.filter((id) => dueIds.has(id));
+      }
 
       if (ids.length === 0) {
-        setStatus("Keine gelernten Karten verfuegbar.");
+        setStatus(
+          includeAllLearned
+            ? "Keine gelernten Karten verfuegbar. Lerne zuerst Karten auf der Seite 'Lernen'."
+            : "Keine faelligen gelernten Karten verfuegbar. Lerne zuerst Karten auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Karten'."
+        );
         return;
       }
 
       // Update allVocab damit current die Karten finden kann
       setAllVocab(vocab);
 
-      const shuffled = shuffle(ids);
+      const shuffledPool = shuffle(ids);
+      const cardsToUse = limit ? shuffledPool.slice(0, limit) : shuffledPool;
+      const shuffledRound = shuffle(cardsToUse);
 
       dispatchSession({
         type: "set",
         payload: {
           sessionActive: true,
-          queue: ids,
-          currentRound: shuffled,
+          queue: cardsToUse,
+          currentRound: shuffledRound,
           roundIndex: 0,
-          currentId: shuffled[0] ?? null,
+          currentId: shuffledRound[0] ?? null,
           flipped: false,
-          streaks: new Map(ids.map((id) => [id, 0])),
+          streaks: new Map(cardsToUse.map((id) => [id, 0])),
           doneIds: new Set(),
         },
       });
 
-      setStatus(`Session gestartet: ${ids.length} gelernte Karte(n)`);
+      const modeLabel = includeAllLearned ? "gelernte Karten" : "faellige gelernte Karten";
+      setStatus(`Session gestartet: ${cardsToUse.length} ${modeLabel}`);
     },
     [dispatchSession, setAllVocab, setStatus]
   );

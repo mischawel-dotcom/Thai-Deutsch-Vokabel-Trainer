@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db, type VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
 import { shuffle } from "../lib/shuffle";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type GameMode = "blitz" | "quiz" | "audio";
 type GameDirection = "TH_DE" | "DE_TH";
@@ -32,6 +39,12 @@ type GameResult = {
   dailyChallengeTitle: string;
 };
 
+type AnswerFeedback = {
+  selected: string;
+  correct: string;
+  isCorrect: boolean;
+};
+
 type DailyChallengeMetric = "games" | "correctAnswers" | "bestScore";
 
 type DailyChallenge = {
@@ -41,6 +54,30 @@ type DailyChallenge = {
   metric: DailyChallengeMetric;
   target: number;
 };
+
+type GameModeCard = {
+  id: GameMode;
+  title: string;
+  subtitle: string;
+};
+
+const MODE_CARDS: GameModeCard[] = [
+  {
+    id: "blitz",
+    title: "Blitzrunde",
+    subtitle: "60 Sekunden, so viele Treffer wie möglich",
+  },
+  {
+    id: "quiz",
+    title: "4er-Quiz",
+    subtitle: "10 Multiple-Choice-Fragen",
+  },
+  {
+    id: "audio",
+    title: "Hör-Spiel",
+    subtitle: "Audio hören und Übersetzung wählen",
+  },
+];
 
 type GameStats = {
   totalXp: number;
@@ -213,8 +250,9 @@ export default function Games() {
   const [mode, setMode] = useState<GameMode>("blitz");
   const [direction, setDirection] = useState<GameDirection>("TH_DE");
   const [onlyLearned, setOnlyLearned] = useState(true);
-  const [onlyDue, setOnlyDue] = useState(true);
+  const [onlyDue, setOnlyDue] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [lessons, setLessons] = useState<number[]>([]);
   const [status, setStatus] = useState<string>("");
   const [showFilterRelaxAction, setShowFilterRelaxAction] = useState(false);
@@ -230,8 +268,10 @@ export default function Games() {
   const [timeLeft, setTimeLeft] = useState<number>(60);
   const [gameRunning, setGameRunning] = useState<boolean>(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [answerFeedback, setAnswerFeedback] = useState<AnswerFeedback | null>(null);
   const [result, setResult] = useState<GameResult | null>(null);
   const [gameStats, setGameStats] = useState<GameStats>(DEFAULT_GAME_STATS);
+  const feedbackTimeoutRef = useRef<number | null>(null);
 
   const totalQuestions =
     mode === "quiz" || mode === "audio" ? Math.min(10, pool.length) : Number.POSITIVE_INFINITY;
@@ -389,11 +429,19 @@ export default function Games() {
 
   useEffect(() => {
     return () => {
+      if (feedbackTimeoutRef.current != null) {
+        window.clearTimeout(feedbackTimeoutRef.current);
+        feedbackTimeoutRef.current = null;
+      }
       stopSpeak();
     };
   }, []);
 
   const resetGameState = useCallback(() => {
+    if (feedbackTimeoutRef.current != null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
     stopSpeak();
     setPool([]);
     setQuestion(null);
@@ -404,12 +452,18 @@ export default function Games() {
     setTimeLeft(60);
     setGameRunning(false);
     setIsSpeaking(false);
+    setAnswerFeedback(null);
   }, []);
 
   const startGame = useCallback(async () => {
+    if (feedbackTimeoutRef.current != null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
     setStatus("");
     setShowFilterRelaxAction(false);
     setResult(null);
+    setAnswerFeedback(null);
     const filtered = await loadFilteredPool();
 
     if (filtered.length < 4) {
@@ -447,43 +501,62 @@ export default function Games() {
 
   const answerQuestion = useCallback(
     (selected: string) => {
-      if (!gameRunning || !question) return;
+      if (!gameRunning || !question || answerFeedback) return;
       stopSpeak();
       setIsSpeaking(false);
 
       const isCorrect = selected === question.correctAnswer;
-      const nextScore = score + (isCorrect ? 10 : -3);
+      const nextScore = score + (isCorrect ? 10 : 0);
       const nextAnswered = answered + 1;
       const nextCorrectAnswers = correctAnswers + (isCorrect ? 1 : 0);
 
       setScore(nextScore);
       setAnswered(nextAnswered);
       setCorrectAnswers(nextCorrectAnswers);
+      setAnswerFeedback({
+        selected,
+        correct: question.correctAnswer,
+        isCorrect,
+      });
 
-      if (mode === "quiz" || mode === "audio") {
-        const nextQuestionIndex = questionIndex + 1;
-        setQuestionIndex(nextQuestionIndex);
-
-        if (nextQuestionIndex >= totalQuestions) {
-          finishQuiz(nextScore, nextAnswered, nextCorrectAnswers);
-          return;
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(isCorrect ? 40 : 120);
+        } catch {
+          // ignore unsupported vibration failures
         }
       }
 
-      const next = createQuestion(pool, direction, question.entryId);
-      if (!next) {
-        setStatus("Spiel beendet: Keine weiteren Fragen generierbar.");
-        const finalTotal =
-          (mode === "quiz" || mode === "audio") && totalQuestions !== Number.POSITIVE_INFINITY
-            ? totalQuestions
-            : nextAnswered;
-        finalizeGame(mode, nextScore, nextAnswered, nextCorrectAnswers, finalTotal);
-        return;
-      }
+      feedbackTimeoutRef.current = window.setTimeout(() => {
+        feedbackTimeoutRef.current = null;
+        setAnswerFeedback(null);
 
-      setQuestion(next);
+        if (mode === "quiz" || mode === "audio") {
+          const nextQuestionIndex = questionIndex + 1;
+          setQuestionIndex(nextQuestionIndex);
+
+          if (nextQuestionIndex >= totalQuestions) {
+            finishQuiz(nextScore, nextAnswered, nextCorrectAnswers);
+            return;
+          }
+        }
+
+        const next = createQuestion(pool, direction, question.entryId);
+        if (!next) {
+          setStatus("Spiel beendet: Keine weiteren Fragen generierbar.");
+          const finalTotal =
+            (mode === "quiz" || mode === "audio") && totalQuestions !== Number.POSITIVE_INFINITY
+              ? totalQuestions
+              : nextAnswered;
+          finalizeGame(mode, nextScore, nextAnswered, nextCorrectAnswers, finalTotal);
+          return;
+        }
+
+        setQuestion(next);
+      }, 450);
     },
     [
+      answerFeedback,
       answered,
       correctAnswers,
       direction,
@@ -530,149 +603,118 @@ export default function Games() {
     () => getDailyChallengeProgress(dailyChallenge, todayDaily),
     [dailyChallenge, todayDaily]
   );
-
+  const modeLabel = useMemo(
+    () => (mode === "blitz" ? "Blitzrunde" : mode === "quiz" ? "4er-Quiz" : "Hör-Spiel"),
+    [mode]
+  );
+  const resultModeLabel = useMemo(
+    () =>
+      result
+        ? result.mode === "blitz"
+          ? "Blitzrunde"
+          : result.mode === "quiz"
+            ? "4er-Quiz"
+            : "Hör-Spiel"
+        : null,
+    [result]
+  );
+  const pageTitle = gameRunning ? modeLabel : resultModeLabel ?? "Spiele";
+  const pageDescription =
+    gameRunning || result
+      ? " "
+      : "Blitzrunde, 4er-Quiz und Hör-Spiel als spielerische Wiederholung deiner Karten.";
   return (
     <PageShell
-      title="Spiele"
-      description="Blitzrunde, 4er-Quiz und Hör-Spiel als spielerische Wiederholung deiner Karten."
+      title={pageTitle}
+      description={pageDescription}
     >
       {!gameRunning && !result ? (
-        <Card className="p-4 space-y-4">
-          <div className="rounded-md border bg-muted/30 p-3 text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span>
-                Level: <b>{currentLevel}</b>
-              </span>
-              <span>
-                XP: <b>{gameStats.totalXp}</b> ({xpIntoLevel}/100)
-              </span>
-              <span>
-                Badges: <b>{gameStats.badges.length}</b>
-              </span>
+        <Card className="p-3 space-y-3">
+          <div className="rounded-md border bg-muted/30 p-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span>Lv <b>{currentLevel}</b></span>
+              <span>XP <b>{gameStats.totalXp}</b> ({xpIntoLevel}/100)</span>
+              <span>Badges <b>{gameStats.badges.length}</b></span>
             </div>
           </div>
-          <div
-            className={`rounded-md border p-3 text-sm ${
-              todayDaily.challengeCompleted
-                ? "border-green-500/30 bg-green-500/10"
-                : "border-amber-500/30 bg-amber-500/10"
-            }`}
-          >
+
+          <div className={`rounded-md border p-2 text-xs ${
+            todayDaily.challengeCompleted
+              ? "border-green-500/30 bg-green-500/10"
+              : "border-amber-500/30 bg-amber-500/10"
+          }`}>
             <p className="font-medium">{dailyChallenge.title}</p>
-            <p className="text-muted-foreground">{dailyChallenge.description}</p>
-            <p className="mt-1">
-              Fortschritt: <b>{Math.min(dailyProgress, dailyChallenge.target)}</b> /{" "}
-              <b>{dailyChallenge.target}</b>
+            <p className="mt-1 text-muted-foreground">
+              {Math.min(dailyProgress, dailyChallenge.target)} / {dailyChallenge.target}
               {todayDaily.challengeCompleted ? " · erledigt (+50 XP)" : ""}
             </p>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">Modus</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={mode === "blitz" ? "default" : "outline"}
-                onClick={() => setMode("blitz")}
-                aria-pressed={mode === "blitz"}
-              >
-                {mode === "blitz" ? "✓ Blitzrunde (60s)" : "Blitzrunde (60s)"}
-              </Button>
-              <Button
-                variant={mode === "quiz" ? "default" : "outline"}
-                onClick={() => setMode("quiz")}
-                aria-pressed={mode === "quiz"}
-              >
-                {mode === "quiz" ? "✓ 4er-Quiz (10 Fragen)" : "4er-Quiz (10 Fragen)"}
-              </Button>
-              <Button
-                variant={mode === "audio" ? "default" : "outline"}
-                onClick={() => setMode("audio")}
-                aria-pressed={mode === "audio"}
-              >
-                {mode === "audio" ? "✓ Hör-Spiel (10 Fragen)" : "Hör-Spiel (10 Fragen)"}
-              </Button>
+            <p className="text-sm font-medium">1) Modus wählen</p>
+            <div className="grid gap-2">
+              {MODE_CARDS.map((modeCard) => {
+                return (
+                  <button
+                    key={modeCard.id}
+                    type="button"
+                    onClick={() => {
+                      setMode(modeCard.id);
+                      void startGame();
+                    }}
+                    className="w-full rounded-lg border border-border bg-card px-3 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md active:translate-y-0 active:shadow-sm"
+                    aria-label={`${modeCard.title} starten`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium">{modeCard.title}</span>
+                      <span className="text-xs text-primary">Zum Start tippen</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{modeCard.subtitle}</p>
+                  </button>
+                );
+              })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Aktiv:{" "}
-              <b>
-                {mode === "blitz" ? "Blitzrunde" : mode === "quiz" ? "4er-Quiz" : "Hör-Spiel"}
-              </b>
+              Aktiv: <b>{mode === "blitz" ? "Blitzrunde (60s)" : mode === "quiz" ? "4er-Quiz (10 Fragen)" : "Hör-Spiel (10 Fragen)"}</b>
             </p>
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">Richtung</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-sm font-medium">2) Setup</p>
+            <div className="flex flex-wrap items-center gap-2">
               <Button
+                size="sm"
                 variant={direction === "TH_DE" ? "default" : "outline"}
                 onClick={() => setDirection("TH_DE")}
-                aria-pressed={direction === "TH_DE"}
               >
-                {direction === "TH_DE" ? "✓ Thai → Deutsch" : "Thai → Deutsch"}
+                Thai → Deutsch
               </Button>
               <Button
+                size="sm"
                 variant={direction === "DE_TH" ? "default" : "outline"}
                 onClick={() => setDirection("DE_TH")}
-                aria-pressed={direction === "DE_TH"}
               >
-                {direction === "DE_TH" ? "✓ Deutsch → Thai" : "Deutsch → Thai"}
+                Deutsch → Thai
               </Button>
             </div>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={onlyLearned}
+                onChange={(e) => setOnlyLearned(e.target.checked)}
+              />
+              nur gelernte Karten
+            </label>
             <p className="text-xs text-muted-foreground">
-              Aktiv: <b>{direction === "TH_DE" ? "Thai → Deutsch" : "Deutsch → Thai"}</b>
+              {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} Karten verfügbar`}
             </p>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Filter</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-primary"
-                  checked={onlyLearned}
-                  onChange={(e) => setOnlyLearned(e.target.checked)}
-                />
-                nur gelernte Karten
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-primary"
-                  checked={onlyDue}
-                  onChange={(e) => setOnlyDue(e.target.checked)}
-                />
-                nur fällige Karten
-              </label>
-
-              <select
-                className="rounded-md border bg-background px-2 py-1 text-sm"
-                value={selectedLesson ?? ""}
-                onChange={(e) =>
-                  setSelectedLesson(e.target.value ? Number(e.target.value) : undefined)
-                }
-              >
-                <option value="">Alle Lektionen</option>
-                {lessons.map((lesson) => (
-                  <option key={lesson} value={lesson}>
-                    Lektion {lesson}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Aktiv: {onlyLearned ? "nur gelernt" : "gelernt + neue"} ·{" "}
-              {onlyDue ? "nur fällig" : "fällig + nicht fällig"}
-            </p>
-          </div>
-
-          <div className="text-sm text-muted-foreground">
-            {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} Karten verfügbar`}
           </div>
 
           {status ? <div className="text-sm text-red-600">{status}</div> : null}
           {showFilterRelaxAction ? (
             <Button
+              size="sm"
               variant="outline"
               onClick={() => {
                 if (onlyLearned) {
@@ -687,11 +729,65 @@ export default function Games() {
             </Button>
           ) : null}
 
-          <Button onClick={startGame} disabled={loadingPreview}>
-            Spiel starten
-          </Button>
         </Card>
       ) : null}
+
+      <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+        <DialogContent className="left-0 right-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-t-2xl border-t p-4 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Filter</DialogTitle>
+            <DialogDescription>
+              Optional: begrenze die Kartenauswahl für diese Runde.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={onlyDue}
+                onChange={(e) => setOnlyDue(e.target.checked)}
+              />
+              nur fällige Karten
+            </label>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="gameLessonSelect">
+                Lektion
+              </label>
+              <select
+                id="gameLessonSelect"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={selectedLesson ?? ""}
+                onChange={(e) =>
+                  setSelectedLesson(e.target.value ? Number(e.target.value) : undefined)
+                }
+              >
+                <option value="">Alle Lektionen</option>
+                {lessons.map((lesson) => (
+                  <option key={lesson} value={lesson}>
+                    Lektion {lesson}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setOnlyDue(false);
+                  setSelectedLesson(undefined);
+                }}
+              >
+                Zurücksetzen
+              </Button>
+              <Button onClick={() => setFilterDialogOpen(false)}>Übernehmen</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {gameRunning && question ? (
         <Card className="p-4 space-y-4">
@@ -725,86 +821,120 @@ export default function Games() {
 
           <div className="grid gap-2 sm:grid-cols-2">
             {question.options.map((option) => (
-              <Button key={option} variant="outline" onClick={() => answerQuestion(option)}>
+              <Button
+                key={option}
+                variant="outline"
+                onClick={() => answerQuestion(option)}
+                disabled={Boolean(answerFeedback)}
+                className={
+                  answerFeedback
+                    ? option === answerFeedback.correct
+                      ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-300"
+                      : option === answerFeedback.selected
+                        ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-300"
+                        : ""
+                    : ""
+                }
+              >
                 {option}
               </Button>
             ))}
           </div>
+
+          {answerFeedback ? (
+            <div
+              className={`rounded-md border p-2 text-sm ${
+                answerFeedback.isCorrect
+                  ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300"
+                  : "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+              }`}
+            >
+              {answerFeedback.isCorrect
+                ? "✅ Richtig!"
+                : `❌ Falsch. Richtig ist: ${answerFeedback.correct}`}
+            </div>
+          ) : null}
 
           {status ? <div className="text-sm text-muted-foreground">{status}</div> : null}
         </Card>
       ) : null}
 
       {result ? (
-        <Card className="p-4 space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold">Ergebnis</h3>
-            <p className="text-sm text-muted-foreground">
-              {result.mode === "blitz"
-                ? "Blitzrunde"
-                : result.mode === "quiz"
-                  ? "4er-Quiz"
-                  : "Hör-Spiel"}{" "}
-              abgeschlossen
-            </p>
-          </div>
-          <div className="text-sm space-y-1">
-            <p>
-              Punkte: <b>{result.score}</b>
-            </p>
-            <p>
-              Beantwortet: <b>{result.answered}</b>
-            </p>
-            <p>
-              Richtig: <b>{result.correctAnswers}</b>
-            </p>
-            <p>
-              Umfang: <b>{result.totalQuestions}</b>
-            </p>
-            <p>
-              XP erhalten: <b>+{result.xpGained}</b> (Level {result.levelAfter})
-            </p>
-            {result.bonusXp > 0 ? (
-              <p>
-                Daily-Bonus: <b>+{result.bonusXp} XP</b>
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur animate-in fade-in-0 duration-200">
+          <div className="mx-auto flex h-full w-full max-w-3xl items-center justify-center p-3">
+            <Card className="w-full max-w-md p-4 space-y-4 shadow-xl animate-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+              <div>
+                <h3 className="text-lg font-semibold">Ergebnis</h3>
+                <p className="text-sm text-muted-foreground">
+                  {result.mode === "blitz"
+                    ? "Blitzrunde"
+                    : result.mode === "quiz"
+                      ? "4er-Quiz"
+                      : "Hör-Spiel"}{" "}
+                  abgeschlossen
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="rounded-md border p-2">
+                  Punkte
+                  <div className="text-lg font-semibold">{result.score}</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  Richtig
+                  <div className="text-lg font-semibold">{result.correctAnswers}</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  Fragen
+                  <div className="text-lg font-semibold">{result.answered}/{result.totalQuestions}</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  XP
+                  <div className="text-lg font-semibold">+{result.xpGained + result.bonusXp}</div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Level danach: <b>{result.levelAfter}</b>
               </p>
-            ) : null}
+              {result.dailyChallengeCompletedNow ? (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                  <p className="font-medium">🎯 Tagesaufgabe geschafft</p>
+                  <p className="text-muted-foreground">
+                    {result.dailyChallengeTitle} abgeschlossen (+50 XP).
+                  </p>
+                </div>
+              ) : null}
+              {result.unlockedBadges.length > 0 ? (
+                <div className="rounded-md border border-green-500/30 bg-green-500/10 p-3 text-sm">
+                  <p className="font-medium">Neue Badges freigeschaltet:</p>
+                  <p className="text-muted-foreground">
+                    {result.unlockedBadges.map((id) => BADGE_LABELS[id] ?? id).join(" · ")}
+                  </p>
+                </div>
+              ) : null}
+              {gameStats.badges.length > 0 ? (
+                <div className="text-xs text-muted-foreground">
+                  Gesamt-Badges:{" "}
+                  {gameStats.badges.map((id) => BADGE_LABELS[id] ?? id).join(" · ")}
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={startGame} className="flex-1 min-w-[160px]">
+                  Nochmal spielen
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 min-w-[160px]"
+                  onClick={() => {
+                    setResult(null);
+                    resetGameState();
+                  }}
+                >
+                  Zurück zur Auswahl
+                </Button>
+              </div>
+            </Card>
           </div>
-          {result.dailyChallengeCompletedNow ? (
-            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-              <p className="font-medium">🎯 Tagesaufgabe geschafft</p>
-              <p className="text-muted-foreground">
-                {result.dailyChallengeTitle} abgeschlossen (+50 XP).
-              </p>
-            </div>
-          ) : null}
-          {result.unlockedBadges.length > 0 ? (
-            <div className="rounded-md border border-green-500/30 bg-green-500/10 p-3 text-sm">
-              <p className="font-medium">Neue Badges freigeschaltet:</p>
-              <p className="text-muted-foreground">
-                {result.unlockedBadges.map((id) => BADGE_LABELS[id] ?? id).join(" · ")}
-              </p>
-            </div>
-          ) : null}
-          {gameStats.badges.length > 0 ? (
-            <div className="text-xs text-muted-foreground">
-              Gesamt-Badges:{" "}
-              {gameStats.badges.map((id) => BADGE_LABELS[id] ?? id).join(" · ")}
-            </div>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={startGame}>Nochmal spielen</Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setResult(null);
-                resetGameState();
-              }}
-            >
-              Zurück zur Auswahl
-            </Button>
-          </div>
-        </Card>
+        </div>
       ) : null}
     </PageShell>
   );

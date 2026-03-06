@@ -303,12 +303,8 @@ export default function Learn() {
   }, [allLessons, sessionState.sessionActive]);
 
   function openLessonDialog(lesson: number) {
-    // Lesson count from metadata
-    const lessonInfo = allLessons.find((l) => l.lesson === lesson);
-    const totalCards = lessonInfo?.count ?? 0;
-
     setSelectedLesson(lesson);
-    setCardLimit(String(totalCards)); // Standard: alle Karten
+    setCardLimit(""); // Leer = alle verfuegbaren Karten der Lektion
     setIncludeViewed(true);
     setDialogOpen(true);
   }
@@ -468,8 +464,18 @@ export default function Learn() {
       {/* Lern-Session */}
       {sessionState.sessionActive && current ? (
         <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-start p-2 sm:p-3 pb-36 m-0 overflow-hidden">
+          <div className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3">
+            <Button
+              onClick={endSession}
+              variant="outline"
+              size="sm"
+              className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+            >
+              Lektion beenden
+            </Button>
+          </div>
           {/* Top-Status */}
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-2 flex w-full max-w-2xl flex-wrap items-center justify-center gap-2 pr-28 text-xs text-muted-foreground">
             <span>
               Karte: <b className="text-foreground">{sessionState.currentIndex + 1}</b> / <b className="text-foreground">{sessionState.lessonCards.length}</b>
             </span>
@@ -619,14 +625,6 @@ export default function Learn() {
                   </Button>
                 </div>
 
-                {/* Beenden */}
-                <Button
-                  onClick={endSession}
-                  variant="outline"
-                  className="w-full h-10 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                >
-                  📚 Lektion beenden
-                </Button>
               </div>
             </div>
           </div>
