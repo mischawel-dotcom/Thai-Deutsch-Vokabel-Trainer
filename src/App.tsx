@@ -407,56 +407,60 @@ export default function App() {
 
       {!isLearnSessionActive ? (
         <nav
-          className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 md:hidden [padding-bottom:env(safe-area-inset-bottom)]"
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background md:hidden [padding-bottom:env(safe-area-inset-bottom)]"
           aria-label="Mobile Navigation"
         >
-          <div className="mx-auto grid max-w-3xl grid-cols-5">
+          <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 p-1">
           <button
             type="button"
             onClick={() => setRoute("home")}
-            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
-              route === "home" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "home"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
             }`}
             aria-current={route === "home" ? "page" : undefined}
           >
-            {route === "home" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
-            <HomeIcon className="h-4 w-4" />
+            <HomeIcon className={`h-4 w-4 ${route === "home" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
             Home
           </button>
           <button
             type="button"
             onClick={() => setRoute("learn")}
-            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
-              route === "learn" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "learn"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
             }`}
             aria-current={route === "learn" ? "page" : undefined}
           >
-            {route === "learn" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
-            <GraduationCap className="h-4 w-4" />
+            <GraduationCap className={`h-4 w-4 ${route === "learn" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
             Lernen
           </button>
           <button
             type="button"
             onClick={() => setRoute("test")}
-            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
-              route === "test" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "test"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
             }`}
             aria-current={route === "test" ? "page" : undefined}
           >
-            {route === "test" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
-            <FlaskConical className="h-4 w-4" />
+            <FlaskConical className={`h-4 w-4 ${route === "test" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
             Tests
           </button>
           <button
             type="button"
             onClick={() => setRoute("games")}
-            className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
-              route === "games" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "games"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
             }`}
             aria-current={route === "games" ? "page" : undefined}
           >
-            {route === "games" ? <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" /> : null}
-            <Gamepad2 className="h-4 w-4" />
+            <Gamepad2 className={`h-4 w-4 ${route === "games" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
             Spiele
           </button>
 
@@ -464,31 +468,30 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsMobileMoreOpen((prev) => !prev)}
-              className={`relative flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[11px] font-medium tracking-wide transition-colors ${
-                mobileMoreActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              className={`relative flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+                mobileMoreActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted/60"
               }`}
               aria-expanded={isMobileMoreOpen}
               aria-controls="mobile-more-menu"
             >
-              {mobileMoreActive ? (
-                <span className="absolute top-1 h-0.5 w-7 rounded-full bg-primary" />
-              ) : null}
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className={`h-4 w-4 ${mobileMoreActive ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
               Mehr
             </button>
 
             {isMobileMoreOpen ? (
               <div
                 id="mobile-more-menu"
-                className="absolute bottom-full right-2 mb-2 w-48 rounded-2xl border bg-background/98 p-2 shadow-2xl backdrop-blur"
+                className="absolute bottom-full right-0 mb-2 w-[min(18rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-border bg-background py-2 shadow-lg"
               >
                 <button
                   type="button"
                   onClick={() => setRoute("exam")}
-                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
                     route === "exam"
-                      ? "bg-muted font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
                   <NotebookTabs className="h-4 w-4" />
@@ -497,29 +500,15 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setRoute("settings")}
-                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
                     route === "settings"
-                      ? "bg-muted font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
                   <SettingsIcon className="h-4 w-4" />
                   Einstellungen
                 </button>
-                {showVocabPage ? (
-                  <button
-                    type="button"
-                    onClick={() => setRoute("list")}
-                    className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                      route === "list"
-                        ? "bg-muted font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                    }`}
-                  >
-                    <NotebookTabs className="h-4 w-4" />
-                    Vokabeln
-                  </button>
-                ) : null}
               </div>
             ) : null}
           </div>
