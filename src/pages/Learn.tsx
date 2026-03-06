@@ -29,7 +29,8 @@ type SessionAction =
   | { type: "NEXT_CARD" }
   | { type: "PREV_CARD" }
   | { type: "END_SESSION" }
-  | { type: "UPDATE_CARD"; payload: VocabEntry };
+  | { type: "UPDATE_CARD"; payload: VocabEntry }
+  | { type: "UPDATE_CURRENT_VIEWED"; payload: boolean };
 
 function sessionReducer(state: SessionState, action: SessionAction): SessionState {
   switch (action.type) {
@@ -66,6 +67,13 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
           c.id === action.payload.id ? action.payload : c
         ),
       };
+    case "UPDATE_CURRENT_VIEWED":
+      return {
+        ...state,
+        lessonCards: state.lessonCards.map((c, idx) =>
+          idx === state.currentIndex ? { ...c, viewed: action.payload } : c
+        ),
+      };
     default:
       return state;
   }
@@ -96,7 +104,6 @@ export default function Learn() {
   const lessonCacheRef = useMemo(() => new Map<number, VocabEntry[]>(), []);
   const {
     hydrated: learnSessionHydrated,
-    restoredSession: restoredLearnSession,
     savePersistedSession: saveLearnSession,
     clearPersistedSession: clearLearnSession,
   } = usePersistedSession<LearnSessionData>({
@@ -106,7 +113,6 @@ export default function Learn() {
 
   async function loadLessonMetadata() {
     setError("");
-    setStatus("Lade Lektionen-Index …");
     try {
       // Nur Metadaten: alle Vokabeln zählen ohne Inhalte zu laden
       const count = await db.vocab.count();
@@ -136,7 +142,9 @@ export default function Learn() {
         }));
 
       setAllLessons(lessons);
-      setStatus(lessons.length ? `Geladen: ${lessons.length} Lektionen` : "Keine Lektionen vorhanden.");
+      if (!lessons.length) {
+        setStatus("Keine Lektionen vorhanden.");
+      }
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? String(e));
@@ -164,27 +172,28 @@ export default function Learn() {
     void loadLessonMetadata();
   }, []);
 
-  // Restore session on mount
+  // On Learn page entry we reset any persisted in-page card session.
+  // This keeps navigation deterministic: opening "Lernen" shows the overview.
   useEffect(() => {
-    if (!allLessons.length) return;
+    if (!learnSessionHydrated) return;
+    clearLearnSession();
+  }, [learnSessionHydrated, clearLearnSession]);
 
-    const session = restoredLearnSession;
-    if (!session) return;
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("learnSessionVisibilityChanged", {
+        detail: { active: sessionState.sessionActive },
+      })
+    );
 
-    if (session.sessionActive && session.lessonCards && session.lessonCards.length > 0) {
-      dispatchSession({
-        type: "SET",
-        payload: {
-          lessonCards: session.lessonCards,
-          currentIndex:
-            typeof session.currentIndex === "number" ? session.currentIndex : 0,
-        },
-      });
-      setStatus(`Session wiederhergestellt: ${session.lessonCards.length} Karte(n)`);
-    } else {
-      clearLearnSession();
-    }
-  }, [allLessons, restoredLearnSession]);
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("learnSessionVisibilityChanged", {
+          detail: { active: false },
+        })
+      );
+    };
+  }, [sessionState.sessionActive]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
@@ -353,16 +362,15 @@ export default function Learn() {
   async function markCurrentAsViewed() {
     if (sessionState.currentIndex < sessionState.lessonCards.length) {
       const card = sessionState.lessonCards[sessionState.currentIndex];
-      if (card.id) {
+      if (card.id != null) {
         try {
           // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
           const newViewedState = !card.viewed;
           await db.vocab.update(card.id, { viewed: newViewedState });
 
-          const updatedCard = { ...card, viewed: newViewedState };
           dispatchSession({
-            type: "UPDATE_CARD",
-            payload: updatedCard,
+            type: "UPDATE_CURRENT_VIEWED",
+            payload: newViewedState,
           });
 
           // Update lesson metadata counters in-place for immediate UI feedback.
@@ -459,9 +467,9 @@ export default function Learn() {
 
       {/* Lern-Session */}
       {sessionState.sessionActive && current ? (
-        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
+        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-start p-2 sm:p-3 pb-36 m-0 overflow-hidden">
           {/* Top-Status */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
             <span>
               Karte: <b className="text-foreground">{sessionState.currentIndex + 1}</b> / <b className="text-foreground">{sessionState.lessonCards.length}</b>
             </span>
@@ -472,7 +480,7 @@ export default function Learn() {
           </div>
 
           {/* Fortschrittsbalken */}
-          <div className="mx-auto w-full max-w-2xl mt-2">
+          <div className="mx-auto w-full max-w-2xl mt-1">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
@@ -483,7 +491,7 @@ export default function Learn() {
           </div>
 
           {/* Lernkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-6 md:p-8 shadow-lg mt-3">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-6 md:p-8 shadow-lg mt-2 max-h-[calc(100vh-17rem)] overflow-y-auto">
             <div className="space-y-4">
               {/* Thai mit Ton */}
               <div className="space-y-2">
@@ -575,49 +583,57 @@ export default function Learn() {
           </Card>
 
           {/* Navigation + Aktionen */}
-          <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
-            {/* Markieren als gesehen */}
-            <Button
-              onClick={markCurrentAsViewed}
-              size="sm"
-              className="w-full h-10 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
-            >
-              {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
-            </Button>
+          <div className="fixed inset-x-0 bottom-0 z-10 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+            <div className="mx-auto w-full max-w-md rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
+              <div className="space-y-2">
+                {/* Markieren als gesehen */}
+                <Button
+                  onClick={markCurrentAsViewed}
+                  size="sm"
+                  className={`w-full h-10 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
+                    current.viewed
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
+                >
+                  {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
+                </Button>
 
-            {/* Navigation */}
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button
-                onClick={goPrev}
-                disabled={sessionState.currentIndex === 0}
-                variant="outline"
-                className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
-              >
-                ⬅️ Zurück
-              </Button>
+                {/* Navigation */}
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button
+                    onClick={goPrev}
+                    disabled={sessionState.currentIndex === 0}
+                    variant="outline"
+                    className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                  >
+                    ⬅️ Zurück
+                  </Button>
 
-              <Button
-                onClick={goNext}
-                disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
-                className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
-              >
-                Weiter ➡️
-              </Button>
+                  <Button
+                    onClick={goNext}
+                    disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
+                    className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                  >
+                    Weiter ➡️
+                  </Button>
+                </div>
+
+                {/* Beenden */}
+                <Button
+                  onClick={endSession}
+                  variant="outline"
+                  className="w-full h-10 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                >
+                  📚 Lektion beenden
+                </Button>
+              </div>
             </div>
-
-            {/* Beenden */}
-            <Button
-              onClick={endSession}
-              variant="outline"
-              className="w-full h-10 text-sm shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-            >
-              📚 Lektion beenden
-            </Button>
           </div>
 
           {/* Info: Ende der Lektion */}
           {sessionState.currentIndex === sessionState.lessonCards.length - 1 ? (
-            <div className="rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 text-center">
+            <div className="mt-2 rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 text-center">
               <p className="text-sm font-medium text-green-800 dark:text-green-200">
                 🎉 Ende der Lektion erreicht!
               </p>

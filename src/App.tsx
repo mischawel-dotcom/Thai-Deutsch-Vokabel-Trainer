@@ -31,6 +31,38 @@ import {
 } from "@/components/ui/dialog";
 
 type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
+const ROUTES: Route[] = ["home", "list", "learn", "test", "exam", "games", "settings"];
+
+function isRoute(value: string): value is Route {
+  return ROUTES.includes(value as Route);
+}
+
+function readPersistedRoute(): Route | null {
+  try {
+    const fromSession = sessionStorage.getItem("lastRoute");
+    if (fromSession && isRoute(fromSession)) return fromSession;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const fromLocal = localStorage.getItem("lastRoute");
+    if (fromLocal && isRoute(fromLocal)) return fromLocal;
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+function getInitialRoute(): Route {
+  if (typeof window === "undefined") return "home";
+
+  const hash = window.location.hash.replace("#", "");
+  if (isRoute(hash)) return hash;
+
+  return readPersistedRoute() ?? "home";
+}
 
 function getInitialDarkMode(): boolean {
   // 1) gespeicherte Präferenz
@@ -43,12 +75,13 @@ function getInitialDarkMode(): boolean {
 }
 
 export default function App() {
-  const [route, setRoute] = useState<Route>("home");
+  const [route, setRoute] = useState<Route>(getInitialRoute);
 
   // (Entfernt: Erzwinge Home-Route beim Laden)
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [showVocabPage, setShowVocabPage] = useState<boolean>(true);
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
+  const [isLearnSessionActive, setIsLearnSessionActive] = useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const mobileMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -142,11 +175,21 @@ export default function App() {
     return () => window.removeEventListener("vocabPageVisibilityChanged", handleVisibilityChange);
   }, []);
 
+  useEffect(() => {
+    const handleLearnSessionVisibility = (event: Event) => {
+      const custom = event as CustomEvent<{ active?: boolean }>;
+      setIsLearnSessionActive(Boolean(custom.detail?.active));
+    };
+    window.addEventListener("learnSessionVisibilityChanged", handleLearnSessionVisibility);
+    return () =>
+      window.removeEventListener("learnSessionVisibilityChanged", handleLearnSessionVisibility);
+  }, []);
+
   // Listen for app navigation events (e.g., from Home lesson cards)
   useEffect(() => {
     const handleAppNavigate = (event: any) => {
       const next = event?.detail;
-      if (next === "home" || next === "list" || next === "learn" || next === "test" || next === "exam" || next === "games" || next === "settings") {
+      if (typeof next === "string" && isRoute(next)) {
         setRoute(next);
       }
     };
@@ -159,9 +202,13 @@ export default function App() {
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "home" || hash === "list" || hash === "learn" || hash === "test" || hash === "exam" || hash === "games" || hash === "settings") {
-        setRoute(hash as Route);
+      if (isRoute(hash)) {
+        setRoute(hash);
+        return;
       }
+
+      const persisted = readPersistedRoute();
+      if (persisted) setRoute(persisted);
     };
 
     applyHash();
@@ -172,6 +219,13 @@ export default function App() {
   useEffect(() => {
     if (window.location.hash !== `#${route}`) {
       window.history.replaceState(null, "", `#${route}`);
+    }
+
+    try {
+      sessionStorage.setItem("lastRoute", route);
+      localStorage.setItem("lastRoute", route);
+    } catch {
+      // ignore storage write errors
     }
   }, [route]);
 
@@ -351,11 +405,12 @@ export default function App() {
         </Dialog>
       </div>
 
-      <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 md:hidden [padding-bottom:env(safe-area-inset-bottom)]"
-        aria-label="Mobile Navigation"
-      >
-        <div className="mx-auto grid max-w-3xl grid-cols-5">
+      {!isLearnSessionActive ? (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 md:hidden [padding-bottom:env(safe-area-inset-bottom)]"
+          aria-label="Mobile Navigation"
+        >
+          <div className="mx-auto grid max-w-3xl grid-cols-5">
           <button
             type="button"
             onClick={() => setRoute("home")}
@@ -468,8 +523,9 @@ export default function App() {
               </div>
             ) : null}
           </div>
-        </div>
-      </nav>
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }
