@@ -662,7 +662,7 @@ export default function Games() {
                       setMode(modeCard.id);
                       void startGame();
                     }}
-                    className="w-full rounded-lg border border-border bg-card px-3 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md active:translate-y-0 active:shadow-sm"
+                    className="w-full min-h-[56px] rounded-lg border border-border bg-card px-3 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label={`${modeCard.title} starten`}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -685,6 +685,7 @@ export default function Games() {
               <Button
                 size="sm"
                 variant={direction === "TH_DE" ? "default" : "outline"}
+                className="min-h-[44px]"
                 onClick={() => setDirection("TH_DE")}
               >
                 Thai → Deutsch
@@ -692,6 +693,7 @@ export default function Games() {
               <Button
                 size="sm"
                 variant={direction === "DE_TH" ? "default" : "outline"}
+                className="min-h-[44px]"
                 onClick={() => setDirection("DE_TH")}
               >
                 Deutsch → Thai

@@ -45,6 +45,13 @@ export function useCardGrading({
       setLastAnswer(isRight ? "right" : "wrong");
       setTimeout(() => setLastAnswer(null), 350);
       playFeedbackTone(isRight ? "right" : "wrong");
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(isRight ? 40 : 120);
+        } catch {
+          // ignore unsupported vibration failures
+        }
+      }
 
       if (!isRight) {
         // Falsch: Streak zurücksetzen, dueAt auf jetzt setzen
