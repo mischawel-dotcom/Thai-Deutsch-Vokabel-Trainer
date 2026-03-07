@@ -1,0 +1,86 @@
+import { useCallback } from "react";
+import type { VocabEntry } from "../db/db";
+import { shuffle } from "../lib/shuffle";
+import type { SessionDispatch } from "./useSessionState";
+
+interface UseStartLessonFromDialogProps {
+  selectedDialogLesson: number | null;
+  cardLimit: string;
+  includeLearnedCards: boolean;
+  loadLesson: (lessonNumber: number) => Promise<VocabEntry[]>;
+  dispatchSession: SessionDispatch;
+  setStatus: (msg: string) => void;
+  setDialogOpen: (open: boolean) => void;
+}
+
+/**
+ * Hook fuer Lektion-Start aus Dialog
+ */
+export function useStartLessonFromDialog({
+  selectedDialogLesson,
+  cardLimit,
+  includeLearnedCards,
+  loadLesson,
+  dispatchSession,
+  setStatus,
+  setDialogOpen,
+}: UseStartLessonFromDialogProps) {
+  const startLessonFromDialog = useCallback(
+    async () => {
+      if (!selectedDialogLesson) return;
+
+      const limit = cardLimit ? parseInt(cardLimit, 10) : 0;
+
+      // Lade Lektion on-demand
+      const lessonCards = await loadLesson(selectedDialogLesson);
+
+        // Filtere: nur mit ID + optional gelernte Karten ausschließen
+        let cardsToUse = lessonCards
+          .filter((v) => v.id && (includeLearnedCards || !v.viewed))
+          .map((v) => v.id!);
+
+      // Limitiere auf gewuenschte Anzahl
+      if (limit > 0 && limit < cardsToUse.length) {
+        cardsToUse = shuffle(cardsToUse).slice(0, limit);
+      }
+
+      if (cardsToUse.length === 0) {
+        setStatus(`Keine Karten in Lektion ${selectedDialogLesson} verfuegbar.`);
+        setDialogOpen(false);
+        return;
+      }
+
+      const shuffled = shuffle(cardsToUse);
+
+      dispatchSession({
+        type: "set",
+        payload: {
+          sessionActive: true,
+          queue: cardsToUse,
+          currentRound: shuffled,
+          roundIndex: 0,
+          currentId: shuffled[0] ?? null,
+          flipped: false,
+          streaks: new Map(cardsToUse.map((id) => [id, 0])),
+          doneIds: new Set(),
+        },
+      });
+      setStatus(
+        `Session gestartet: ${cardsToUse.length} Karte(n) aus Lektion ${selectedDialogLesson}`
+      );
+
+      setDialogOpen(false);
+    },
+    [
+      selectedDialogLesson,
+      cardLimit,
+        includeLearnedCards,
+      loadLesson,
+      dispatchSession,
+      setStatus,
+      setDialogOpen,
+    ]
+  );
+
+  return { startLessonFromDialog };
+}

@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import {
+  FlaskConical,
+  Gamepad2,
+  GraduationCap,
+  Home as HomeIcon,
+  MoreHorizontal,
+  NotebookTabs,
+  Settings as SettingsIcon,
+} from "lucide-react";
 
-import Home from "./pages/Home";
-import VocabList from "./pages/VocabList";
-import Learn from "./pages/Learn";
-import Test from "./pages/Test";
-import Exam from "./pages/Exam";
-import Settings from "./pages/Settings";
+const Home = lazy(() => import("./pages/Home"));
+const VocabList = lazy(() => import("./pages/VocabList"));
+const Learn = lazy(() => import("./pages/Learn"));
+const Test = lazy(() => import("./pages/Test"));
+const Exam = lazy(() => import("./pages/Exam"));
+const Games = lazy(() => import("./pages/Games"));
+const Settings = lazy(() => import("./pages/Settings"));
 import { db } from "./db/db";
-import { ensureProgress } from "./db/srs";
+import { ensureProgressForEntries } from "./db/srs";
 import { DEFAULT_VOCAB } from "./data/defaultVocab";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +30,39 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type Route = "home" | "list" | "learn" | "test" | "exam" | "settings";
+type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
+const ROUTES: Route[] = ["home", "list", "learn", "test", "exam", "games", "settings"];
+
+function isRoute(value: string): value is Route {
+  return ROUTES.includes(value as Route);
+}
+
+function readPersistedRoute(): Route | null {
+  try {
+    const fromSession = sessionStorage.getItem("lastRoute");
+    if (fromSession && isRoute(fromSession)) return fromSession;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const fromLocal = localStorage.getItem("lastRoute");
+    if (fromLocal && isRoute(fromLocal)) return fromLocal;
+  } catch {
+    // ignore
+  }
+
+  return null;
+}
+
+function getInitialRoute(): Route {
+  if (typeof window === "undefined") return "home";
+
+  const hash = window.location.hash.replace("#", "");
+  if (isRoute(hash)) return hash;
+
+  return readPersistedRoute() ?? "home";
+}
 
 function getInitialDarkMode(): boolean {
   // 1) gespeicherte Präferenz
@@ -33,12 +75,15 @@ function getInitialDarkMode(): boolean {
 }
 
 export default function App() {
-  const [route, setRoute] = useState<Route>("home");
+  const [route, setRoute] = useState<Route>(getInitialRoute);
 
   // (Entfernt: Erzwinge Home-Route beim Laden)
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [showVocabPage, setShowVocabPage] = useState<boolean>(true);
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
+  const [isLearnSessionActive, setIsLearnSessionActive] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const mobileMoreRef = useRef<HTMLDivElement | null>(null);
 
   // Initialize default vocab on app load
   useEffect(() => {
@@ -75,9 +120,7 @@ export default function App() {
               // Initialize progress records for all vocab so they're immediately due
               const ids = (await db.vocab.toCollection().primaryKeys()) as number[];
               console.log(`[App Init] Initialized ${ids.length} vocab entries, creating progress records...`);
-              for (const id of ids) {
-                await ensureProgress(id);
-              }
+              await ensureProgressForEntries(ids);
               console.log(`[App Init] Created progress records for ${ids.length} entries`);
             }
           });
@@ -86,48 +129,21 @@ export default function App() {
           const newCount = await db.vocab.count();
           const progressCount = await db.progress.count();
           console.log(`✅ [App Init] Default vocab loaded: ${expectedCount} entries, DB now has ${newCount} total, ${progressCount} progress records`);
-        } else if (count > expectedCount * 1.5) {
-          // Detect suspicious duplication (more than 150% of expected)
-          console.warn(`⚠️ [App Init] POSSIBLE DUPLICATE DETECTED: DB has ${count} entries but expected ~${expectedCount}`);
-          console.warn(`[App Init] Clearing database and reloading fresh...`);
-          
-          // Clear and reload
-          await db.transaction('rw', db.vocab, db.progress, async () => {
-            await db.vocab.clear();
-            await db.progress.clear();
-          });
-          
-          const now = Date.now();
-          const entries = DEFAULT_VOCAB.map(v => ({
-            ...v,
-            createdAt: now,
-            updatedAt: now,
-          }));
-          await db.vocab.bulkAdd(entries);
-
-          const ids = (await db.vocab.toCollection().primaryKeys()) as number[];
-          for (const id of ids) {
-            await ensureProgress(id);
-          }
-
-          const newCount = await db.vocab.count();
-          const progressCount = await db.progress.count();
-          console.log(`✅ [App Init] Database reset and reloaded: ${newCount} entries, ${progressCount} progress records`);
-        } else if (count !== expectedCount) {
-          // Warn if count mismatch (possible duplicate loading)
-          console.warn(`⚠️ [App Init] Vocab count mismatch: DB has ${count}, expected ${expectedCount}`);
         } else {
+          // Never auto-delete user data. If data exists, we only repair missing progress records.
           const progressCount = await db.progress.count();
-          if (progressCount === 0) {
+          if (progressCount < count) {
             const ids = (await db.vocab.toCollection().primaryKeys()) as number[];
-            console.log(`[App Init] DB populated but progress empty, creating ${ids.length} progress records...`);
-            for (const id of ids) {
-              await ensureProgress(id);
-            }
+            console.log(
+              `[App Init] DB populated (${count} entries), repairing progress records (${progressCount} -> ${ids.length})...`
+            );
+            await ensureProgressForEntries(ids);
             const newProgressCount = await db.progress.count();
-            console.log(`✅ [App Init] Progress records created: ${newProgressCount}`);
+            console.log(`✅ [App Init] Progress records repaired: ${newProgressCount}`);
           } else {
-            console.log(`[App Init] DB already populated with ${count} entries, skipping load`);
+            console.log(
+              `[App Init] DB already populated with ${count} entries and ${progressCount} progress records, skipping load`
+            );
           }
         }
       } catch (err) {
@@ -159,11 +175,21 @@ export default function App() {
     return () => window.removeEventListener("vocabPageVisibilityChanged", handleVisibilityChange);
   }, []);
 
+  useEffect(() => {
+    const handleLearnSessionVisibility = (event: Event) => {
+      const custom = event as CustomEvent<{ active?: boolean }>;
+      setIsLearnSessionActive(Boolean(custom.detail?.active));
+    };
+    window.addEventListener("learnSessionVisibilityChanged", handleLearnSessionVisibility);
+    return () =>
+      window.removeEventListener("learnSessionVisibilityChanged", handleLearnSessionVisibility);
+  }, []);
+
   // Listen for app navigation events (e.g., from Home lesson cards)
   useEffect(() => {
     const handleAppNavigate = (event: any) => {
       const next = event?.detail;
-      if (next === "home" || next === "list" || next === "learn" || next === "test" || next === "exam" || next === "settings") {
+      if (typeof next === "string" && isRoute(next)) {
         setRoute(next);
       }
     };
@@ -176,9 +202,13 @@ export default function App() {
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace("#", "");
-      if (hash === "home" || hash === "list" || hash === "learn" || hash === "test" || hash === "exam" || hash === "settings") {
-        setRoute(hash as Route);
+      if (isRoute(hash)) {
+        setRoute(hash);
+        return;
       }
+
+      const persisted = readPersistedRoute();
+      if (persisted) setRoute(persisted);
     };
 
     applyHash();
@@ -190,7 +220,29 @@ export default function App() {
     if (window.location.hash !== `#${route}`) {
       window.history.replaceState(null, "", `#${route}`);
     }
+
+    try {
+      sessionStorage.setItem("lastRoute", route);
+      localStorage.setItem("lastRoute", route);
+    } catch {
+      // ignore storage write errors
+    }
   }, [route]);
+
+  useEffect(() => {
+    setIsMobileMoreOpen(false);
+  }, [route]);
+
+  useEffect(() => {
+    if (!isMobileMoreOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (mobileMoreRef.current && !mobileMoreRef.current.contains(event.target as Node)) {
+        setIsMobileMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [isMobileMoreOpen]);
 
   // Auto-redirect from list route if page is hidden
   useEffect(() => {
@@ -230,9 +282,11 @@ export default function App() {
     localStorage.setItem("theme", next ? "dark" : "light");
   }
 
+  const mobileMoreActive = route === "exam" || route === "settings" || route === "list";
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-3xl p-4">
+      <div className="mx-auto max-w-3xl p-4 pb-24 md:pb-4">
         <header className="mb-6 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Thai–Deutsch Vokabeltrainer</h2>
@@ -242,23 +296,33 @@ export default function App() {
             </Button>
           </div>
 
-          <Tabs value={route} onValueChange={(v) => setRoute(v as Route)}>
+          <Tabs value={route} onValueChange={(v) => setRoute(v as Route)} className="hidden md:block">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="home">Home</TabsTrigger>
               <TabsTrigger value="learn">Lernen</TabsTrigger>
               <TabsTrigger value="test">Tests</TabsTrigger>
               <TabsTrigger value="exam">Examen</TabsTrigger>
+              <TabsTrigger value="games">Spiele</TabsTrigger>
               <TabsTrigger value="settings" title="Einstellungen">⚙️</TabsTrigger>
             </TabsList>
           </Tabs>
         </header>
 
-        {route === "home" && <Home onNavigate={setRoute} />}
-        {route === "list" && <VocabList />}
-        {route === "learn" && <Learn />}
-        {route === "test" && <Test />}
-        {route === "exam" && <Exam />}
-        {route === "settings" && <Settings />}
+        <Suspense
+          fallback={
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+              Lade Seite...
+            </div>
+          }
+        >
+          {route === "home" && <Home onNavigate={setRoute} />}
+          {route === "list" && <VocabList />}
+          {route === "learn" && <Learn />}
+          {route === "test" && <Test />}
+          {route === "exam" && <Exam />}
+          {route === "games" && <Games />}
+          {route === "settings" && <Settings />}
+        </Suspense>
 
         {/* Help Dialog */}
         <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
@@ -315,6 +379,17 @@ export default function App() {
                 </ul>
               </div>
 
+              {/* Games Section */}
+              <div>
+                <h3 className="font-bold text-lg mb-3">🎮 Spiele</h3>
+                <ul className="space-y-2 text-sm">
+                  <li><strong>Blitzrunde:</strong> 60 Sekunden, so viele Antworten wie möglich</li>
+                  <li><strong>4er-Quiz:</strong> 10 Multiple-Choice-Fragen mit Punktewertung</li>
+                  <li><strong>Hör-Spiel:</strong> Audio abspielen und passende Übersetzung wählen</li>
+                  <li><strong>Filter:</strong> Spiele optional nur mit fälligen Karten oder pro Lektion</li>
+                </ul>
+              </div>
+
               {/* Settings Section */}
               <div>
                 <h3 className="font-bold text-lg mb-3">⚙️ Einstellungen (Settings)</h3>
@@ -329,6 +404,117 @@ export default function App() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {!isLearnSessionActive ? (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background md:hidden [padding-bottom:env(safe-area-inset-bottom)]"
+          aria-label="Mobile Navigation"
+        >
+          <div className="mx-auto grid max-w-3xl grid-cols-5 gap-1 p-1">
+          <button
+            type="button"
+            onClick={() => setRoute("home")}
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "home"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
+            }`}
+            aria-current={route === "home" ? "page" : undefined}
+          >
+            <HomeIcon className={`h-4 w-4 ${route === "home" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+            Home
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoute("learn")}
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "learn"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
+            }`}
+            aria-current={route === "learn" ? "page" : undefined}
+          >
+            <GraduationCap className={`h-4 w-4 ${route === "learn" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+            Lernen
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoute("test")}
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "test"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
+            }`}
+            aria-current={route === "test" ? "page" : undefined}
+          >
+            <FlaskConical className={`h-4 w-4 ${route === "test" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+            Tests
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoute("games")}
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              route === "games"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
+            }`}
+            aria-current={route === "games" ? "page" : undefined}
+          >
+            <Gamepad2 className={`h-4 w-4 ${route === "games" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+            Spiele
+          </button>
+
+          <div className="relative" ref={mobileMoreRef}>
+            <button
+              type="button"
+              onClick={() => setIsMobileMoreOpen((prev) => !prev)}
+              className={`relative flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+                mobileMoreActive
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted/60"
+              }`}
+              aria-expanded={isMobileMoreOpen}
+              aria-controls="mobile-more-menu"
+            >
+              <MoreHorizontal className={`h-4 w-4 ${mobileMoreActive ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+              Mehr
+            </button>
+
+            {isMobileMoreOpen ? (
+              <div
+                id="mobile-more-menu"
+                className="absolute bottom-full right-0 mb-2 w-[min(18rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-border bg-background py-2 shadow-lg"
+              >
+                <button
+                  type="button"
+                  onClick={() => setRoute("exam")}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
+                    route === "exam"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  }`}
+                >
+                  <NotebookTabs className="h-4 w-4" />
+                  Examen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoute("settings")}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
+                    route === "settings"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  }`}
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                  Einstellungen
+                </button>
+              </div>
+            ) : null}
+          </div>
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }

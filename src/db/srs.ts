@@ -69,6 +69,30 @@ export async function ensureProgress(entryId: number) {
   });
 }
 
+export async function ensureProgressForEntries(entryIds: number[]) {
+  const uniqueIds = Array.from(new Set(entryIds.filter((id) => Number.isFinite(id) && id > 0)));
+  if (uniqueIds.length === 0) return;
+
+  const table = db.table<SrsProgress, number>("progress");
+  const existing = await table.bulkGet(uniqueIds);
+  const now = Date.now();
+
+  const missing = uniqueIds
+    .filter((_, idx) => !existing[idx])
+    .map((entryId) => ({
+      entryId,
+      ease: 2.5,
+      intervalDays: 0,
+      repetitions: 0,
+      dueAt: now,
+      updatedAt: now,
+    }));
+
+  if (missing.length > 0) {
+    await table.bulkPut(missing);
+  }
+}
+
 export async function gradeCard(entryId: number, grade: Grade) {
   const table = db.table<SrsProgress, number>("progress");
   const prev = await table.get(entryId);

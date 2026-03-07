@@ -1,9 +1,23 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
-import { ensureProgress, gradeCard } from "../db/srs";
-import { speak } from "../features/tts";
-import { getNextLesson, recalculateLearningProgress } from "../lib/lessonProgress";
+import { ensureProgressForEntries } from "../db/srs";
+import { useAudioFeedback } from "../hooks/useAudioFeedback";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
+import { useSessionState } from "../hooks/useSessionState";
+import { useCardGrading } from "../hooks/useCardGrading";
+import { useSessionNavigation } from "../hooks/useSessionNavigation";
+import { useSessionStart } from "../hooks/useSessionStart";
+import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
+import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
+import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
+import { usePersistedSession } from "../hooks/usePersistedSession";
+import { serializeTestSession } from "../lib/testSessionCodec";
+import {
+  isPersistedTestSessionData,
+  type LearnDirection,
+  type PersistedTestSessionData,
+} from "../lib/sessionTypes";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -17,21 +31,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  // Fisher-Yates Shuffle für echtes Mischen
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-type LearnDirection = "TH_DE" | "DE_TH";
-
 export default function Test() {
   // ===== State =====
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
+  const [lessonMetadata, setLessonMetadata] = useState<{lesson: number, count: number}[]>([]);
+  const [lessonCache, setLessonCache] = useState<Map<number, VocabEntry[]>>(new Map());
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
@@ -48,85 +52,84 @@ export default function Test() {
 
   // Lektion-Auswahl
   const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
-
   // Nur gelernte Karten
   const [onlyViewed, setOnlyViewed] = useState<boolean>(false);
+  // Nur fällige Karten (SRS dueAt <= now)
+  const [onlyDue, setOnlyDue] = useState<boolean>(false);
+  // Lautschrift unter Thai ein-/ausblenden
+  const [showTransliteration, setShowTransliteration] = useState<boolean>(() => {
+    const saved = localStorage.getItem("showTransliterationInTest");
+    if (saved === "false") return false;
+    return true;
+  });
 
   // Dialog für Lektion-Auswahl
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [selectedDialogLesson, setSelectedDialogLesson] = useState<number | null>(null);
   const [cardLimit, setCardLimit] = useState<string>("");
+  const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
+  const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
+  const [quickStartLimit, setQuickStartLimit] = useState<string>("");
+  const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
 
-  // Session-State
-  const [sessionActive, setSessionActive] = useState(false);
-  const [queue, setQueue] = useState<number[]>([]);
-  const [currentId, setCurrentId] = useState<number | null>(null);
-  const [flipped, setFlipped] = useState(false);
+  const flipButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastFocusedElement = useRef<HTMLElement | null>(null);
+  const {
+    hydrated: testSessionHydrated,
+    savePersistedSession: saveTestSession,
+    clearPersistedSession: clearTestSession,
+  } = usePersistedSession<PersistedTestSessionData>({
+    key: "testSession",
+    isValid: isPersistedTestSessionData,
+  });
 
-  // 5-in-a-row Logik (Durchgang-basiert)
-  const [streaks, setStreaks] = useState<Record<number, number>>({});
-  const [doneIds, setDoneIds] = useState<Record<number, true>>({});
-  const [currentRound, setCurrentRound] = useState<number[]>([]); // Aktuelle Runde
-  const [roundIndex, setRoundIndex] = useState<number>(0); // Position in der Runde
+  const { session, dispatchSession, flipCard } = useSessionState();
+  const {
+    sessionActive,
+    queue,
+    currentId,
+    flipped,
+    streaks,
+    doneIds,
+    currentRound,
+    roundIndex,
+  } = session;
 
-  // ===== Effects =====
-  // Persist direction
+  const { isSpeaking, speakingKey, handleSpeak, playFeedbackTone } = useAudioFeedback();
+
+  // Always start on the Test overview when entering this page.
+  // We intentionally clear any persisted in-page session state.
   useEffect(() => {
-    const saved = localStorage.getItem("learnDirection");
-    if (saved === "TH_DE" || saved === "DE_TH") setDirection(saved);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("learnDirection", direction);
-  }, [direction]);
-
-  // Restore session on mount - AFTER allVocab is loaded
-  useEffect(() => {
-    if (!allVocab.length) return; // Wait for vocab to load first
-
-    const savedSession = localStorage.getItem("testSession");
-    if (!savedSession) return;
-
-    try {
-      const session = JSON.parse(savedSession);
-      if (session.sessionActive && session.queue && session.queue.length > 0) {
-        setSessionActive(true);
-        setQueue(session.queue);
-        setCurrentId(session.currentId);
-        setFlipped(session.flipped || false);
-        setStreaks(session.streaks || {});
-        setDoneIds(session.doneIds || {});
-        setCurrentRound(session.currentRound || []);
-        setRoundIndex(session.roundIndex || 0);
-        if (session.direction) setDirection(session.direction);
-        setStatus("Test-Session wiederhergestellt");
-      }
-    } catch (e) {
-      console.error("Failed to restore test session:", e);
-      localStorage.removeItem("testSession");
-    }
-  }, [allVocab]);
+    if (!testSessionHydrated) return;
+    clearTestSession();
+  }, [testSessionHydrated, clearTestSession]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
-    if (sessionActive && queue.length > 0) {
-      const sessionData = {
-        sessionActive,
+    if (!testSessionHydrated) return;
+
+    if (sessionActive && queue.length > 0 && currentId != null) {
+      const sessionData = serializeTestSession({
         queue,
+        currentRound,
         currentId,
         flipped,
-        streaks,
-        doneIds,
-        currentRound,
         roundIndex,
         direction,
-      };
-      localStorage.setItem("testSession", JSON.stringify(sessionData));
+        onlyDue,
+        streaks,
+        doneIds,
+      });
+      saveTestSession(sessionData);
     } else {
-      localStorage.removeItem("testSession");
+      clearTestSession();
     }
-  }, [sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction]);
+  }, [testSessionHydrated, sessionActive, queue, currentId, flipped, streaks, doneIds, currentRound, roundIndex, direction, onlyDue, saveTestSession, clearTestSession]);
+
+  useEffect(() => {
+    localStorage.setItem("showTransliterationInTest", showTransliteration ? "true" : "false");
+  }, [showTransliteration]);
 
 
   // ===== Derived data =====
@@ -145,23 +148,23 @@ export default function Test() {
       .map(([tag, count]) => ({ tag, count }));
   }, [allVocab]);
 
-  // Lektionen-Index
-  const allLessons = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const v of allVocab) {
-      if (v.lesson !== undefined && v.lesson > 0) {
-        map.set(v.lesson, (map.get(v.lesson) ?? 0) + 1);
-      }
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([lesson, count]) => ({ lesson, count }));
-  }, [allVocab]);
+  // Lektionen-Index (aus Metadaten, nicht aus allVocab)
+  const allLessons = lessonMetadata;
 
   const current = useMemo(() => {
     if (!currentId) return null;
-    return allVocab.find((v) => v.id === currentId) ?? null;
-  }, [allVocab, currentId]);
+    // Suche erst in allVocab, dann im Cache
+    let found = allVocab.find((v) => v.id === currentId);
+    if (found) return found;
+    
+    // Durchsuche Cache
+    for (const cachedVocab of lessonCache.values()) {
+      found = cachedVocab.find((v) => v.id === currentId);
+      if (found) return found;
+    }
+    
+    return null;
+  }, [allVocab, lessonCache, currentId]);
 
   // Front/Back abhängig von Richtung
   const frontText = useMemo(() => {
@@ -181,26 +184,23 @@ export default function Test() {
     const unique = new Set(queue);
     let c = 0;
     unique.forEach((id) => {
-      if (!doneIds[id]) c++;
+      if (!doneIds.has(id)) c++;
     });
     return c;
   }, [queue, doneIds]);
 
-  const completedCount = useMemo(() => Object.keys(doneIds).length, [doneIds]);
+  const completedCount = useMemo(() => doneIds.size, [doneIds]);
 
   // ===== Data loading =====
   async function loadAllVocab() {
     setError("");
-    setStatus("Lade Vokabeln …");
+    setStatus("Lade alle Vokabeln …");
     try {
       const vocab = await db.vocab.toArray();
-
-      // Ensure progress exists (für SRS + gradeCard)
-      for (const v of vocab) {
-        if (v.id && !(await db.progress.get(v.id))) {
-          await ensureProgress(v.id);
-        }
-      }
+      const ids = vocab
+        .map((v) => v.id)
+        .filter((id): id is number => typeof id === "number");
+      await ensureProgressForEntries(ids);
 
       setAllVocab(vocab);
 
@@ -212,8 +212,59 @@ export default function Test() {
     }
   }
 
+  async function loadLessonMetadata() {
+    setError("");
+    setStatus("Lade Lektionen …");
+    try {
+      // Hole nur eindeutige Lektionen und deren Counts
+      const lessons = await db.vocab
+        .orderBy("lesson")
+        .uniqueKeys();
+      
+      const metadata = await Promise.all(
+        lessons.map(async (lesson) => ({
+          lesson: lesson as number,
+          count: await db.vocab.where("lesson").equals(lesson).count()
+        }))
+      );
+      
+      setLessonMetadata(metadata.sort((a, b) => a.lesson - b.lesson));
+      setStatus(`${metadata.length} Lektionen verfügbar`);
+      return metadata;
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? String(e));
+      setStatus("");
+    }
+  }
+
+  async function loadLesson(lessonNumber: number): Promise<VocabEntry[]> {
+    // Prüfe Cache
+    if (lessonCache.has(lessonNumber)) {
+      return lessonCache.get(lessonNumber)!;
+    }
+    
+    setStatus(`Lade Lektion ${lessonNumber} …`);
+    
+    const vocab = await db.vocab
+      .where("lesson")
+      .equals(lessonNumber)
+      .toArray();
+    const ids = vocab
+      .map((v) => v.id)
+      .filter((id): id is number => typeof id === "number");
+    await ensureProgressForEntries(ids);
+    
+    // Cache aktualisieren
+    setLessonCache(prev => new Map(prev).set(lessonNumber, vocab));
+    
+    setStatus(`Lektion ${lessonNumber} geladen: ${vocab.length} Karten`);
+    return vocab;
+  }
+
   useEffect(() => {
-    loadAllVocab().then(() => {
+    // Lade nur Metadaten beim Start (Lazy Loading)
+    loadLessonMetadata().then(() => {
       // Check if user came from Home with a lesson selected
       const selectedLesson = localStorage.getItem("selectedLessonForTest");
       if (selectedLesson) {
@@ -221,14 +272,112 @@ export default function Test() {
         if (!isNaN(lesson) && [1, 2, 3, 4, 5].includes(lesson)) {
           setSelectedLesson(lesson);
           setTimeout(() => {
-            startSessionWithFilters(lesson, false);
-            setSessionActive(true);
+            startSessionWithFiltersHook(lesson, false);
           }, 0);
           localStorage.removeItem("selectedLessonForTest");
         }
       }
     });
   }, []);
+
+  // Focus Management: Fokussiere Flip-Button wenn Session startet oder neue Karte kommt
+  useEffect(() => {
+    if (sessionActive && currentId && flipButtonRef.current && !flipped) {
+      // Kleine Verzögerung damit die Karte gerendert ist
+      setTimeout(() => {
+        flipButtonRef.current?.focus();
+      }, 100);
+    }
+  }, [sessionActive, currentId, flipped]);
+
+  // Focus Management: Restore focus when dialog closes
+  useEffect(() => {
+    if (!dialogOpen && lastFocusedElement.current) {
+      // Restore focus nach Dialog-Close
+      setTimeout(() => {
+        lastFocusedElement.current?.focus();
+        lastFocusedElement.current = null;
+      }, 100);
+    }
+  }, [dialogOpen]);
+
+  // Session Navigation Hook (muss vor gradeAnswer Hook kommen)
+  const { goNext, requeueCurrentToEnd } = useSessionNavigation({
+    dispatchSession,
+    roundIndex,
+    doneIds,
+    currentRound,
+    currentId,
+    queue,
+  });
+
+  // Session Start Hook
+  const { startSession: startSessionHook } = useSessionStart({
+    dispatchSession,
+    allVocab,
+    loadAllVocab,
+    buildSessionIds,
+    cardLimitAdvanced,
+    selectedTags,
+    selectedLesson,
+    onlyViewed,
+    onlyDue,
+    setStatus,
+  });
+
+  const { startSessionWithFilters: startSessionWithFiltersHook } = useSessionStartWithFilters({
+    dispatchSession,
+    allVocab,
+    loadAllVocab,
+    loadLesson,
+    setSelectedLesson,
+    setOnlyViewed,
+    setStatus,
+  });
+
+  const { quickStartLearned: quickStartLearnedHook } = useQuickStartLearned({
+    dispatchSession,
+    setAllVocab,
+    setStatus,
+  });
+
+  const { startLessonFromDialog: startLessonFromDialogHook } = useStartLessonFromDialog({
+    selectedDialogLesson,
+    cardLimit,
+      includeLearnedCards: includeLearnedInDialog,
+    loadLesson,
+    dispatchSession,
+    setStatus,
+    setDialogOpen,
+  });
+
+  // gradeAnswer Hook
+  const { gradeAnswer: gradeAnswerHook } = useCardGrading({
+    dispatchSession,
+    currentId,
+    flipped,
+    streaks,
+    current,
+    playFeedbackTone,
+    setLastAnswer,
+    requeueCurrentToEnd,
+    goNext,
+  });
+
+  useKeyboardNavigation({
+    sessionActive,
+    currentId,
+    flipped,
+    current,
+    frontText,
+    backText,
+    frontLang,
+    backLang,
+    flipCard,
+    gradeAnswer: gradeAnswerHook,
+    handleSpeak,
+    endSessionConfirm,
+  });
 
   // ===== Helpers =====
   // Helper: Build session IDs
@@ -244,100 +393,17 @@ export default function Test() {
     return ids;
   }
 
-  // Helper: Start session with learned cards
-  function startSessionWithFilters(lesson?: number, viewedOnly: boolean = false) {
-    setSelectedLesson(lesson);
-    setOnlyViewed(viewedOnly);
-
-    const ids: number[] = [];
-    for (const v of allVocab) {
-      if (!v.id) continue;
-      if (lesson !== undefined && v.lesson !== lesson) continue;
-      if (viewedOnly && !v.viewed) continue;
-      ids.push(v.id);
-    }
-
-    if (ids.length === 0) {
-      setStatus("Keine Karten für diese Auswahl verfügbar.");
-      setSessionActive(false);
-      setQueue([]);
-      setCurrentId(null);
-      setFlipped(false);
-      setStreaks({});
-      setDoneIds({});
-      setCurrentRound([]);
-      setRoundIndex(0);
-      return;
-    }
-
-    const shuffled = shuffle(ids);
-
-    setSessionActive(true);
-    setQueue(ids); // Komplette Liste
-    setCurrentRound(shuffled); // Erste Runde gemischt
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-
-    setStreaks(Object.fromEntries(ids.map((id) => [id, 0])));
-    setDoneIds({});
-
-    setStatus(`Session gestartet: ${ids.length} Karte(n)`);
-  }
-
-  // Quick-Start: Learned cards
-  function quickStartLearned() {
-    const nextLesson = getNextLesson();
-    if (nextLesson !== null) {
-      startSessionWithFilters(nextLesson, true);
-    } else {
-      startSessionWithFilters(1, true);
-    }
-  }
+  // startSessionWithFilters ist jetzt im useSessionStartWithFilters Hook
+  // quickStartLearned ist jetzt im useQuickStartLearned Hook
+  // startLessonFromDialog ist jetzt im useStartLessonFromDialog Hook
 
   // Quick-Start: Specific lesson, learned cards only
   function openLessonDialog(lesson: number) {
+    // Speichere aktuell fokussiertes Element
+    lastFocusedElement.current = document.activeElement as HTMLElement;
     setSelectedDialogLesson(lesson);
     setCardLimit(""); // Leer lassen, damit nichts markiert ist
     setDialogOpen(true);
-  }
-
-  function startLessonFromDialog() {
-    if (!selectedDialogLesson) return;
-    
-    const limit = cardLimit ? parseInt(cardLimit, 10) : 0;
-    
-    // Hole alle Karten dieser Lektion (unabhängig vom viewed-Status)
-    const lessonCards = allVocab.filter(
-      (v) => v.id && v.lesson === selectedDialogLesson
-    );
-    
-    let cardsToUse = lessonCards.map((v) => v.id!);
-    
-    // Limitiere auf gewünschte Anzahl
-    if (limit > 0 && limit < cardsToUse.length) {
-      cardsToUse = shuffle(cardsToUse).slice(0, limit);
-    }
-    
-    if (cardsToUse.length === 0) {
-      setStatus(`Keine gelernten Karten in Lektion ${selectedDialogLesson} verfügbar.`);
-      setDialogOpen(false);
-      return;
-    }
-    
-    const shuffled = shuffle(cardsToUse);
-    
-    setSessionActive(true);
-    setQueue(cardsToUse);
-    setCurrentRound(shuffled);
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-    setStreaks(Object.fromEntries(cardsToUse.map((id) => [id, 0])));
-    setDoneIds({});
-    setStatus(`Session gestartet: ${cardsToUse.length} Karte(n) aus Lektion ${selectedDialogLesson}`);
-    
-    setDialogOpen(false);
   }
 
   function toggleTag(tag: string) {
@@ -356,8 +422,12 @@ export default function Test() {
   }
 
   function matchesViewedFilter(v: VocabEntry): boolean {
-    if (!onlyViewed) return true;
-    return v.viewed === true;
+    // Option 1: Nur gelernte Karten
+    if (onlyViewed) {
+      return v.viewed === true;
+    }
+    // Option 2 (Standard): keine Einschränkung über viewed
+    return true;
   }
 
   function clearSelectedTags() {
@@ -372,186 +442,30 @@ export default function Test() {
     const ok = confirm("Wollen Sie die Test-Session neu starten?\n\nAlle Session-Zähler werden zurückgesetzt.");
     if (!ok) return;
 
-    startSession();
+    startSessionHook();
   }
 
   async function endSessionConfirm() {
     const ok = confirm("Wollen Sie die Test-Session beenden?\n\nIhr Fortschritt wird gespeichert.");
     if (!ok) return;
 
-    setSessionActive(false);
-    setCurrentId(null);
-    setFlipped(false);
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: false,
+        currentId: null,
+        flipped: false,
+      },
+    });
     setStatus("Session beendet");
   }
 
-  function goNext() {
-    // Gehe zur nächsten Karte in der aktuellen Runde
-    const nextIndex = roundIndex + 1;
-    
-    // Suche nächste nicht-abgeschlossene Karte
-    let searchIndex = nextIndex;
-    while (searchIndex < currentRound.length && doneIds[currentRound[searchIndex]]) {
-      searchIndex++;
-    }
-
-    if (searchIndex >= currentRound.length) {
-      // Runde abgeschlossen - starte neue Runde
-      startNewRound();
-    } else {
-      setRoundIndex(searchIndex);
-      setCurrentId(currentRound[searchIndex] ?? null);
-      setFlipped(false);
-    }
-  }
-
-  function startNewRound() {
-    // Sammle alle noch nicht abgeschlossenen Karten
-    const remaining = queue.filter(id => !doneIds[id]);
-    
-    if (remaining.length === 0) {
-      // Session beendet
-      setCurrentId(null);
-      setFlipped(false);
-      return;
-    }
-
-    // Mische für neue Runde
-    const shuffled = shuffle(remaining);
-    
-    setCurrentRound(shuffled);
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-  }
-
-  function requeueCurrentToEnd() {
-    if (!currentId) return;
-    
-    // Verschiebe aktuelle Karte ans Ende der Runde
-    const newRound = [...currentRound];
-    const [removed] = newRound.splice(roundIndex, 1);
-    newRound.push(removed);
-    
-    setCurrentRound(newRound);
-    
-    // Zeige die Karte, die jetzt an der aktuellen Position ist
-    // (da wir eine entfernt haben, rutscht die nächste nach)
-    let searchIndex = roundIndex;
-    while (searchIndex < newRound.length && doneIds[newRound[searchIndex]]) {
-      searchIndex++;
-    }
-    
-    if (searchIndex >= newRound.length) {
-      // Alle verbleibenden Karten dieser Runde sind done -> neue Runde
-      startNewRound();
-    } else {
-      setRoundIndex(searchIndex);
-      setCurrentId(newRound[searchIndex] ?? null);
-      setFlipped(false);
-    }
-  }
-
-  async function markWrong() {
-    if (!currentId) return;
-    
-    if (!flipped) {
-      alert("Bitte erst die Karte umdrehen, dann bewerten.");
-      return;
-    }
-
-    await gradeCard(currentId, 0);
-    setStreaks((prev) => ({ ...prev, [currentId]: 0 }));
-    requeueCurrentToEnd();
-  }
-
-  async function markRight() {
-    if (!currentId) return;
-    
-    if (!flipped) {
-      alert("Bitte erst die Karte umdrehen, dann bewerten.");
-      return;
-    }
-
-    await gradeCard(currentId, 2);
-
-    const nextStreak = (streaks[currentId] ?? 0) + 1;
-    setStreaks((prev) => ({ ...prev, [currentId]: nextStreak }));
-
-    if (nextStreak >= 5) {
-      setDoneIds((prev) => ({ ...prev, [currentId]: true }));
-      
-      const card = allVocab.find((v) => v.id === currentId);
-      if (card && card.lesson) {
-        // Markiere Karte als "viewed" und berechne Fortschritt neu
-        await db.vocab.update(currentId, { viewed: true });
-        
-        // Berechne neu: Wie viele Karten in dieser Lektion haben viewed=true?
-        const viewedCards = await db.vocab
-          .where("lesson")
-          .equals(card.lesson)
-          .and((v) => v.viewed === true)
-          .count();
-        
-        // Setze Fortschritt basierend auf echten gelernten Karten
-        recalculateLearningProgress(card.lesson, viewedCards);
-      }
-    }
-    
-    // Immer zur nächsten Karte im Durchgang (egal ob 5/5 oder nicht)
-    goNext();
-  }
-
-  function startSession() {
-    const ids = buildSessionIds();
-
-    if (ids.length === 0) {
-      const filters = [];
-      if (selectedTags.length > 0) filters.push("Tag-Auswahl");
-      if (selectedLesson !== undefined) filters.push("Lektion-Auswahl");
-      if (onlyViewed) filters.push("(und gelernt)");
-      const msg = filters.length > 0 ? `Keine Karten passend zur ${filters.join(" ")}` : "Keine Karten vorhanden.";
-      setStatus(msg);
-      setSessionActive(false);
-      setQueue([]);
-      setCurrentId(null);
-      setFlipped(false);
-      setStreaks({});
-      setDoneIds({});
-      setCurrentRound([]);
-      setRoundIndex(0);
-      return;
-    }
-
-    // Limitiere auf gewünschte Anzahl
-    const limit = cardLimitAdvanced ? parseInt(cardLimitAdvanced, 10) : 0;
-    let cardsToUse = ids;
-    
-    if (limit > 0 && limit < ids.length) {
-      cardsToUse = shuffle(ids).slice(0, limit);
-    } else if (limit > ids.length) {
-      setStatus(`⚠️ Nur ${ids.length} Karten verfügbar, nicht ${limit}`);
-      return;
-    }
-
-    const shuffled = shuffle(cardsToUse);
-
-    setSessionActive(true);
-    setQueue(cardsToUse); // Komplette Liste aller Karten
-    setCurrentRound(shuffled); // Erste Runde gemischt
-    setRoundIndex(0);
-    setCurrentId(shuffled[0] ?? null);
-    setFlipped(false);
-
-    setStreaks(Object.fromEntries(cardsToUse.map((id) => [id, 0])));
-    setDoneIds({});
-
-    setStatus(`Session gestartet: ${cardsToUse.length} Karte(n)`);
-  }
+  // startSession ist jetzt im useSessionStart Hook
 
   const finished = sessionActive && currentId == null;
-  const cardStreak = current?.id ? Math.min(streaks[current.id] ?? 0, 5) : 0;
+  const cardStreak = current?.id ? Math.min(streaks.get(current.id) ?? 0, 5) : 0;
   const progressPct = Math.round((cardStreak / 5) * 100);
+  const statusIsWarning = status.startsWith("Keine ");
 
   // ===== Render =====
   return (
@@ -560,10 +474,20 @@ export default function Test() {
       description="Teste dein Wissen! Karte umdrehen → bewerten. Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt."
     >
       {/* Status / Fehler */}
-      <div className="space-y-2">
-        {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
+      <div className="space-y-2" role="status" aria-live="polite">
+        {status ? (
+          <p
+            className={
+              statusIsWarning
+                ? "rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                : "text-sm text-muted-foreground"
+            }
+          >
+            {status}
+          </p>
+        ) : null}
         {error ? (
-          <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap">
+          <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap" role="alert">
             {error}
           </pre>
         ) : null}
@@ -576,13 +500,54 @@ export default function Test() {
           
           <div className="grid grid-cols-1 gap-2">
             <Button
-              onClick={quickStartLearned}
+              onClick={() => {
+                const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
+                const quickLimit =
+                  Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+                void quickStartLearnedHook({
+                  includeAllLearned: quickStartIncludeAllLearned,
+                  limit: quickLimit,
+                });
+              }}
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-              title="Teste die Karten, die du bereits gelernt hast"
+              title="Teste standardmäßig fällige gelernte Karten"
+              aria-label="Schnellstart: Teste fällige gelernte Karten"
             >
-              📖 Teste gelernte Karten (empfohlen)
+              📖 Fällige Karten testen
             </Button>
+            <div className="rounded-md border bg-muted/30 p-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    checked={quickStartIncludeAllLearned}
+                    onChange={(e) => setQuickStartIncludeAllLearned(e.target.checked)}
+                    aria-label="Alle gelernten Karten statt nur fällige Karten testen"
+                  />
+                  Alle gelernten Karten (statt nur fällige)
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  Kartenlimit
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={500}
+                    className="h-8 w-24 rounded-md border bg-background px-2 text-sm"
+                    placeholder="z.B. 20"
+                    value={quickStartLimit}
+                    onChange={(e) => setQuickStartLimit(e.target.value)}
+                    aria-label="Optionales Kartenlimit für Schnellstart"
+                  />
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Standard ist SRS-orientiert (nur fällige gelernte Karten). Für Voll-Review optional
+                "Alle gelernten Karten" aktivieren.
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
               {allLessons.length > 0 ? (
@@ -593,6 +558,7 @@ export default function Test() {
                     variant="secondary"
                     className="h-10 text-sm font-medium"
                     title={`Lektion ${lesson} testen (${count} Karten)`}
+                    aria-label={`Lektion ${lesson} starten, ${count} Karten verfügbar`}
                   >
                     L{lesson} <span className="text-xs opacity-75">({count})</span>
                   </Button>
@@ -604,6 +570,9 @@ export default function Test() {
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            aria-expanded={showAdvancedFilters}
+            aria-controls="advanced-filters"
+            aria-label={showAdvancedFilters ? "Erweiterte Filter ausblenden" : "Erweiterte Filter anzeigen"}
           >
             {showAdvancedFilters ? "⬆️" : "⬇️"} Erweiterte Filter {showAdvancedFilters ? "ausblenden" : "anzeigen"}
           </button>
@@ -612,7 +581,7 @@ export default function Test() {
 
       {/* Filter / Controls */}
       {!sessionActive && showAdvancedFilters ? (
-        <Card className="p-4">
+        <Card className="p-4" id="advanced-filters" role="region" aria-label="Erweiterte Filter-Optionen">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <label className="inline-flex items-center gap-2 text-sm">
@@ -621,12 +590,36 @@ export default function Test() {
                   className="h-4 w-4 accent-primary"
                   checked={onlyViewed}
                   onChange={(e) => setOnlyViewed(e.target.checked)}
+                  aria-label="Nur bereits gelernte Karten anzeigen"
                 />
-                nur gesehene Karten
+                nur gelernte Karten
               </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={onlyDue}
+                  onChange={(e) => setOnlyDue(e.target.checked)}
+                  aria-label="Nur fällige Karten anzeigen"
+                />
+                nur fällige Karten
+              </label>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={showTransliteration}
+                  onChange={(e) => setShowTransliteration(e.target.checked)}
+                  aria-label="Lautschrift unter Thai anzeigen"
+                />
+                Lautschrift anzeigen
+              </label>
+              <p className="w-full text-xs text-muted-foreground">
+                Hinweis: "nur fällige Karten" nutzt SRS-Fälligkeit (dueAt kleiner/gleich jetzt). Ohne diesen Filter testest du alle Karten der aktuellen Auswahl.
+              </p>
 
               {/* Richtung */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Lernrichtung wählen">
                 <span className="text-sm text-muted-foreground">Richtung:</span>
                 <Button
                   type="button"
@@ -634,6 +627,8 @@ export default function Test() {
                   variant={direction === "TH_DE" ? "secondary" : "outline"}
                   onClick={() => setDirection("TH_DE")}
                   title="Thai → Deutsch"
+                  aria-pressed={direction === "TH_DE"}
+                  aria-label="Richtung: Thai nach Deutsch"
                 >
                   Thai → Deutsch
                 </Button>
@@ -643,6 +638,8 @@ export default function Test() {
                   variant={direction === "DE_TH" ? "secondary" : "outline"}
                   onClick={() => setDirection("DE_TH")}
                   title="Deutsch → Thai"
+                  aria-pressed={direction === "DE_TH"}
+                  aria-label="Richtung: Deutsch nach Thai"
                 >
                   Deutsch → Thai
                 </Button>
@@ -652,13 +649,15 @@ export default function Test() {
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Lektionen auswählen:</div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Lektion filtern">
                 <Button
                   type="button"
                   size="sm"
                   variant={selectedLesson === undefined ? "secondary" : "outline"}
                   onClick={() => setSelectedLesson(undefined)}
                   className="h-8"
+                  aria-pressed={selectedLesson === undefined}
+                  aria-label="Alle Lektionen wählen"
                 >
                   Alle
                 </Button>
@@ -671,6 +670,8 @@ export default function Test() {
                     onClick={() => setSelectedLesson(lesson)}
                     className="h-8"
                     title={`Lektion ${lesson}`}
+                    aria-pressed={selectedLesson === lesson}
+                    aria-label={`Lektion ${lesson} auswählen, ${count} Karten`}
                   >
                     L{lesson} <span className="text-muted-foreground">({count})</span>
                   </Button>
@@ -681,7 +682,7 @@ export default function Test() {
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Tags auswählen:</div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Tags filtern">
                 {allTags.length === 0 ? (
                   <div className="text-sm text-muted-foreground">Keine Tags vorhanden.</div>
                 ) : (
@@ -697,6 +698,8 @@ export default function Test() {
                         onClick={() => toggleTag(tag)}
                         className="h-8 rounded-full px-3"
                         title="Klicken zum Filtern"
+                        aria-pressed={selected}
+                        aria-label={`Tag ${tag} ${selected ? 'abwählen' : 'auswählen'}, ${count} Karten`}
                       >
                         <span className="inline-flex items-center gap-2">
                           <span className="font-normal">
@@ -741,8 +744,9 @@ export default function Test() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Anzahl Karten (optional)</label>
+              <label className="text-sm font-medium" htmlFor="cardLimitAdvanced">Anzahl Karten (optional)</label>
               <input
+                id="cardLimitAdvanced"
                 type="number"
                 value={cardLimitAdvanced}
                 onChange={(e) => setCardLimitAdvanced(e.target.value)}
@@ -750,15 +754,16 @@ export default function Test() {
                 min="1"
                 max={selectedCardsCount}
                 className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                aria-describedby="cardLimitAdvanced-description"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" id="cardLimitAdvanced-description">
                 Leer lassen für alle verfügbaren Karten ({selectedCardsCount})
               </p>
             </div>
 
             <div className="pt-4 border-t">
               <Button 
-                onClick={startSession}
+                onClick={startSessionHook}
                 size="lg"
                 className="w-full h-14 text-lg font-semibold"
               >
@@ -789,14 +794,18 @@ export default function Test() {
       {/* Keine Session */}
       {!sessionActive ? (
         <p className="text-center text-sm text-muted-foreground">
-          Wähle Richtung + optional Lektion/Tags/Filter und klicke auf <b>Session starten</b>.
+          Wähle Richtung + optional Lektion/Tags/Filter und klicke auf <b>Session starten</b>. Für einen SRS-fokussierten Durchgang aktiviere "nur fällige Karten".
         </p>
       ) : null}
 
       {/* Session-Controls */}
       {sessionActive && !finished ? (
         <div className="flex justify-center">
-          <Button variant="outline" onClick={restartSessionConfirm}>
+          <Button 
+            variant="outline" 
+            onClick={restartSessionConfirm}
+            aria-label="Test-Session neu starten"
+          >
             Session neu starten
           </Button>
         </div>
@@ -804,25 +813,40 @@ export default function Test() {
 
       {/* Karte */}
       {!finished && sessionActive && current && current.id ? (
-        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-center p-2 sm:p-3 m-0">
+        <div className="fixed inset-0 z-50 bg-background w-screen h-screen flex flex-col items-center justify-start p-2 sm:p-3 m-0 overflow-hidden">
+          <div className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3">
+            <Button
+              onClick={endSessionConfirm}
+              variant="outline"
+              size="sm"
+              className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              aria-label="Test-Session beenden"
+            >
+              Test beenden
+            </Button>
+          </div>
 
           {/* Top-Status */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-            <span>
+          <div
+            className="mt-1 flex w-full max-w-2xl translate-y-4 flex-wrap items-center justify-center gap-2 pr-24 text-xs text-muted-foreground sm:pr-28"
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-label={`${remainingUniqueCount} Karten verbleibend`}>
               Verbleibend: <b className="text-foreground">{remainingUniqueCount}</b>
             </span>
             <span>·</span>
-            <span>
+            <span aria-label={`${completedCount} Karten erledigt`}>
               Erledigt: <b className="text-foreground">{completedCount}</b>
             </span>
             <span>·</span>
-            <span>
+            <span aria-label={`Diese Karte: ${cardStreak} von 5 richtig`}>
               Diese Karte: <b className="text-foreground">{cardStreak}/5</b>
             </span>
           </div>
 
           {/* Fortschrittsbalken */}
-          <div className="mx-auto w-full max-w-2xl mt-2">
+          <div className="mx-auto w-full max-w-2xl mt-1">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
@@ -833,12 +857,25 @@ export default function Test() {
           </div>
 
           {/* Testkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-4 sm:p-6 md:p-8 shadow-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/90 dark:bg-slate-900/80 backdrop-blur mt-3">
+          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-5 md:p-7 shadow-xl border border-slate-200/70 dark:border-slate-800/70 bg-background mt-[2cm]">
             <div className="space-y-4">
               <div className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed">
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
                 Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt.
               </div>
+              {lastAnswer ? (
+                <div className="flex justify-center" aria-live="polite">
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
+                      lastAnswer === "right"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {lastAnswer === "right" ? "✅ Richtig" : "❌ Falsch"}
+                  </span>
+                </div>
+              ) : null}
               {!flipped ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -854,7 +891,7 @@ export default function Test() {
                     {frontText}
                   </div>
 
-                  {direction === "TH_DE" && current.transliteration ? (
+                  {showTransliteration && direction === "TH_DE" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -867,18 +904,23 @@ export default function Test() {
                       className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        void speak(frontText, frontLang);
+                        void handleSpeak(frontText, frontLang, "front");
                       }}
                       title="Vorlesen"
+                      aria-label={`Vorderseite vorlesen: ${frontText}`}
+                      disabled={isSpeaking}
+                      aria-busy={isSpeaking && speakingKey === "front"}
                     >
-                      🔊 Vorlesen
+                      {isSpeaking && speakingKey === "front" ? "🔊 Spricht…" : "🔊 Vorlesen"}
                     </Button>
                   </div>
 
                   <div className="pt-4 border-t">
                     <Button
-                      onClick={() => setFlipped(true)}
+                      ref={flipButtonRef}
+                      onClick={flipCard}
                       className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                      aria-label="Karte umdrehen um Rückseite zu sehen"
                     >
                       👉 Karte umdrehen
                     </Button>
@@ -897,7 +939,7 @@ export default function Test() {
 
                   <div className="text-3xl sm:text-4xl font-semibold text-center leading-tight">{backText}</div>
 
-                  {direction === "DE_TH" && current.transliteration ? (
+                  {showTransliteration && direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -910,11 +952,14 @@ export default function Test() {
                       className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        void speak(backText, backLang);
+                        void handleSpeak(backText, backLang, "back");
                       }}
                       title="Vorlesen"
+                      aria-label={`Rückseite vorlesen: ${backText}`}
+                      disabled={isSpeaking}
+                      aria-busy={isSpeaking && speakingKey === "back"}
                     >
-                      🔊 Vorlesen
+                      {isSpeaking && speakingKey === "back" ? "🔊 Spricht…" : "🔊 Vorlesen"}
                     </Button>
                   </div>
 
@@ -934,11 +979,14 @@ export default function Test() {
                               variant="ghost"
                               onClick={(ev) => {
                                 ev.stopPropagation();
-                                void speak(current.exampleThai!, "th-TH");
+                                void handleSpeak(current.exampleThai!, "th-TH", "example-th");
                               }}
                               title="Beispiel Thai vorlesen"
+                              aria-label={`Thai Beispiel vorlesen: ${current.exampleThai}`}
+                              disabled={isSpeaking}
+                              aria-busy={isSpeaking && speakingKey === "example-th"}
                             >
-                              🔊
+                              {isSpeaking && speakingKey === "example-th" ? "⏳" : "🔊"}
                             </Button>
                           </div>
                         ) : null}
@@ -952,11 +1000,14 @@ export default function Test() {
                               variant="ghost"
                               onClick={(ev) => {
                                 ev.stopPropagation();
-                                void speak(current.exampleGerman!, "de-DE");
+                                void handleSpeak(current.exampleGerman!, "de-DE", "example-de");
                               }}
                               title="Beispiel Deutsch vorlesen"
+                              aria-label={`Deutsches Beispiel vorlesen: ${current.exampleGerman}`}
+                              disabled={isSpeaking}
+                              aria-busy={isSpeaking && speakingKey === "example-de"}
                             >
-                              🔊
+                              {isSpeaking && speakingKey === "example-de" ? "⏳" : "🔊"}
                             </Button>
                           </div>
                         ) : null}
@@ -968,36 +1019,55 @@ export default function Test() {
             </div>
           </Card>
 
+          {/* Keyboard Shortcuts Legende */}
+          <div className="mt-4 mb-2 text-center hidden sm:block">
+            <details className="inline-block text-xs text-muted-foreground">
+              <summary className="cursor-pointer hover:text-foreground transition-colors">
+                ⌨️ Tastatur-Shortcuts
+              </summary>
+              <div className="mt-2 p-3 rounded-md bg-muted/50 space-y-1 text-left">
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">Space</kbd> / <kbd className="px-2 py-0.5 rounded bg-background border">Enter</kbd> - Karte umdrehen</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">→</kbd> / <kbd className="px-2 py-0.5 rounded bg-background border">1</kbd> - Richtig</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">←</kbd> / <kbd className="px-2 py-0.5 rounded bg-background border">0</kbd> - Falsch</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">P</kbd> - Vorlesen</div>
+                <div><kbd className="px-2 py-0.5 rounded bg-background border">Esc</kbd> - Session beenden</div>
+              </div>
+            </details>
+          </div>
+
           {/* Bewertungs-Buttons */}
-          <div className="space-y-2 mt-3 w-full max-w-md px-2 pb-2">
-            <div className="flex gap-2 justify-center">
+          <div className="space-y-2 mt-2 w-full max-w-md px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+            <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
               <Button
-                onClick={markWrong}
+                onClick={() => gradeAnswerHook(false)}
                 variant="destructive"
                 size="sm"
-                className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
+                disabled={!flipped}
+                className={`flex-1 shadow-lg transition-all duration-150 ${
+                  flipped
+                    ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                }`}
+                aria-label="Antwort als falsch markieren"
               >
                 ❌ Falsch
               </Button>
               <Button
-                onClick={markRight}
+                onClick={() => gradeAnswerHook(true)}
                 variant="default"
                 size="sm"
-                className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white"
+                disabled={!flipped}
+                className={`flex-1 shadow-lg transition-all duration-150 ${
+                  flipped
+                    ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                }`}
+                aria-label="Antwort als richtig markieren"
               >
                 ✅ Richtig
               </Button>
             </div>
 
-            <div className="pt-2 border-t">
-              <Button
-                onClick={endSessionConfirm}
-                variant="destructive"
-                className="w-full h-10 text-sm shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
-              >
-                Test beenden
-              </Button>
-            </div>
           </div>
         </div>
       ) : null}
@@ -1029,11 +1099,29 @@ export default function Test() {
                 min="1"
                 className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Alle Karten"
+                aria-describedby="cardLimit-description"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" id="cardLimit-description">
                 Standard: alle verfügbaren Karten der Lektion
               </p>
             </div>
+
+              {/* Checkbox: Bereits bestandene Karten einschließen */}
+              <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                  id="includeLearnedInDialog"
+                  checked={includeLearnedInDialog}
+                    onChange={(e) => setIncludeLearnedInDialog(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                />
+                <label
+                  htmlFor="includeLearnedInDialog"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Bereits bestandene Karten einschließen
+                </label>
+              </div>
           </div>
 
           <DialogFooter className="flex flex-row gap-2">
@@ -1051,7 +1139,7 @@ export default function Test() {
                   active.blur();
                 }
               }}
-              onClick={startLessonFromDialog}
+              onClick={startLessonFromDialogHook}
               className="shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
             >
               Test starten

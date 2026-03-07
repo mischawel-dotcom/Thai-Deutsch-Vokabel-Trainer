@@ -1,0 +1,2 @@
+﻿- Lernkarten: Toggle für "Markiere als nicht gelernt"
+- SRS-Fortschritt für einzelne Karte zurücksetzen
