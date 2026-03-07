@@ -1,0 +1,1 @@
+var e=`/Thai-Deutsch-Vokabel-Trainer/assets/true-BEAprBbO.wav`;export{e as default};
