@@ -414,7 +414,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setRoute("home")}
-            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               route === "home"
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted/60"
@@ -427,7 +427,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setRoute("learn")}
-            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               route === "learn"
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted/60"
@@ -440,7 +440,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setRoute("test")}
-            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               route === "test"
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted/60"
@@ -453,7 +453,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setRoute("games")}
-            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
               route === "games"
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground hover:bg-muted/60"
@@ -468,7 +468,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsMobileMoreOpen((prev) => !prev)}
-              className={`relative flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-colors ${
+              className={`relative flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                 mobileMoreActive
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-muted/60"

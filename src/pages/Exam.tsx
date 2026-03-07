@@ -18,6 +18,8 @@ import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -44,6 +46,7 @@ export default function Exam() {
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState<Record<number, string>>({});
   const [nextQuestionTimer, setNextQuestionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [confirmEndExamOpen, setConfirmEndExamOpen] = useState(false);
   const {
     hydrated: examSessionHydrated,
     restoredSession: restoredExamSession,
@@ -183,13 +186,21 @@ export default function Exam() {
 
   function handleAnswer(selectedOption: string) {
     const question = questions[currentQuestionIndex];
+    const isCorrect = selectedOption === question.correctAnswer;
     setAnswered({
       ...answered,
       [currentQuestionIndex]: selectedOption,
     });
 
-    if (selectedOption === question.correctAnswer) {
+    if (isCorrect) {
       setScore(score + 1);
+    }
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(isCorrect ? 40 : 120);
+      } catch {
+        // ignore unsupported vibration failures
+      }
     }
 
     // Auto-continue after 2 seconds
@@ -333,149 +344,155 @@ export default function Exam() {
 
     return (
       <PageShell title="Examen">
-        <Dialog open={true} onOpenChange={() => {}}>
-          <DialogContent
-            className="max-w-2xl max-h-[95vh] overflow-y-auto"
-            onOpenAutoFocus={(event) => event.preventDefault()}
-          >
-            <DialogHeader>
-              <DialogTitle>Lektion {selectedLesson} - Examen</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-          {/* Progress */}
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span>
-                Frage {currentQuestionIndex + 1} von {questions.length}
-              </span>
-              <span className="font-semibold">Punkte: {score}</span>
+        <div className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-screen flex-col items-center justify-start overflow-hidden bg-background px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:px-3 sm:pt-3">
+          <div className="w-full max-w-2xl">
+            <div className="flex items-center justify-end">
+              <Button
+                onClick={() => setConfirmEndExamOpen(true)}
+                variant="outline"
+                size="sm"
+                className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                Examen beenden
+              </Button>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+          </div>
+
+          <div className="mt-2 flex w-full max-w-2xl flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full bg-muted/70 px-2 py-1">
+              Frage <b className="text-foreground">{currentQuestionIndex + 1}</b> von <b className="text-foreground">{questions.length}</b>
+            </span>
+            <span className="rounded-full bg-muted/70 px-2 py-1">
+              Punkte: <b className="text-foreground">{score}</b>
+            </span>
+          </div>
+
+          <div className="mx-auto mt-2 w-full max-w-2xl">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
               <div
-                className="bg-blue-500 dark:bg-blue-600 h-full transition-all duration-300"
+                className="h-full bg-blue-500 transition-all duration-300 dark:bg-blue-600"
                 style={{
                   width: `${Math.max(1, ((currentQuestionIndex + 1) / questions.length) * 100)}%`,
-                  minWidth: '2px'
+                  minWidth: "2px",
                 }}
               />
             </div>
           </div>
 
-          {/* End Exam Button */}
-          <Button
-            onClick={() => {
-              if (confirm("Examen jetzt beenden?")) {
-                if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
-                resetExam();
-              }
-            }}
-            variant="destructive"
-            size="sm"
-            className="w-full shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-red-600 hover:bg-red-700 text-white"
-          >
-            Examen beenden
-          </Button>
-
-          {/* Question */}
-          <Card className="p-4 space-y-3">
-            <div className="text-center space-y-2">
-              <div className="text-4xl font-semibold text-primary">
-                {question.questionText}
+          <Card className="mx-auto mt-3 flex w-full min-h-0 max-w-xs flex-col overflow-y-auto p-4 shadow-lg sm:max-w-md md:max-w-2xl">
+            <div className="space-y-3">
+              <div className="text-center space-y-2">
+                <div className="text-3xl sm:text-4xl font-semibold leading-snug text-primary">{question.questionText}</div>
+                <Button
+                  onClick={() => {
+                    const textToSpeak = direction === "TH_DE" ? question.thai : question.german;
+                    const lang = direction === "TH_DE" ? "th-TH" : "de-DE";
+                    void speak(textToSpeak, lang);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    stopSpeak();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="mx-auto min-h-[44px] shadow-md"
+                  title="Klick = Abspielen, Rechtsklick = Stoppen"
+                >
+                  🔊 Vorlesen
+                </Button>
+                <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">Wähle die richtige Antwort</p>
               </div>
-              <Button
-                onClick={() => {
-                  const textToSpeak = direction === "TH_DE" ? question.thai : question.german;
-                  const lang = direction === "TH_DE" ? "th-TH" : "de-DE";
-                  void speak(textToSpeak, lang);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  stopSpeak();
-                }}
-                variant="outline"
-                size="sm"
-                className="mx-auto shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
-                title="Klick = Abspielen, Rechtsklick = Stoppen"
-              >
-                🔊
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Wähle die richtige Antwort
-              </p>
-            </div>
 
-            {/* Options */}
-            <div className="grid gap-2">
-              {question.options.map((option, idx) => {
-                const isSelected = userAnswer === option;
-                const isCorrect = option === question.correctAnswer;
+              <div className="grid gap-2">
+                {question.options.map((option, idx) => {
+                  const isSelected = userAnswer === option;
+                  const isCorrect = option === question.correctAnswer;
 
-                let buttonClassName = "justify-start h-auto py-2 px-3 text-sm shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150";
-                if (isAnswered) {
-                  if (isCorrect) {
-                    buttonClassName += " bg-green-100 hover:bg-green-100 dark:bg-green-900 dark:hover:bg-green-900 text-foreground";
-                  } else if (isSelected && !isCorrect) {
-                    buttonClassName += " bg-red-100 hover:bg-red-100 dark:bg-red-900 dark:hover:bg-red-900 text-foreground";
+                  let buttonClassName = "h-11 justify-start px-3 text-sm";
+                  if (isAnswered) {
+                    if (isCorrect) {
+                      buttonClassName += " bg-green-100 hover:bg-green-100 dark:bg-green-900 dark:hover:bg-green-900 text-foreground";
+                    } else if (isSelected && !isCorrect) {
+                      buttonClassName += " bg-red-100 hover:bg-red-100 dark:bg-red-900 dark:hover:bg-red-900 text-foreground";
+                    }
                   }
-                }
 
-                return (
-                  <Button
-                    key={idx}
-                    onClick={() => !isAnswered && handleAnswer(option)}
-                    variant={isSelected ? "default" : "outline"}
-                    className={buttonClassName}
-                    disabled={isAnswered}
-                  >
-                    {option}
-                  </Button>
-                );
-              })}
-            </div>
-
-            {/* Feedback */}
-            {isAnswered && (
-              <div className="mt-3 p-2 rounded-lg bg-muted animate-in fade-in">
-                {userAnswer === question.correctAnswer ? (
-                  <p className="text-xs text-green-700 dark:text-green-400 font-semibold">
-                    ✓ Richtig!
-                  </p>
-                ) : (
-                  <div className="space-y-1">
-                    <p className="text-xs text-red-700 dark:text-red-400 font-semibold">
-                      ✗ Falsch
-                    </p>
-                    <p className="text-xs text-foreground">
-                      Richtige Antwort: {question.correctAnswer}
-                    </p>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  (Nächste Frage in Kürze...)
-                </p>
+                  return (
+                    <Button
+                      key={idx}
+                      onClick={() => !isAnswered && handleAnswer(option)}
+                      variant={isSelected ? "default" : "outline"}
+                      className={buttonClassName}
+                      disabled={isAnswered}
+                    >
+                      {option}
+                    </Button>
+                  );
+                })}
               </div>
-            )}
 
-            {/* Next Button - nur wenn manuell weitergehen möchte */}
-            {isAnswered && (
-              <Button
-                onClick={() => {
-                  if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
-                  if (currentQuestionIndex < questions.length - 1) {
-                    setCurrentQuestionIndex(currentQuestionIndex + 1);
-                  } else {
-                    setState("result");
-                  }
-                }}
-                className="w-full mt-2 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
-                variant="outline"
-                size="sm"
-              >
-                Jetzt weiter →
-              </Button>
-            )}
+              {isAnswered ? (
+                <div className="mt-2 rounded-lg bg-muted p-2 animate-in fade-in" aria-live="polite">
+                  {userAnswer === question.correctAnswer ? (
+                    <p className="text-xs font-semibold text-green-700 dark:text-green-400">✓ Richtig!</p>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-red-700 dark:text-red-400">✗ Falsch</p>
+                      <p className="text-xs text-foreground">Richtige Antwort: {question.correctAnswer}</p>
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">(Nächste Frage in Kürze...)</p>
+                </div>
+              ) : null}
+
+            </div>
           </Card>
+
+          {isAnswered ? (
+            <div className="mt-2 w-full max-w-2xl shrink-0 px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+              <div className="rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
+                <Button
+                  onClick={() => {
+                    if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
+                    if (currentQuestionIndex < questions.length - 1) {
+                      setCurrentQuestionIndex(currentQuestionIndex + 1);
+                    } else {
+                      setState("result");
+                    }
+                  }}
+                  className="h-11 w-full"
+                  variant="outline"
+                  size="sm"
+                >
+                  Jetzt weiter →
+                </Button>
+              </div>
             </div>
+          ) : null}
+        </div>
+        <Dialog open={confirmEndExamOpen} onOpenChange={setConfirmEndExamOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Examen beenden?</DialogTitle>
+              <DialogDescription>
+                Dein aktuelles Examen wird beendet und du kehrst zur Auswahl zurück.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="outline" className="h-11" onClick={() => setConfirmEndExamOpen(false)}>
+                Abbrechen
+              </Button>
+              <Button
+                variant="destructive"
+                className="h-11"
+                onClick={() => {
+                  setConfirmEndExamOpen(false);
+                  resetExam();
+                }}
+              >
+                Beenden
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </PageShell>
@@ -491,19 +508,19 @@ export default function Exam() {
 
     return (
       <PageShell title="Examen - Ergebnis">
-        <div className="space-y-6">
-          <Card className="p-8 space-y-4 text-center">
-            <h2 className="text-2xl font-bold">Gratuliere!</h2>
+        <div className="space-y-4 sm:space-y-6">
+          <Card className="space-y-3 p-4 text-center sm:space-y-4 sm:p-8">
+            <h2 className="text-xl font-bold sm:text-2xl">Gratuliere!</h2>
 
-            <div className={`text-5xl font-bold ${resultColor}`}>
+            <div className={`text-4xl font-bold sm:text-5xl ${resultColor}`}>
               {score}/{questions.length}
             </div>
 
-            <div className="text-lg font-semibold text-muted-foreground">
+            <div className="text-base font-semibold text-muted-foreground sm:text-lg">
               {percentage}% korrekt
             </div>
 
-            <p className="text-sm text-muted-foreground mt-4">
+            <p className="mt-3 text-sm text-muted-foreground sm:mt-4">
               {percentage >= 85 && "Ausgezeichnet! 🎉 Lektion abgeschlossen!"}
               {percentage >= 70 && percentage < 85 && "Gute Leistung! 👍 Bitte versuchen Sie es nochmal für eine bessere Note."}
               {percentage >= 50 && percentage < 70 && "Noch etwas üben! 📚"}
@@ -511,8 +528,8 @@ export default function Exam() {
             </p>
           </Card>
 
-          <div className="flex gap-3">
-            <Button onClick={resetExam} className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+            <Button onClick={resetExam} className="h-11 flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150">
               Neue Lektion wählen
             </Button>
             <Button
@@ -521,7 +538,7 @@ export default function Exam() {
                 startExam(selectedLesson || 1, direction);
               }}
               variant="outline"
-              className="flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
+              className="h-11 flex-1 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
             >
               Wiederholen
             </Button>

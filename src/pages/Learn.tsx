@@ -99,6 +99,7 @@ export default function Learn() {
   const [selectedLesson, setSelectedLesson] = useState<number>(0);
   const [includeViewed, setIncludeViewed] = useState(true);
   const [cardLimit, setCardLimit] = useState<string>("");
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
 
   // Lesson Cache für bereits geladene Lektionen
   const lessonCacheRef = useMemo(() => new Map<number, VocabEntry[]>(), []);
@@ -353,6 +354,11 @@ export default function Learn() {
   function endSession() {
     dispatchSession({ type: "END_SESSION" });
     setStatus("Session beendet");
+    setConfirmEndOpen(false);
+  }
+
+  function requestEndSession() {
+    setConfirmEndOpen(true);
   }
 
   async function markCurrentAsViewed() {
@@ -463,24 +469,25 @@ export default function Learn() {
 
       {/* Lern-Session */}
       {sessionState.sessionActive && current ? (
-        <div className="fixed inset-0 z-50 bg-white/95 dark:bg-black/95 w-screen h-screen flex flex-col items-center justify-start p-2 sm:p-3 pb-36 m-0 overflow-hidden">
-          <div className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3">
-            <Button
-              onClick={endSession}
-              variant="outline"
-              size="sm"
-              className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-            >
-              Lektion beenden
-            </Button>
+        <div className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-screen flex-col items-center justify-start overflow-hidden bg-background px-2 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:px-3 sm:pt-3">
+          <div className="w-full max-w-2xl">
+            <div className="flex items-center justify-end">
+              <Button
+                onClick={requestEndSession}
+                variant="outline"
+                size="sm"
+                className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              >
+                Lektion beenden
+              </Button>
+            </div>
           </div>
           {/* Top-Status */}
-          <div className="mt-2 flex w-full max-w-2xl flex-wrap items-center justify-center gap-2 pr-28 text-xs text-muted-foreground">
-            <span>
+          <div className="mt-2 flex w-full max-w-2xl flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full bg-muted/70 px-2 py-1">
               Karte: <b className="text-foreground">{sessionState.currentIndex + 1}</b> / <b className="text-foreground">{sessionState.lessonCards.length}</b>
             </span>
-            <span>·</span>
-            <span>
+            <span className="rounded-full bg-muted/70 px-2 py-1">
               Status: {current.viewed ? "✅ Gesehen" : "⭕ Nicht gesehen"}
             </span>
           </div>
@@ -497,11 +504,11 @@ export default function Learn() {
           </div>
 
           {/* Lernkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-6 md:p-8 shadow-lg mt-2 max-h-[calc(100vh-17rem)] overflow-y-auto">
-            <div className="space-y-4">
+          <Card className="mx-auto mt-2 flex w-full min-h-0 max-w-xs flex-1 flex-col overflow-y-auto p-3 shadow-lg sm:max-w-md sm:p-6 md:max-w-2xl md:p-8">
+            <div className="w-full space-y-4">
               {/* Thai mit Ton */}
               <div className="space-y-2">
-                <div className="text-4xl font-semibold text-center leading-tight">{current.thai}</div>
+                <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">{current.thai}</div>
                 
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button
@@ -531,7 +538,7 @@ export default function Learn() {
 
               {/* Deutsch mit Ton */}
               <div className="space-y-2">
-                <div className="text-3xl font-semibold text-center leading-tight text-blue-600 dark:text-blue-400">{current.german}</div>
+                <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{current.german}</div>
                 
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button
@@ -590,13 +597,13 @@ export default function Learn() {
 
           {/* Navigation + Aktionen */}
           <div className="fixed inset-x-0 bottom-0 z-10 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-            <div className="mx-auto w-full max-w-md rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
+            <div className="mx-auto w-full max-w-2xl rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
               <div className="space-y-2">
                 {/* Markieren als gesehen */}
                 <Button
                   onClick={markCurrentAsViewed}
                   size="sm"
-                  className={`w-full h-10 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
+                  className={`w-full h-11 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
                     current.viewed
                       ? "bg-red-600 hover:bg-red-700 text-white"
                       : "bg-green-600 hover:bg-green-700 text-white"
@@ -611,7 +618,7 @@ export default function Learn() {
                     onClick={goPrev}
                     disabled={sessionState.currentIndex === 0}
                     variant="outline"
-                    className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                    className="h-11 px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
                   >
                     ⬅️ Zurück
                   </Button>
@@ -619,7 +626,7 @@ export default function Learn() {
                   <Button
                     onClick={goNext}
                     disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
-                    className="px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                    className="h-11 px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
                   >
                     Weiter ➡️
                   </Button>
@@ -649,7 +656,7 @@ export default function Learn() {
 
       {/* Lektions-Konfigurations-Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Lektion {selectedLesson} starten</DialogTitle>
             <DialogDescription>
@@ -692,12 +699,51 @@ export default function Learn() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg">
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onPointerDown={() => {
+                const active = document.activeElement;
+                if (active instanceof HTMLInputElement) {
+                  active.blur();
+                }
+              }}
+              onClick={() => setDialogOpen(false)}
+              className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+            >
               Abbrechen
             </Button>
-            <Button onClick={() => void startSession()} className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg">
+            <Button
+              onPointerDown={() => {
+                const active = document.activeElement;
+                if (active instanceof HTMLInputElement) {
+                  active.blur();
+                }
+              }}
+              onClick={() => void startSession()}
+              className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+            >
               Starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Dialog: Session beenden */}
+      <Dialog open={confirmEndOpen} onOpenChange={setConfirmEndOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Lektion beenden?</DialogTitle>
+            <DialogDescription>
+              Du kannst später jederzeit eine neue Lernsession starten.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="h-11" onClick={() => setConfirmEndOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button variant="destructive" className="h-11" onClick={endSession}>
+              Beenden
             </Button>
           </DialogFooter>
         </DialogContent>

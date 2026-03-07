@@ -31,6 +31,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type ConfirmAction = "restart" | "end";
+
 export default function Test() {
   // ===== State =====
   const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
@@ -72,6 +74,7 @@ export default function Test() {
   const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   const flipButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -438,26 +441,35 @@ export default function Test() {
     return buildSessionIds().length;
   }, [allVocab, selectedLesson, selectedTags, onlyViewed]);
 
-  async function restartSessionConfirm() {
-    const ok = confirm("Wollen Sie die Test-Session neu starten?\n\nAlle Session-Zähler werden zurückgesetzt.");
-    if (!ok) return;
-
-    startSessionHook();
+  function restartSessionConfirm() {
+    setConfirmAction("restart");
   }
 
-  async function endSessionConfirm() {
-    const ok = confirm("Wollen Sie die Test-Session beenden?\n\nIhr Fortschritt wird gespeichert.");
-    if (!ok) return;
+  function endSessionConfirm() {
+    setConfirmAction("end");
+  }
 
-    dispatchSession({
-      type: "set",
-      payload: {
-        sessionActive: false,
-        currentId: null,
-        flipped: false,
-      },
-    });
-    setStatus("Session beendet");
+  function executeConfirmAction() {
+    if (confirmAction === "restart") {
+      startSessionHook();
+      setStatus("Session neu gestartet");
+      setConfirmAction(null);
+      return;
+    }
+
+    if (confirmAction === "end") {
+      dispatchSession({
+        type: "set",
+        payload: {
+          sessionActive: false,
+          currentId: null,
+          flipped: false,
+        },
+      });
+      setStatus("Session beendet");
+      setConfirmAction(null);
+      return;
+    }
   }
 
   // startSession ist jetzt im useSessionStart Hook
@@ -813,40 +825,49 @@ export default function Test() {
 
       {/* Karte */}
       {!finished && sessionActive && current && current.id ? (
-        <div className="fixed inset-0 z-50 bg-background w-screen h-screen flex flex-col items-center justify-start p-2 sm:p-3 m-0 overflow-hidden">
-          <div className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3">
-            <Button
-              onClick={endSessionConfirm}
-              variant="outline"
-              size="sm"
-              className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-              aria-label="Test-Session beenden"
-            >
-              Test beenden
-            </Button>
+        <div className="fixed inset-0 z-50 m-0 flex h-[100dvh] w-screen flex-col items-center justify-start overflow-hidden bg-background px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:px-3 sm:pt-3">
+          <div className="w-full max-w-2xl">
+            <div className="flex items-center justify-end">
+              <Button
+                onClick={endSessionConfirm}
+                variant="outline"
+                size="sm"
+                className="h-9 border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+                aria-label="Test-Session beenden"
+              >
+                Test beenden
+              </Button>
+            </div>
           </div>
 
           {/* Top-Status */}
           <div
-            className="mt-1 flex w-full max-w-2xl translate-y-4 flex-wrap items-center justify-center gap-2 pr-24 text-xs text-muted-foreground sm:pr-28"
+            className="mt-2 flex w-full max-w-2xl flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground"
             role="status"
             aria-live="polite"
           >
-            <span aria-label={`${remainingUniqueCount} Karten verbleibend`}>
+            <span
+              aria-label={`${remainingUniqueCount} Karten verbleibend`}
+              className="rounded-full bg-muted/70 px-2 py-1"
+            >
               Verbleibend: <b className="text-foreground">{remainingUniqueCount}</b>
             </span>
-            <span>·</span>
-            <span aria-label={`${completedCount} Karten erledigt`}>
+            <span
+              aria-label={`${completedCount} Karten erledigt`}
+              className="rounded-full bg-muted/70 px-2 py-1"
+            >
               Erledigt: <b className="text-foreground">{completedCount}</b>
             </span>
-            <span>·</span>
-            <span aria-label={`Diese Karte: ${cardStreak} von 5 richtig`}>
+            <span
+              aria-label={`Diese Karte: ${cardStreak} von 5 richtig`}
+              className="rounded-full bg-muted/70 px-2 py-1"
+            >
               Diese Karte: <b className="text-foreground">{cardStreak}/5</b>
             </span>
           </div>
 
           {/* Fortschrittsbalken */}
-          <div className="mx-auto w-full max-w-2xl mt-1">
+          <div className="mx-auto mt-2 w-full max-w-2xl">
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
@@ -857,8 +878,8 @@ export default function Test() {
           </div>
 
           {/* Testkarte */}
-          <Card className="mx-auto w-full max-w-xs sm:max-w-md md:max-w-2xl p-3 sm:p-5 md:p-7 shadow-xl border border-slate-200/70 dark:border-slate-800/70 bg-background mt-[2cm]">
-            <div className="space-y-4">
+          <Card className="mx-auto mt-3 flex w-full min-h-0 max-w-xs flex-col overflow-y-auto border border-slate-200/70 bg-background p-3 shadow-xl dark:border-slate-800/70 sm:max-w-md sm:p-5 md:max-w-2xl md:p-7 max-h-[calc(100dvh-16rem)] sm:max-h-[calc(100dvh-18rem)]">
+            <div className="w-full space-y-4">
               <div className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed">
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
                 Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt.
@@ -887,7 +908,7 @@ export default function Test() {
                     </span>
                   </div>
 
-                  <div className="text-4xl sm:text-5xl font-semibold text-center leading-tight">
+                  <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">
                     {frontText}
                   </div>
 
@@ -937,7 +958,7 @@ export default function Test() {
                     </span>
                   </div>
 
-                  <div className="text-3xl sm:text-4xl font-semibold text-center leading-tight">{backText}</div>
+                  <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug">{backText}</div>
 
                   {showTransliteration && direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
@@ -1036,38 +1057,39 @@ export default function Test() {
           </div>
 
           {/* Bewertungs-Buttons */}
-          <div className="space-y-2 mt-2 w-full max-w-md px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
-            <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
-              <Button
-                onClick={() => gradeAnswerHook(false)}
-                variant="destructive"
-                size="sm"
-                disabled={!flipped}
-                className={`flex-1 shadow-lg transition-all duration-150 ${
-                  flipped
-                    ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
-                    : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
-                }`}
-                aria-label="Antwort als falsch markieren"
-              >
-                ❌ Falsch
-              </Button>
-              <Button
-                onClick={() => gradeAnswerHook(true)}
-                variant="default"
-                size="sm"
-                disabled={!flipped}
-                className={`flex-1 shadow-lg transition-all duration-150 ${
-                  flipped
-                    ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
-                }`}
-                aria-label="Antwort als richtig markieren"
-              >
-                ✅ Richtig
-              </Button>
+          <div className="mt-2 w-full max-w-2xl shrink-0 px-2 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
+            <div className="rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
+              <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
+                <Button
+                  onClick={() => gradeAnswerHook(false)}
+                  variant="destructive"
+                  size="sm"
+                  disabled={!flipped}
+                  className={`h-11 flex-1 shadow-lg transition-all duration-150 ${
+                    flipped
+                      ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                  }`}
+                  aria-label="Antwort als falsch markieren"
+                >
+                  ❌ Falsch
+                </Button>
+                <Button
+                  onClick={() => gradeAnswerHook(true)}
+                  variant="default"
+                  size="sm"
+                  disabled={!flipped}
+                  className={`h-11 flex-1 shadow-lg transition-all duration-150 ${
+                    flipped
+                      ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                  }`}
+                  aria-label="Antwort als richtig markieren"
+                >
+                  ✅ Richtig
+                </Button>
+              </div>
             </div>
-
           </div>
         </div>
       ) : null}
@@ -1075,7 +1097,7 @@ export default function Test() {
       {/* Dialog für Lektion-Auswahl */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
-          className="max-w-sm"
+          className="max-w-sm max-h-[85dvh] overflow-y-auto"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
@@ -1124,11 +1146,17 @@ export default function Test() {
               </div>
           </div>
 
-          <DialogFooter className="flex flex-row gap-2">
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
             <Button 
               variant="outline" 
+              onPointerDown={() => {
+                const active = document.activeElement;
+                if (active instanceof HTMLInputElement) {
+                  active.blur();
+                }
+              }}
               onClick={() => setDialogOpen(false)}
-              className="shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
+              className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
             >
               Abbrechen
             </Button>
@@ -1140,9 +1168,37 @@ export default function Test() {
                 }
               }}
               onClick={startLessonFromDialogHook}
-              className="shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
+              className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
             >
               Test starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Dialog für Session-Aktionen */}
+      <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction === "restart" ? "Test neu starten?" : "Test beenden?"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction === "restart"
+                ? "Alle Session-Zähler werden zurückgesetzt."
+                : "Dein aktueller Fortschritt dieser Session wird beendet."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="h-11" onClick={() => setConfirmAction(null)}>
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              className="h-11"
+              onClick={executeConfirmAction}
+            >
+              {confirmAction === "restart" ? "Neu starten" : "Beenden"}
             </Button>
           </DialogFooter>
         </DialogContent>
