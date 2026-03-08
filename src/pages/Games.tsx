@@ -69,12 +69,12 @@ const MODE_CARDS: GameModeCard[] = [
   {
     id: "blitz",
     title: "Blitzrunde",
-    subtitle: "60 Sekunden, so viele Treffer wie möglich",
+    subtitle: "Zeitlimit wählen und so viele Treffer wie möglich",
   },
   {
     id: "quiz",
     title: "4er-Quiz",
-    subtitle: "10 Multiple-Choice-Fragen",
+    subtitle: "Fragenanzahl wählen und die richtige Übersetzung tippen",
   },
   {
     id: "audio",
@@ -278,8 +278,6 @@ export default function Games() {
     setDirection,
     onlyLearned,
     setOnlyLearned,
-    onlyDue,
-    setOnlyDue,
     selectedLesson,
     setSelectedLesson,
     setupDialogOpen,
@@ -325,22 +323,12 @@ export default function Games() {
       filtered = filtered.filter((entry) => entry.lesson === selectedLesson);
     }
 
-    if (onlyDue) {
-      const dueProgress = await db.progress.where("dueAt").belowOrEqual(Date.now()).toArray();
-      const dueIds = new Set(
-        dueProgress
-          .map((progress) => progress.entryId)
-          .filter((id): id is number => typeof id === "number")
-      );
-      filtered = filtered.filter((entry) => dueIds.has(entry.id));
-    }
-
     if (onlyLearned) {
       filtered = filtered.filter((entry) => entry.viewed === true);
     }
 
     return filtered;
-  }, [onlyDue, onlyLearned, selectedLesson]);
+  }, [onlyLearned, selectedLesson]);
 
   useEffect(() => {
     let active = true;
@@ -511,9 +499,9 @@ export default function Games() {
 
     if (filtered.length < 4) {
       setStatus(
-        "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder 'nur fällige Karten'."
+        "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
       );
-      setShowFilterRelaxAction(onlyLearned || onlyDue);
+      setShowFilterRelaxAction(onlyLearned);
       return false;
     }
 
@@ -554,7 +542,7 @@ export default function Games() {
     setTimeLeft(blitzDurationSec);
     setGameRunning(true);
     return true;
-  }, [blitzDurationSec, direction, loadFilteredPool, mode, onlyDue, onlyLearned, selectedQuestionCount]);
+  }, [blitzDurationSec, direction, loadFilteredPool, mode, onlyLearned, selectedQuestionCount]);
 
   const finishQuiz = useCallback(
     (nextScore: number, nextAnswered: number, nextCorrectAnswers: number) => {
@@ -801,8 +789,6 @@ export default function Games() {
               onClick={() => {
                 if (onlyLearned) {
                   setOnlyLearned(false);
-                } else if (onlyDue) {
-                  setOnlyDue(false);
                 }
                 setShowFilterRelaxAction(false);
               }}
@@ -829,16 +815,24 @@ export default function Games() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
-                  variant={direction === "TH_DE" ? "default" : "outline"}
-                  className="min-h-[44px]"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                   onClick={() => setDirection("TH_DE")}
                 >
                   Thai → Deutsch
                 </Button>
                 <Button
                   size="sm"
-                  variant={direction === "DE_TH" ? "default" : "outline"}
-                  className="min-h-[44px]"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                   onClick={() => setDirection("DE_TH")}
                 >
                   Deutsch → Thai
@@ -860,16 +854,6 @@ export default function Games() {
               nur gelernte Karten
             </label>
 
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={onlyDue}
-                onChange={(e) => setOnlyDue(e.target.checked)}
-              />
-              nur fällige Karten
-            </label>
-
             {mode === "blitz" ? (
               <div className="space-y-1">
                 <p className="text-sm font-medium">Zeitlimit</p>
@@ -878,8 +862,12 @@ export default function Games() {
                     <Button
                       key={seconds}
                       size="sm"
-                      variant={blitzDurationSec === seconds ? "default" : "outline"}
-                      className="min-h-[44px]"
+                      variant={blitzDurationSec === seconds ? "default" : "secondary"}
+                      className={`min-h-[44px] transition-all ${
+                        blitzDurationSec === seconds
+                          ? "shadow-sm ring-2 ring-primary/30"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      }`}
                       onClick={() => setBlitzDurationSec(seconds)}
                     >
                       {seconds}s
@@ -895,8 +883,12 @@ export default function Games() {
                     <Button
                       key={count}
                       size="sm"
-                      variant={selectedQuestionCount === count ? "default" : "outline"}
-                      className="min-h-[44px]"
+                      variant={selectedQuestionCount === count ? "default" : "secondary"}
+                      className={`min-h-[44px] transition-all ${
+                        selectedQuestionCount === count
+                          ? "shadow-sm ring-2 ring-primary/30"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      }`}
                       onClick={() => {
                         if (mode === "quiz") setQuizQuestionCount(count);
                         if (mode === "audio") setAudioQuestionCount(count);
@@ -907,8 +899,12 @@ export default function Games() {
                   ))}
                   <Button
                     size="sm"
-                    variant={selectedQuestionCount === "ALL" ? "default" : "outline"}
-                    className="min-h-[44px]"
+                    variant={selectedQuestionCount === "ALL" ? "default" : "secondary"}
+                    className={`min-h-[44px] transition-all ${
+                      selectedQuestionCount === "ALL"
+                        ? "shadow-sm ring-2 ring-primary/30"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
                     onClick={() => {
                       setOnlyLearned(true);
                       if (mode === "quiz") setQuizQuestionCount("ALL");
@@ -954,7 +950,6 @@ export default function Games() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setOnlyDue(false);
                   setSelectedLesson(undefined);
                 }}
               >

@@ -13,7 +13,6 @@ export function useGamesSetup() {
   const [mode, setMode] = useState<GameMode>("blitz");
   const [direction, setDirection] = useState<GameDirection>("TH_DE");
   const [onlyLearned, setOnlyLearned] = useState(true);
-  const [onlyDue, setOnlyDue] = useState(false);
   const [quizQuestionCount, setQuizQuestionCount] = useState<QuestionCountOption>(() => {
     const raw = localStorage.getItem(QUIZ_QUESTION_COUNT_KEY);
     if (raw === "ALL") return "ALL";
@@ -70,8 +69,6 @@ export function useGamesSetup() {
     setDirection,
     onlyLearned,
     setOnlyLearned,
-    onlyDue,
-    setOnlyDue,
     quizQuestionCount,
     setQuizQuestionCount,
     audioQuestionCount,
