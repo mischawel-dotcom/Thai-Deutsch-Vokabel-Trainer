@@ -390,6 +390,16 @@ export const seedVocabularyData = [
     exampleGerman: 'Ich heiße Maria.',
   },
   {
+    thai: 'ผม',
+    german: 'ich (maennlich)',
+    transliteration: 'pom',
+    pos: 'Pronomen',
+    lesson: 1,
+    tags: ['Basics', 'A1'],
+    exampleThai: 'ผมชื่อไมเคิล',
+    exampleGerman: 'Ich heiße Michael.',
+  },
+  {
     thai: 'คุณ',
     german: 'du/Sie',
     transliteration: 'khun',

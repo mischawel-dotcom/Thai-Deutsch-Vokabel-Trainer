@@ -600,7 +600,7 @@ export default function Settings() {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             size="lg"
           >
-            ❓ Benutzer-Anleitung
+            Benutzer-Anleitung
           </Button>
         </Card>
       </div>
@@ -609,7 +609,7 @@ export default function Settings() {
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl">📱 Thai Vocab Trainer - Benutzer Anleitung</DialogTitle>
+            <DialogTitle className="text-2xl">📱 Thai-Deutsch Vokabel Trainer Benutzeranleitung</DialogTitle>
             <DialogDescription>Hier findest du eine Übersicht aller Funktionen</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 pr-4">
@@ -617,13 +617,13 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-lg mb-3">🏠 Home Seite (Startseite)</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Die Home Seite zeigt dir einen Überblick über denen Lernfortschritt mit vier Haupt-Indikatoren:
+                Die Home-Seite zeigt dir einen Überblick über deinen Lernfortschritt:
               </p>
               <ul className="space-y-2 text-sm">
-                <li><strong>Heute fällig (⭐):</strong> Zeigt wie viele Karten heute zur Wiederholung fällig sind. Klick auf die Karte zum automatischen Starten!</li>
+                <li><strong>Heute fällig (⭐):</strong> Anzahl Karten für heute (gemäß Tageslimit), Klick startet direkt Lernen.</li>
                 <li><strong>Vokabeln (📚):</strong> Gesamtanzahl aller Vokabeln in deinem Wortschatz</li>
-                <li><strong>Streak (🔥):</strong> Deine aktuelle Lern-Serie (Tage hintereinander)</li>
-                <li><strong>Heutiges Lernziel:</strong> Fortschrittsbalken für deine tägliche Lernquote</li>
+                <li><strong>Streak (🔥):</strong> Aktuelle und beste Lernserie inkl. 7-Tage-Übersicht im Dialog</li>
+                <li><strong>Heutiges Lernziel:</strong> Fortschrittsbalken basierend auf deinem Tagesziel</li>
               </ul>
             </div>
 
@@ -631,9 +631,9 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-lg mb-3">📚 Learn (Lernen)</h3>
               <ul className="space-y-2 text-sm">
-                <li>Neue Karten kennenlernen oder Karten wiederholen</li>
-                <li>Klick "Markiere als gelernt" wenn du die Karte beherrschst</li>
-                <li>Die App merkt sich deine Lernfortschritte (Spaced Repetition)</li>
+                <li>Lektion wählen, Session konfigurieren und Karten Schritt für Schritt lernen</li>
+                <li><strong>Markiere als gelernt/ungelernt:</strong> Setzt den Lernstatus der aktuellen Karte</li>
+                <li>Audio für Thai/Deutsch und Beispielsätze direkt auf der Karte</li>
               </ul>
             </div>
 
@@ -642,11 +642,21 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">🧪 Test (Abfrage)</h3>
               <ul className="space-y-2 text-sm">
                 <li><strong>Lernrichtung:</strong> Wird automatisch aus deinen Einstellungen übernommen</li>
-                <li><strong>Quick-Start - Gelernte Karten:</strong> Testet deine gelernten Karten</li>
-                <li><strong>Custom Test:</strong> Wähle eine genaue Anzahl von Karten</li>
-                <li><strong>Lektionen-Tests (L1-L4):</strong> Tests für spezifische Lektionen</li>
-                <li><strong>Navigation:</strong> Mit Pfeilen ⬅️➡️ zwischen Karten navigieren</li>
-                <li><strong>Richtung ändern:</strong> In den Einstellungen konfigurieren</li>
+                <li><strong>Fällige Karten testen:</strong> Standardmäßig nur SRS-fällige gelernte Karten, optional alle gelernten</li>
+                <li><strong>Lektions-Tests:</strong> Direktstart pro Lektion mit optionalem Kartenlimit</li>
+                <li><strong>Bewertung:</strong> Karte umdrehen, dann Falsch/Richtig tippen (5x richtig = Karte erledigt)</li>
+                <li><strong>Filter:</strong> Optional nach Lektion, Tags, nur gelernt und nur fällig</li>
+              </ul>
+            </div>
+
+            {/* Games Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">🎮 Spiele</h3>
+              <ul className="space-y-2 text-sm">
+                <li><strong>Modi:</strong> Blitzrunde, 4er-Quiz und Hör-Spiel</li>
+                <li><strong>Setup-Dialog:</strong> Modus antippen, dann Richtung, Fragenanzahl/Zeitlimit und Lektion wählen</li>
+                <li><strong>Fragenlogik:</strong> Verfügbare Karten kommen zuerst einmal dran, Wiederholungen danach in zufälliger Reihenfolge</li>
+                <li><strong>Gamification:</strong> XP, Level, Tagesaufgabe und Badges werden pro Runde aktualisiert</li>
               </ul>
             </div>
 
@@ -655,8 +665,8 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">📊 Exam (Prüfung)</h3>
               <ul className="space-y-2 text-sm">
                 <li>Formale Prüfung mit Bestehensgrenze (85% richtig = bestanden)</li>
-                <li>Detailliertes Ergebnis am Ende</li>
-                <li>Nutze das für realistische Lernzielkontrolle</li>
+                <li>Pro Frage eine Auswahlantwort, danach Auswertung mit Punkten und Ergebnis</li>
+                <li>Nutze das für realistische Lernzielkontrolle pro Lektion</li>
               </ul>
             </div>
 
@@ -665,8 +675,10 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">⚙️ Einstellungen (Settings)</h3>
               <ul className="space-y-2 text-sm">
                 <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 10)</li>
-                <li><strong>Lernrichtung:</strong> Standard für Tests (Thai→Deutsch oder Deutsch→Thai)</li>
-                <li><strong>Daten zurücksetzen:</strong> Alle Lernfortschritte löschen</li>
+                <li><strong>Lernrichtung:</strong> Standard für neue Test-Abfragen (Thai→Deutsch oder Deutsch→Thai)</li>
+                <li><strong>Sound:</strong> Effekte aktivieren/deaktivieren</li>
+                <li><strong>CSV Import/Export:</strong> Vokabeln sichern oder neue Datensätze einspielen</li>
+                <li><strong>Datenbank zurücksetzen:</strong> Löscht importierte Daten und Fortschritt (nur Standarddaten bleiben)</li>
               </ul>
             </div>
           </div>

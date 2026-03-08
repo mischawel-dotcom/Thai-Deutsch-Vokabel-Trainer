@@ -587,6 +587,21 @@ export const DEFAULT_VOCAB: VocabEntry[] = [
     "updatedAt": 1769891533945
   },
   {
+    "thai": "ผม",
+    "german": "ich (maennlich)",
+    "transliteration": "pom",
+    "pos": "Pronomen",
+    "lesson": 1,
+    "tags": [
+      "Basics",
+      "A1"
+    ],
+    "exampleThai": "ผมชื่อไมเคิล",
+    "exampleGerman": "Ich heiße Michael.",
+    "createdAt": 1769891533945,
+    "updatedAt": 1769891533945
+  },
+  {
     "thai": "คุณ",
     "german": "du/Sie",
     "transliteration": "khun",

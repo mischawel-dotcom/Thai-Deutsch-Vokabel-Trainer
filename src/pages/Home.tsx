@@ -145,7 +145,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">156</div>
+      <div className="text-3xl font-bold text-red-600">162</div>
       
       {/* Welcome Header */}
       <div>
@@ -401,7 +401,7 @@ export default function Home({ onNavigate }: HomeProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Button
           size="lg"
           className="h-20 text-lg font-semibold"
@@ -409,14 +409,6 @@ export default function Home({ onNavigate }: HomeProps) {
           onClick={() => onNavigate?.("learn")}
         >
           🎯 Jetzt lernen ({dueCount})
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="h-20 text-lg font-semibold"
-          onClick={() => onNavigate?.("list")}
-        >
-          📝 Alle Vokabeln anzeigen
         </Button>
       </div>
 

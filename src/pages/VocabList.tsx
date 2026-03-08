@@ -104,6 +104,7 @@ function Chip(props: {
 }
 
 export default function VocabList() {
+  const showManageActions = false;
   const [items, setItems] = useState<VocabEntry[]>([]);
   const [q, setQ] = useState("");
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -474,7 +475,7 @@ export default function VocabList() {
             <th>Translit.</th>
             <th>Wortart</th>
             <th>Tags</th>
-            <th></th>
+            {showManageActions ? <th></th> : null}
           </tr>
         </thead>
         <tbody>
@@ -503,35 +504,37 @@ export default function VocabList() {
                 </div>
               </td>
 
-              <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                <button
-                  onClick={() => openEdit(v)}
-                  style={{
-                    marginRight: 8,
-                    padding: "6px 10px",
-                    background: "transparent",
-                    color: fg,
-                    border: `1px solid ${border}`,
-                    borderRadius: 8,
-                    cursor: "pointer",
-                  }}
-                >
-                  Bearbeiten
-                </button>
-                <button
-                  onClick={() => remove(v.id)}
-                  style={{
-                    padding: "6px 10px",
-                    background: "transparent",
-                    color: fg,
-                    border: `1px solid ${border}`,
-                    borderRadius: 8,
-                    cursor: "pointer",
-                  }}
-                >
-                  Löschen
-                </button>
-              </td>
+              {showManageActions ? (
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  <button
+                    onClick={() => openEdit(v)}
+                    style={{
+                      marginRight: 8,
+                      padding: "6px 10px",
+                      background: "transparent",
+                      color: fg,
+                      border: `1px solid ${border}`,
+                      borderRadius: 8,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
+                    onClick={() => remove(v.id)}
+                    style={{
+                      padding: "6px 10px",
+                      background: "transparent",
+                      color: fg,
+                      border: `1px solid ${border}`,
+                      borderRadius: 8,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Löschen
+                  </button>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

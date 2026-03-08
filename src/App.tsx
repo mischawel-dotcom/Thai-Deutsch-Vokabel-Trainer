@@ -33,6 +33,13 @@ import {
 type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
 const ROUTES: Route[] = ["home", "list", "learn", "test", "exam", "games", "settings"];
 
+function buildDefaultVocabKey(thai: string, lesson?: number, transliteration?: string): string {
+  const safeThai = thai.trim();
+  const safeLesson = Number.isFinite(Number(lesson)) ? String(Number(lesson)) : "0";
+  const safeTransliteration = (transliteration ?? "").trim().toLowerCase();
+  return `${safeThai}__${safeLesson}__${safeTransliteration}`;
+}
+
 function isRoute(value: string): value is Route {
   return ROUTES.includes(value as Route);
 }
@@ -158,6 +165,35 @@ export default function App() {
           });
         if (corrected > 0) {
           console.log(`[App Init] Corrected ${corrected} vocab entry/entries: no/nicht -> nein/nicht`);
+        }
+
+        // Data migration: keep DB in sync when new default vocab entries are added.
+        const existingEntries = await db.vocab.toArray();
+        const existingKeys = new Set(
+          existingEntries.map((entry) =>
+            buildDefaultVocabKey(entry.thai, entry.lesson, entry.transliteration)
+          )
+        );
+        const missingDefaults = DEFAULT_VOCAB.filter(
+          (entry) =>
+            !existingKeys.has(
+              buildDefaultVocabKey(entry.thai, entry.lesson, entry.transliteration)
+            )
+        );
+
+        if (missingDefaults.length > 0) {
+          const now = Date.now();
+          const toAdd = missingDefaults.map((entry) => ({
+            ...entry,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const insertedIds = await db.vocab.bulkAdd(toAdd, { allKeys: true });
+          const normalizedIds = insertedIds
+            .map((id) => Number(id))
+            .filter((id): id is number => Number.isFinite(id) && id > 0);
+          await ensureProgressForEntries(normalizedIds);
+          console.log(`[App Init] Added ${toAdd.length} missing default vocab entries`);
         }
       } catch (err) {
         console.error("Failed to load default vocab:", err);
