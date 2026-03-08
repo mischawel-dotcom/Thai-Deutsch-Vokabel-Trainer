@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db, type VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
 import { shuffle } from "../lib/shuffle";
+import {
+  useGamesSetup,
+  type BlitzDurationOption,
+  type GameDirection,
+  type GameMode,
+} from "../hooks/useGamesSetup";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,11 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type GameMode = "blitz" | "quiz" | "audio";
-type GameDirection = "TH_DE" | "DE_TH";
-type QuestionCountOption = 10 | 15 | 20 | "ALL";
-type BlitzDurationOption = 60 | 90 | 120;
 
 type VocabWithId = VocabEntry & { id: number };
 
@@ -98,9 +99,6 @@ type GameStats = {
 };
 
 const GAME_STATS_KEY = "gamesStats";
-const QUIZ_QUESTION_COUNT_KEY = "gamesQuizQuestionCount";
-const AUDIO_QUESTION_COUNT_KEY = "gamesAudioQuestionCount";
-const BLITZ_DURATION_KEY = "gamesBlitzDurationSec";
 
 const BADGE_LABELS: Record<string, string> = {
   first_game: "Erstes Spiel",
@@ -273,31 +271,26 @@ function createQuestion(
 }
 
 export default function Games() {
-  const [mode, setMode] = useState<GameMode>("blitz");
-  const [direction, setDirection] = useState<GameDirection>("TH_DE");
-  const [onlyLearned, setOnlyLearned] = useState(true);
-  const [onlyDue, setOnlyDue] = useState(false);
-  const [quizQuestionCount, setQuizQuestionCount] = useState<QuestionCountOption>(() => {
-    const raw = localStorage.getItem(QUIZ_QUESTION_COUNT_KEY);
-    if (raw === "ALL") return "ALL";
-    const parsed = Number.parseInt(raw ?? "", 10);
-    if (parsed === 10 || parsed === 15 || parsed === 20) return parsed;
-    return 10;
-  });
-  const [audioQuestionCount, setAudioQuestionCount] = useState<QuestionCountOption>(() => {
-    const raw = localStorage.getItem(AUDIO_QUESTION_COUNT_KEY);
-    if (raw === "ALL") return "ALL";
-    const parsed = Number.parseInt(raw ?? "", 10);
-    if (parsed === 10 || parsed === 15 || parsed === 20) return parsed;
-    return 10;
-  });
-  const [blitzDurationSec, setBlitzDurationSec] = useState<BlitzDurationOption>(() => {
-    const parsed = Number.parseInt(localStorage.getItem(BLITZ_DURATION_KEY) ?? "", 10);
-    if (parsed === 60 || parsed === 90 || parsed === 120) return parsed;
-    return 60;
-  });
-  const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
-  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
+  const {
+    mode,
+    setMode,
+    direction,
+    setDirection,
+    onlyLearned,
+    setOnlyLearned,
+    onlyDue,
+    setOnlyDue,
+    selectedLesson,
+    setSelectedLesson,
+    setupDialogOpen,
+    setSetupDialogOpen,
+    selectedQuestionCount,
+    allLearnedModeActive,
+    blitzDurationSec,
+    setBlitzDurationSec,
+    setQuizQuestionCount,
+    setAudioQuestionCount,
+  } = useGamesSetup();
   const [endGameDialogOpen, setEndGameDialogOpen] = useState(false);
   const [lessons, setLessons] = useState<number[]>([]);
   const [status, setStatus] = useState<string>("");
@@ -321,7 +314,6 @@ export default function Games() {
   const [gameStats, setGameStats] = useState<GameStats>(DEFAULT_GAME_STATS);
   const feedbackTimeoutRef = useRef<number | null>(null);
 
-  const selectedQuestionCount = mode === "quiz" ? quizQuestionCount : audioQuestionCount;
   const totalQuestions =
     mode === "quiz" || mode === "audio" ? questionOrder.length : Number.POSITIVE_INFINITY;
 
@@ -369,18 +361,6 @@ export default function Games() {
   useEffect(() => {
     setGameStats(loadGameStats());
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(QUIZ_QUESTION_COUNT_KEY, String(quizQuestionCount));
-  }, [quizQuestionCount]);
-
-  useEffect(() => {
-    localStorage.setItem(AUDIO_QUESTION_COUNT_KEY, String(audioQuestionCount));
-  }, [audioQuestionCount]);
-
-  useEffect(() => {
-    localStorage.setItem(BLITZ_DURATION_KEY, String(blitzDurationSec));
-  }, [blitzDurationSec]);
 
   useEffect(() => {
     let active = true;
@@ -750,15 +730,6 @@ export default function Games() {
     gameRunning || result
       ? " "
       : "Blitzrunde, 4er-Quiz und Hör-Spiel als spielerische Wiederholung deiner Karten.";
-  const allLearnedModeActive =
-    (mode === "quiz" || mode === "audio") && selectedQuestionCount === "ALL";
-
-  useEffect(() => {
-    if (allLearnedModeActive && !onlyLearned) {
-      setOnlyLearned(true);
-    }
-  }, [allLearnedModeActive, onlyLearned]);
-
   return (
     <PageShell
       title={pageTitle}

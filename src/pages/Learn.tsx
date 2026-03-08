@@ -4,6 +4,7 @@ import type { VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
 import { isLearnSessionData, type LearnSessionData } from "../lib/sessionTypes";
 import { usePersistedSession } from "../hooks/usePersistedSession";
+import { useLearnLessonFlow } from "../hooks/useLearnLessonFlow";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -95,10 +96,6 @@ export default function Learn() {
   const [error, setError] = useState<string>("");
 
   // Dialog-State
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<number>(0);
-  const [includeViewed, setIncludeViewed] = useState(true);
-  const [cardLimit, setCardLimit] = useState<string>("");
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
 
   // Lesson Cache für bereits geladene Lektionen
@@ -303,56 +300,27 @@ export default function Learn() {
     })();
   }, [allLessons, sessionState.sessionActive]);
 
-  function openLessonDialog(lesson: number) {
-    const rawDailyLimit = localStorage.getItem("dailyLimit");
-    const parsedDailyLimit = rawDailyLimit ? parseInt(rawDailyLimit, 10) : 10;
-    const validDailyLimit = !isNaN(parsedDailyLimit) && parsedDailyLimit > 0 ? parsedDailyLimit : 10;
-    setSelectedLesson(lesson);
-    setCardLimit(String(validDailyLimit));
-    setIncludeViewed(false);
-    setDialogOpen(true);
-  }
-
-  async function startSession() {
-    try {
-      // Load lesson on-demand
-      let cards = await loadLesson(selectedLesson);
-
-      // Filter: nur ungesehene Karten
-      if (!includeViewed) {
-        cards = cards.filter((v) => !v.viewed);
-      }
-
-      // Sortieren nach ID
-      cards.sort((a, b) => {
-        const aId = a.id ?? 0;
-        const bId = b.id ?? 0;
-        return aId - bId;
-      });
-
-      // Limit anwenden
-      const limit = parseInt(cardLimit, 10);
-      if (!isNaN(limit) && limit > 0) {
-        cards = cards.slice(0, limit);
-      }
-
-      if (cards.length === 0) {
-        setStatus(`Keine Karten in Lektion ${selectedLesson} vorhanden.`);
-        setDialogOpen(false);
-        return;
-      }
-
+  const {
+    dialogOpen,
+    setDialogOpen,
+    selectedLesson,
+    includeViewed,
+    setIncludeViewed,
+    cardLimit,
+    setCardLimit,
+    openLessonDialog,
+    startSession,
+  } = useLearnLessonFlow({
+    loadLesson,
+    onStartSession: (cards) => {
       dispatchSession({
         type: "SET",
         payload: { lessonCards: cards },
       });
-      setStatus(`Lektion ${selectedLesson}: ${cards.length} Karte(n)`);
-      setDialogOpen(false);
-    } catch (e) {
-      console.error("Fehler beim Starten der Session:", e);
-      setError("Fehler beim Starten der Session");
-    }
-  }
+    },
+    onStatus: setStatus,
+    onError: setError,
+  });
 
   function endSession() {
     dispatchSession({ type: "END_SESSION" });
