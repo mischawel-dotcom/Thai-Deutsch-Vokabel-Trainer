@@ -20,8 +20,8 @@ type LearnDirection = "TH_DE" | "DE_TH";
 export default function Settings() {
   const [msg, setMsg] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [dailyLimit, setDailyLimit] = useState<number>(30);
-  const [inputValue, setInputValue] = useState<string>("30");
+  const [dailyLimit, setDailyLimit] = useState<number>(10);
+  const [inputValue, setInputValue] = useState<string>("10");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
@@ -129,10 +129,10 @@ export default function Settings() {
   }
 
   function resetDailyLimit() {
-    setDailyLimit(30);
-    setInputValue("30");
-    localStorage.setItem("dailyLimit", "30");
-    setMsg("✅ Limit zurückgesetzt auf 30");
+    setDailyLimit(10);
+    setInputValue("10");
+    localStorage.setItem("dailyLimit", "10");
+    setMsg("✅ Limit zurückgesetzt auf 10");
     setTimeout(() => setMsg(""), 3000);
   }
 
@@ -262,7 +262,7 @@ export default function Settings() {
                 Tägliches Lernziel
               </label>
               <p className="text-xs text-muted-foreground mb-2">
-                Maximale Karten, die täglich als "Heute fällig" angezeigt werden (Standard: 30)
+                Maximale Karten, die täglich als "Heute fällig" angezeigt werden (Standard: 10)
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -271,7 +271,7 @@ export default function Settings() {
                   onChange={(e) => setInputValue(e.target.value)}
                   min="1"
                   className="w-full sm:w-32 px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="z.B. 30"
+                  placeholder="z.B. 10"
                 />
                 <Button 
                   onClick={saveDailyLimit} 
@@ -664,7 +664,7 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-lg mb-3">⚙️ Einstellungen (Settings)</h3>
               <ul className="space-y-2 text-sm">
-                <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 30)</li>
+                <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 10)</li>
                 <li><strong>Lernrichtung:</strong> Standard für Tests (Thai→Deutsch oder Deutsch→Thai)</li>
                 <li><strong>Daten zurücksetzen:</strong> Alle Lernfortschritte löschen</li>
               </ul>

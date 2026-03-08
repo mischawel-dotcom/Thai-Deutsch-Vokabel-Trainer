@@ -218,8 +218,8 @@ export default function Learn() {
     if (sessionState.sessionActive) return;
 
     const rawLimit = localStorage.getItem("dailyLimit");
-    const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 30;
-    const validLimit = !isNaN(limitParsed) && limitParsed > 0 ? limitParsed : 30;
+    const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 10;
+    const validLimit = !isNaN(limitParsed) && limitParsed > 0 ? limitParsed : 10;
 
     const rawDueCount = localStorage.getItem("autoStartLearnDueCount");
     const dueParsed = rawDueCount ? parseInt(rawDueCount, 10) : validLimit;
@@ -304,9 +304,12 @@ export default function Learn() {
   }, [allLessons, sessionState.sessionActive]);
 
   function openLessonDialog(lesson: number) {
+    const rawDailyLimit = localStorage.getItem("dailyLimit");
+    const parsedDailyLimit = rawDailyLimit ? parseInt(rawDailyLimit, 10) : 10;
+    const validDailyLimit = !isNaN(parsedDailyLimit) && parsedDailyLimit > 0 ? parsedDailyLimit : 10;
     setSelectedLesson(lesson);
-    setCardLimit(""); // Leer = alle verfuegbaren Karten der Lektion
-    setIncludeViewed(true);
+    setCardLimit(String(validDailyLimit));
+    setIncludeViewed(false);
     setDialogOpen(true);
   }
 
@@ -691,10 +694,10 @@ export default function Learn() {
                 onChange={(e) => setCardLimit(e.target.value)}
                 min="1"
                 className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Alle Karten"
+                placeholder="z.B. 10"
               />
               <p className="text-xs text-muted-foreground">
-                Standard: alle verfügbaren Karten der Lektion
+                Standard: dein tägliches Lernziel. Leer = alle verfügbaren Karten der Lektion.
               </p>
             </div>
           </div>

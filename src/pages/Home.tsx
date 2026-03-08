@@ -26,7 +26,7 @@ export default function Home({ onNavigate }: HomeProps) {
       const num = parseInt(saved, 10);
       if (!isNaN(num) && num > 0) return num;
     }
-    return 30;
+    return 10;
   };
 
   const initialDailyLimit = getInitialDailyLimit();
@@ -43,10 +43,10 @@ export default function Home({ onNavigate }: HomeProps) {
     const now = Date.now();
     const vocab = await db.vocab.count();
 
-    // Read daily limit from localStorage (default: 30)
+    // Read daily limit from localStorage (default: 10)
     const savedLimit = localStorage.getItem("dailyLimit");
-    const limit = savedLimit ? parseInt(savedLimit, 10) : 30;
-    const validLimit = !isNaN(limit) && limit > 0 ? limit : 30;
+    const limit = savedLimit ? parseInt(savedLimit, 10) : 10;
+    const validLimit = !isNaN(limit) && limit > 0 ? limit : 10;
     setDailyLimit(validLimit);
 
     // Calculate learned today: only cards mastered (dueAt moved to future after correct streak)
@@ -146,7 +146,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">147</div>
+      <div className="text-3xl font-bold text-red-600">149</div>
       
       {/* Welcome Header */}
       <div>
