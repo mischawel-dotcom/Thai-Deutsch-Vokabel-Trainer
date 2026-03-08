@@ -33,11 +33,10 @@ import {
 type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
 const ROUTES: Route[] = ["home", "list", "learn", "test", "exam", "games", "settings"];
 
-function buildDefaultVocabKey(thai: string, lesson?: number, transliteration?: string): string {
+function buildDefaultVocabKey(thai: string, transliteration?: string): string {
   const safeThai = thai.trim();
-  const safeLesson = Number.isFinite(Number(lesson)) ? String(Number(lesson)) : "0";
   const safeTransliteration = (transliteration ?? "").trim().toLowerCase();
-  return `${safeThai}__${safeLesson}__${safeTransliteration}`;
+  return `${safeThai}__${safeTransliteration}`;
 }
 
 function isRoute(value: string): value is Route {
@@ -169,15 +168,77 @@ export default function App() {
 
         // Data migration: keep DB in sync when new default vocab entries are added.
         const existingEntries = await db.vocab.toArray();
+        const defaultByKey = new Map(
+          DEFAULT_VOCAB.map((entry) => [
+            buildDefaultVocabKey(entry.thai, entry.transliteration),
+            entry,
+          ])
+        );
+        const existingByKey = new Map<string, typeof existingEntries>();
+        for (const entry of existingEntries) {
+          const key = buildDefaultVocabKey(entry.thai, entry.transliteration);
+          const list = existingByKey.get(key);
+          if (list) {
+            list.push(entry);
+          } else {
+            existingByKey.set(key, [entry]);
+          }
+        }
+
+        const idsToRemove: number[] = [];
+        const idsToEnsureProgress = new Set<number>();
+
+        for (const [key, defaultsEntry] of defaultByKey.entries()) {
+          const matches = existingByKey.get(key) ?? [];
+          if (matches.length === 0) continue;
+
+          // Keep one canonical row per default key and remove the rest.
+          const canonical =
+            matches.find((entry) => Number(entry.lesson) === Number(defaultsEntry.lesson)) ??
+            matches[0];
+
+          if (canonical.id != null) {
+            await db.vocab.update(canonical.id, {
+              thai: defaultsEntry.thai,
+              german: defaultsEntry.german,
+              transliteration: defaultsEntry.transliteration,
+              pos: defaultsEntry.pos,
+              lesson: defaultsEntry.lesson,
+              tags: defaultsEntry.tags,
+              exampleThai: defaultsEntry.exampleThai,
+              exampleGerman: defaultsEntry.exampleGerman,
+              updatedAt: Date.now(),
+            });
+            idsToEnsureProgress.add(canonical.id);
+          }
+
+          for (const duplicate of matches) {
+            if (duplicate.id == null || duplicate.id === canonical.id) continue;
+            idsToRemove.push(duplicate.id);
+          }
+        }
+
+        if (idsToRemove.length > 0) {
+          await db.transaction("rw", db.vocab, db.progress, async () => {
+            await db.vocab.bulkDelete(idsToRemove);
+            await db.progress.bulkDelete(idsToRemove);
+          });
+          console.log(`[App Init] Removed ${idsToRemove.length} duplicate default vocab entries`);
+        }
+
+        if (idsToEnsureProgress.size > 0) {
+          await ensureProgressForEntries(Array.from(idsToEnsureProgress));
+        }
+
         const existingKeys = new Set(
-          existingEntries.map((entry) =>
-            buildDefaultVocabKey(entry.thai, entry.lesson, entry.transliteration)
+          (await db.vocab.toArray()).map((entry) =>
+            buildDefaultVocabKey(entry.thai, entry.transliteration)
           )
         );
         const missingDefaults = DEFAULT_VOCAB.filter(
           (entry) =>
             !existingKeys.has(
-              buildDefaultVocabKey(entry.thai, entry.lesson, entry.transliteration)
+              buildDefaultVocabKey(entry.thai, entry.transliteration)
             )
         );
 
