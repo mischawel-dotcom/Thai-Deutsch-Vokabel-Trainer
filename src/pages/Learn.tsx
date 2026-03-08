@@ -4,6 +4,7 @@ import type { VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
 import { isLearnSessionData, type LearnSessionData } from "../lib/sessionTypes";
 import { usePersistedSession } from "../hooks/usePersistedSession";
+import { useLearnLessonFlow } from "../hooks/useLearnLessonFlow";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
@@ -95,10 +96,6 @@ export default function Learn() {
   const [error, setError] = useState<string>("");
 
   // Dialog-State
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<number>(0);
-  const [includeViewed, setIncludeViewed] = useState(true);
-  const [cardLimit, setCardLimit] = useState<string>("");
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
 
   // Lesson Cache für bereits geladene Lektionen
@@ -218,8 +215,8 @@ export default function Learn() {
     if (sessionState.sessionActive) return;
 
     const rawLimit = localStorage.getItem("dailyLimit");
-    const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 30;
-    const validLimit = !isNaN(limitParsed) && limitParsed > 0 ? limitParsed : 30;
+    const limitParsed = rawLimit ? parseInt(rawLimit, 10) : 10;
+    const validLimit = !isNaN(limitParsed) && limitParsed > 0 ? limitParsed : 10;
 
     const rawDueCount = localStorage.getItem("autoStartLearnDueCount");
     const dueParsed = rawDueCount ? parseInt(rawDueCount, 10) : validLimit;
@@ -303,53 +300,27 @@ export default function Learn() {
     })();
   }, [allLessons, sessionState.sessionActive]);
 
-  function openLessonDialog(lesson: number) {
-    setSelectedLesson(lesson);
-    setCardLimit(""); // Leer = alle verfuegbaren Karten der Lektion
-    setIncludeViewed(true);
-    setDialogOpen(true);
-  }
-
-  async function startSession() {
-    try {
-      // Load lesson on-demand
-      let cards = await loadLesson(selectedLesson);
-
-      // Filter: nur ungesehene Karten
-      if (!includeViewed) {
-        cards = cards.filter((v) => !v.viewed);
-      }
-
-      // Sortieren nach ID
-      cards.sort((a, b) => {
-        const aId = a.id ?? 0;
-        const bId = b.id ?? 0;
-        return aId - bId;
-      });
-
-      // Limit anwenden
-      const limit = parseInt(cardLimit, 10);
-      if (!isNaN(limit) && limit > 0) {
-        cards = cards.slice(0, limit);
-      }
-
-      if (cards.length === 0) {
-        setStatus(`Keine Karten in Lektion ${selectedLesson} vorhanden.`);
-        setDialogOpen(false);
-        return;
-      }
-
+  const {
+    dialogOpen,
+    setDialogOpen,
+    selectedLesson,
+    includeViewed,
+    setIncludeViewed,
+    cardLimit,
+    setCardLimit,
+    openLessonDialog,
+    startSession,
+  } = useLearnLessonFlow({
+    loadLesson,
+    onStartSession: (cards) => {
       dispatchSession({
         type: "SET",
         payload: { lessonCards: cards },
       });
-      setStatus(`Lektion ${selectedLesson}: ${cards.length} Karte(n)`);
-      setDialogOpen(false);
-    } catch (e) {
-      console.error("Fehler beim Starten der Session:", e);
-      setError("Fehler beim Starten der Session");
-    }
-  }
+    },
+    onStatus: setStatus,
+    onError: setError,
+  });
 
   function endSession() {
     dispatchSession({ type: "END_SESSION" });
@@ -691,10 +662,10 @@ export default function Learn() {
                 onChange={(e) => setCardLimit(e.target.value)}
                 min="1"
                 className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Alle Karten"
+                placeholder="z.B. 10"
               />
               <p className="text-xs text-muted-foreground">
-                Standard: alle verfügbaren Karten der Lektion
+                Standard: dein tägliches Lernziel. Leer = alle verfügbaren Karten der Lektion.
               </p>
             </div>
           </div>

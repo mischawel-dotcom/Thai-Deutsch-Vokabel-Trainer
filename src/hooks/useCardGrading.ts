@@ -54,13 +54,8 @@ export function useCardGrading({
       }
 
       if (!isRight) {
-        // Falsch: Streak zurücksetzen, dueAt auf jetzt setzen
-        const now = Date.now();
-        await db.progress.update(currentId, {
-          dueAt: now,
-          intervalDays: 0,
-          updatedAt: now,
-        });
+        // Falsch: nur Session-Streak zurücksetzen.
+        // Das persistente SRS wurde bereits via gradeCard() aktualisiert.
         dispatchSession({ type: "resetStreak", id: currentId });
         requeueCurrentToEnd();
         return;
@@ -70,27 +65,10 @@ export function useCardGrading({
       const nextStreak = (streaks.get(currentId) ?? 0) + 1;
       dispatchSession({ type: "updateStreak", id: currentId, value: nextStreak });
 
-      if (nextStreak < 5) {
-        // Noch nicht 5x: dueAt auf jetzt setzen
-        const now = Date.now();
-        await db.progress.update(currentId, {
-          dueAt: now,
-          intervalDays: 0,
-          updatedAt: now,
-        });
-      } else {
-        // 5x RICHTIG: Markiere als erledigt + set dueAt to tomorrow
+      if (nextStreak >= 5) {
+        // 5x RICHTIG in dieser Session: Karte als erledigt markieren.
+        // Das persistente SRS (dueAt/intervall/repetitions) kommt aus gradeCard().
         dispatchSession({ type: "addDone", id: currentId });
-
-        const now = Date.now();
-        const tomorrow = now + 24 * 60 * 60 * 1000;
-
-        // Update SRS: Setze viewed=true + dueAt tomorrow
-        await db.progress.update(currentId, {
-          dueAt: tomorrow,
-          intervalDays: 1,
-          updatedAt: now,
-        });
         await db.vocab.update(currentId, { viewed: true });
 
         if (current && current.lesson) {

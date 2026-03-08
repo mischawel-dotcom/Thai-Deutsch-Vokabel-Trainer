@@ -33,6 +33,12 @@ import {
 type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
 const ROUTES: Route[] = ["home", "list", "learn", "test", "exam", "games", "settings"];
 
+function buildDefaultVocabKey(thai: string, transliteration?: string): string {
+  const safeThai = thai.trim();
+  const safeTransliteration = (transliteration ?? "").trim().toLowerCase();
+  return `${safeThai}__${safeTransliteration}`;
+}
+
 function isRoute(value: string): value is Route {
   return ROUTES.includes(value as Route);
 }
@@ -145,6 +151,110 @@ export default function App() {
               `[App Init] DB already populated with ${count} entries and ${progressCount} progress records, skipping load`
             );
           }
+        }
+
+        // Data hotfix: normalize german translation for "ไม่" from "no/nicht" -> "nein/nicht".
+        const corrected = await db.vocab
+          .where("thai")
+          .equals("ไม่")
+          .and((entry) => entry.german === "no/nicht")
+          .modify((entry) => {
+            entry.german = "nein/nicht";
+            entry.updatedAt = Date.now();
+          });
+        if (corrected > 0) {
+          console.log(`[App Init] Corrected ${corrected} vocab entry/entries: no/nicht -> nein/nicht`);
+        }
+
+        // Data migration: keep DB in sync when new default vocab entries are added.
+        const existingEntries = await db.vocab.toArray();
+        const defaultByKey = new Map(
+          DEFAULT_VOCAB.map((entry) => [
+            buildDefaultVocabKey(entry.thai, entry.transliteration),
+            entry,
+          ])
+        );
+        const existingByKey = new Map<string, typeof existingEntries>();
+        for (const entry of existingEntries) {
+          const key = buildDefaultVocabKey(entry.thai, entry.transliteration);
+          const list = existingByKey.get(key);
+          if (list) {
+            list.push(entry);
+          } else {
+            existingByKey.set(key, [entry]);
+          }
+        }
+
+        const idsToRemove: number[] = [];
+        const idsToEnsureProgress = new Set<number>();
+
+        for (const [key, defaultsEntry] of defaultByKey.entries()) {
+          const matches = existingByKey.get(key) ?? [];
+          if (matches.length === 0) continue;
+
+          // Keep one canonical row per default key and remove the rest.
+          const canonical =
+            matches.find((entry) => Number(entry.lesson) === Number(defaultsEntry.lesson)) ??
+            matches[0];
+
+          if (canonical.id != null) {
+            await db.vocab.update(canonical.id, {
+              thai: defaultsEntry.thai,
+              german: defaultsEntry.german,
+              transliteration: defaultsEntry.transliteration,
+              pos: defaultsEntry.pos,
+              lesson: defaultsEntry.lesson,
+              tags: defaultsEntry.tags,
+              exampleThai: defaultsEntry.exampleThai,
+              exampleGerman: defaultsEntry.exampleGerman,
+              updatedAt: Date.now(),
+            });
+            idsToEnsureProgress.add(canonical.id);
+          }
+
+          for (const duplicate of matches) {
+            if (duplicate.id == null || duplicate.id === canonical.id) continue;
+            idsToRemove.push(duplicate.id);
+          }
+        }
+
+        if (idsToRemove.length > 0) {
+          await db.transaction("rw", db.vocab, db.progress, async () => {
+            await db.vocab.bulkDelete(idsToRemove);
+            await db.progress.bulkDelete(idsToRemove);
+          });
+          console.log(`[App Init] Removed ${idsToRemove.length} duplicate default vocab entries`);
+        }
+
+        if (idsToEnsureProgress.size > 0) {
+          await ensureProgressForEntries(Array.from(idsToEnsureProgress));
+        }
+
+        const existingKeys = new Set(
+          (await db.vocab.toArray()).map((entry) =>
+            buildDefaultVocabKey(entry.thai, entry.transliteration)
+          )
+        );
+        const missingDefaults = DEFAULT_VOCAB.filter(
+          (entry) =>
+            !existingKeys.has(
+              buildDefaultVocabKey(entry.thai, entry.transliteration)
+            )
+        );
+
+        if (missingDefaults.length > 0) {
+          const now = Date.now();
+          const toAdd = missingDefaults.map((entry) => ({
+            ...entry,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const insertedIds = await db.vocab.bulkAdd(toAdd, { allKeys: true });
+          const normalizedIds = insertedIds
+            .map((id) => Number(id))
+            .filter((id): id is number => Number.isFinite(id) && id > 0);
+          await ensureProgressForEntries(normalizedIds);
+          console.log(`[App Init] Added ${toAdd.length} missing default vocab entries`);
         }
       } catch (err) {
         console.error("Failed to load default vocab:", err);

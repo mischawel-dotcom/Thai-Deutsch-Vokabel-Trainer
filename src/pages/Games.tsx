@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db, type VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
 import { shuffle } from "../lib/shuffle";
+import {
+  useGamesSetup,
+  type BlitzDurationOption,
+  type GameDirection,
+  type GameMode,
+} from "../hooks/useGamesSetup";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,12 +15,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type GameMode = "blitz" | "quiz" | "audio";
-type GameDirection = "TH_DE" | "DE_TH";
 
 type VocabWithId = VocabEntry & { id: number };
 
@@ -65,12 +69,12 @@ const MODE_CARDS: GameModeCard[] = [
   {
     id: "blitz",
     title: "Blitzrunde",
-    subtitle: "60 Sekunden, so viele Treffer wie möglich",
+    subtitle: "Zeitlimit wählen und so viele Treffer wie möglich",
   },
   {
     id: "quiz",
     title: "4er-Quiz",
-    subtitle: "10 Multiple-Choice-Fragen",
+    subtitle: "Fragenanzahl wählen und die richtige Übersetzung tippen",
   },
   {
     id: "audio",
@@ -197,18 +201,8 @@ function asVocabWithId(entries: VocabEntry[]): VocabWithId[] {
   return entries.filter((entry): entry is VocabWithId => typeof entry.id === "number");
 }
 
-function createQuestion(
-  pool: VocabWithId[],
-  direction: GameDirection,
-  previousEntryId?: number
-): GameQuestion | null {
-  const candidatePool = previousEntryId
-    ? pool.filter((entry) => entry.id !== previousEntryId)
-    : pool;
-  const effectiveCandidates = candidatePool.length > 0 ? candidatePool : pool;
-
-  // Only pick entries that can actually produce 3 distinct distractors.
-  const validBases = effectiveCandidates.filter((baseEntry) => {
+function getValidBaseEntries(pool: VocabWithId[], direction: GameDirection): VocabWithId[] {
+  return pool.filter((baseEntry) => {
     const correct = direction === "TH_DE" ? baseEntry.german : baseEntry.thai;
     const distractors = new Set(
       pool
@@ -218,9 +212,39 @@ function createQuestion(
     );
     return distractors.size >= 3;
   });
+}
 
-  const baseList = validBases.length > 0 ? validBases : effectiveCandidates;
-  const base = baseList[Math.floor(Math.random() * baseList.length)];
+function buildQuestionOrder(baseIds: number[], targetCount: number): number[] {
+  if (baseIds.length === 0 || targetCount <= 0) return [];
+
+  const order: number[] = [];
+  let previousId: number | undefined;
+  while (order.length < targetCount) {
+    let cycle = shuffle(baseIds);
+    if (previousId !== undefined && cycle.length > 1 && cycle[0] === previousId) {
+      cycle = [...cycle.slice(1), cycle[0]];
+    }
+    for (const id of cycle) {
+      if (order.length >= targetCount) break;
+      order.push(id);
+      previousId = id;
+    }
+  }
+  return order;
+}
+
+function createQuestion(
+  pool: VocabWithId[],
+  direction: GameDirection,
+  preferredEntryId?: number
+): GameQuestion | null {
+  const validBases = getValidBaseEntries(pool, direction);
+  if (validBases.length === 0) return null;
+
+  const base =
+    preferredEntryId != null
+      ? validBases.find((entry) => entry.id === preferredEntryId) ?? null
+      : validBases[Math.floor(Math.random() * validBases.length)];
   if (!base) return null;
 
   const correctAnswer = direction === "TH_DE" ? base.german : base.thai;
@@ -247,12 +271,25 @@ function createQuestion(
 }
 
 export default function Games() {
-  const [mode, setMode] = useState<GameMode>("blitz");
-  const [direction, setDirection] = useState<GameDirection>("TH_DE");
-  const [onlyLearned, setOnlyLearned] = useState(true);
-  const [onlyDue, setOnlyDue] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
-  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const {
+    mode,
+    setMode,
+    direction,
+    setDirection,
+    onlyLearned,
+    setOnlyLearned,
+    selectedLesson,
+    setSelectedLesson,
+    setupDialogOpen,
+    setSetupDialogOpen,
+    selectedQuestionCount,
+    allLearnedModeActive,
+    blitzDurationSec,
+    setBlitzDurationSec,
+    setQuizQuestionCount,
+    setAudioQuestionCount,
+  } = useGamesSetup();
+  const [endGameDialogOpen, setEndGameDialogOpen] = useState(false);
   const [lessons, setLessons] = useState<number[]>([]);
   const [status, setStatus] = useState<string>("");
   const [showFilterRelaxAction, setShowFilterRelaxAction] = useState(false);
@@ -265,7 +302,9 @@ export default function Games() {
   const [answered, setAnswered] = useState<number>(0);
   const [correctAnswers, setCorrectAnswers] = useState<number>(0);
   const [questionIndex, setQuestionIndex] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(60);
+  const [timeLeft, setTimeLeft] = useState<number>(blitzDurationSec);
+  const [questionOrder, setQuestionOrder] = useState<number[]>([]);
+  const [orderCursor, setOrderCursor] = useState<number>(0);
   const [gameRunning, setGameRunning] = useState<boolean>(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [answerFeedback, setAnswerFeedback] = useState<AnswerFeedback | null>(null);
@@ -274,7 +313,7 @@ export default function Games() {
   const feedbackTimeoutRef = useRef<number | null>(null);
 
   const totalQuestions =
-    mode === "quiz" || mode === "audio" ? Math.min(10, pool.length) : Number.POSITIVE_INFINITY;
+    mode === "quiz" || mode === "audio" ? questionOrder.length : Number.POSITIVE_INFINITY;
 
   const loadFilteredPool = useCallback(async (): Promise<VocabWithId[]> => {
     const allEntries = asVocabWithId(await db.vocab.toArray());
@@ -284,22 +323,12 @@ export default function Games() {
       filtered = filtered.filter((entry) => entry.lesson === selectedLesson);
     }
 
-    if (onlyDue) {
-      const dueProgress = await db.progress.where("dueAt").belowOrEqual(Date.now()).toArray();
-      const dueIds = new Set(
-        dueProgress
-          .map((progress) => progress.entryId)
-          .filter((id): id is number => typeof id === "number")
-      );
-      filtered = filtered.filter((entry) => dueIds.has(entry.id));
-    }
-
     if (onlyLearned) {
       filtered = filtered.filter((entry) => entry.viewed === true);
     }
 
     return filtered;
-  }, [onlyDue, onlyLearned, selectedLesson]);
+  }, [onlyLearned, selectedLesson]);
 
   useEffect(() => {
     let active = true;
@@ -449,13 +478,15 @@ export default function Games() {
     setAnswered(0);
     setCorrectAnswers(0);
     setQuestionIndex(0);
-    setTimeLeft(60);
+    setQuestionOrder([]);
+    setOrderCursor(0);
+    setTimeLeft(blitzDurationSec);
     setGameRunning(false);
     setIsSpeaking(false);
     setAnswerFeedback(null);
-  }, []);
+  }, [blitzDurationSec]);
 
-  const startGame = useCallback(async () => {
+  const startGame = useCallback(async (): Promise<boolean> => {
     if (feedbackTimeoutRef.current != null) {
       window.clearTimeout(feedbackTimeoutRef.current);
       feedbackTimeoutRef.current = null;
@@ -468,27 +499,50 @@ export default function Games() {
 
     if (filtered.length < 4) {
       setStatus(
-        "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder 'nur fällige Karten'."
+        "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
       );
-      setShowFilterRelaxAction(onlyLearned || onlyDue);
-      return;
+      setShowFilterRelaxAction(onlyLearned);
+      return false;
     }
 
-    const firstQuestion = createQuestion(filtered, direction);
-    if (!firstQuestion) {
+    const validBases = getValidBaseEntries(filtered, direction);
+    if (validBases.length === 0) {
       setStatus("Zu wenig Antwortvielfalt für Multiple-Choice in dieser Auswahl.");
-      return;
+      return false;
+    }
+
+    const validBaseIds = validBases.map((entry) => entry.id);
+    const desiredQuestionCount =
+      mode === "blitz"
+        ? validBaseIds.length
+        : selectedQuestionCount === "ALL"
+          ? validBaseIds.length
+          : selectedQuestionCount;
+
+    if (desiredQuestionCount <= 0) {
+      setStatus("Keine passenden Karten für die gewählte Spielkonfiguration.");
+      return false;
+    }
+
+    const order = buildQuestionOrder(validBaseIds, desiredQuestionCount);
+    const firstQuestion = createQuestion(filtered, direction, order[0]);
+    if (!firstQuestion) {
+      setStatus("Start nicht möglich: Frage konnte nicht generiert werden.");
+      return false;
     }
 
     setPool(filtered);
+    setQuestionOrder(order);
+    setOrderCursor(0);
     setQuestion(firstQuestion);
     setScore(0);
     setAnswered(0);
     setCorrectAnswers(0);
     setQuestionIndex(0);
-    setTimeLeft(60);
+    setTimeLeft(blitzDurationSec);
     setGameRunning(true);
-  }, [direction, loadFilteredPool, onlyDue, onlyLearned]);
+    return true;
+  }, [blitzDurationSec, direction, loadFilteredPool, mode, onlyLearned, selectedQuestionCount]);
 
   const finishQuiz = useCallback(
     (nextScore: number, nextAnswered: number, nextCorrectAnswers: number) => {
@@ -498,6 +552,25 @@ export default function Games() {
     },
     [finalizeGame, mode, totalQuestions]
   );
+
+  const endCurrentGame = useCallback(() => {
+    if (!gameRunning) return;
+    if (feedbackTimeoutRef.current != null) {
+      window.clearTimeout(feedbackTimeoutRef.current);
+      feedbackTimeoutRef.current = null;
+    }
+    stopSpeak();
+    setIsSpeaking(false);
+    setAnswerFeedback(null);
+    const finalTotal =
+      mode === "blitz"
+        ? answered
+        : totalQuestions === Number.POSITIVE_INFINITY
+          ? answered
+          : totalQuestions;
+    finalizeGame(mode, score, answered, correctAnswers, finalTotal);
+    setEndGameDialogOpen(false);
+  }, [answered, correctAnswers, finalizeGame, gameRunning, mode, score, totalQuestions]);
 
   const answerQuestion = useCallback(
     (selected: string) => {
@@ -533,25 +606,46 @@ export default function Games() {
 
         if (mode === "quiz" || mode === "audio") {
           const nextQuestionIndex = questionIndex + 1;
+          const nextCursor = orderCursor + 1;
           setQuestionIndex(nextQuestionIndex);
 
-          if (nextQuestionIndex >= totalQuestions) {
+          if (nextCursor >= questionOrder.length) {
             finishQuiz(nextScore, nextAnswered, nextCorrectAnswers);
             return;
           }
-        }
 
-        const next = createQuestion(pool, direction, question.entryId);
-        if (!next) {
-          setStatus("Spiel beendet: Keine weiteren Fragen generierbar.");
-          const finalTotal =
-            (mode === "quiz" || mode === "audio") && totalQuestions !== Number.POSITIVE_INFINITY
-              ? totalQuestions
-              : nextAnswered;
-          finalizeGame(mode, nextScore, nextAnswered, nextCorrectAnswers, finalTotal);
+          const next = createQuestion(pool, direction, questionOrder[nextCursor]);
+          if (!next) {
+            setStatus("Spiel beendet: Keine weiteren Fragen generierbar.");
+            finishQuiz(nextScore, nextAnswered, nextCorrectAnswers);
+            return;
+          }
+          setOrderCursor(nextCursor);
+          setQuestion(next);
           return;
         }
 
+        let nextCursor = orderCursor + 1;
+        let activeOrder = questionOrder;
+        if (nextCursor >= activeOrder.length) {
+          const validBaseIds = getValidBaseEntries(pool, direction).map((entry) => entry.id);
+          if (validBaseIds.length === 0) {
+            finalizeGame(mode, nextScore, nextAnswered, nextCorrectAnswers, nextAnswered);
+            return;
+          }
+          activeOrder = buildQuestionOrder(validBaseIds, validBaseIds.length);
+          setQuestionOrder(activeOrder);
+          nextCursor = 0;
+        }
+
+        const next = createQuestion(pool, direction, activeOrder[nextCursor]);
+        if (!next) {
+          setStatus("Spiel beendet: Keine weiteren Fragen generierbar.");
+          finalizeGame(mode, nextScore, nextAnswered, nextCorrectAnswers, nextAnswered);
+          return;
+        }
+
+        setOrderCursor(nextCursor);
         setQuestion(next);
       }, 450);
     },
@@ -564,11 +658,12 @@ export default function Games() {
       finishQuiz,
       gameRunning,
       mode,
+      orderCursor,
       pool,
       question,
       questionIndex,
+      questionOrder,
       score,
-      totalQuestions,
     ]
   );
 
@@ -660,14 +755,14 @@ export default function Games() {
                     type="button"
                     onClick={() => {
                       setMode(modeCard.id);
-                      void startGame();
+                      setSetupDialogOpen(true);
                     }}
                     className="w-full min-h-[56px] rounded-lg border border-border bg-card px-3 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-muted/50 hover:shadow-md active:translate-y-0 active:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    aria-label={`${modeCard.title} starten`}
+                    aria-label={`${modeCard.title} konfigurieren und starten`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-medium">{modeCard.title}</span>
-                      <span className="text-xs text-primary">Zum Start tippen</span>
+                      <span className="text-xs text-primary">Starten</span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{modeCard.subtitle}</p>
                   </button>
@@ -675,41 +770,14 @@ export default function Games() {
               })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Aktiv: <b>{mode === "blitz" ? "Blitzrunde (60s)" : mode === "quiz" ? "4er-Quiz (10 Fragen)" : "Hör-Spiel (10 Fragen)"}</b>
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium">2) Setup</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant={direction === "TH_DE" ? "default" : "outline"}
-                className="min-h-[44px]"
-                onClick={() => setDirection("TH_DE")}
-              >
-                Thai → Deutsch
-              </Button>
-              <Button
-                size="sm"
-                variant={direction === "DE_TH" ? "default" : "outline"}
-                className="min-h-[44px]"
-                onClick={() => setDirection("DE_TH")}
-              >
-                Deutsch → Thai
-              </Button>
-            </div>
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={onlyLearned}
-                onChange={(e) => setOnlyLearned(e.target.checked)}
-              />
-              nur gelernte Karten
-            </label>
-            <p className="text-xs text-muted-foreground">
-              {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} Karten verfügbar`}
+              Aktiv:{" "}
+              <b>
+                {mode === "blitz"
+                  ? `Blitzrunde (${blitzDurationSec}s)`
+                  : mode === "quiz"
+                    ? `4er-Quiz (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`
+                    : `Hör-Spiel (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`}
+              </b>
             </p>
           </div>
 
@@ -721,8 +789,6 @@ export default function Games() {
               onClick={() => {
                 if (onlyLearned) {
                   setOnlyLearned(false);
-                } else if (onlyDue) {
-                  setOnlyDue(false);
                 }
                 setShowFilterRelaxAction(false);
               }}
@@ -734,25 +800,125 @@ export default function Games() {
         </Card>
       ) : null}
 
-      <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>
+      <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
         <DialogContent className="left-0 right-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-t-2xl border-t p-4 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Filter</DialogTitle>
+            <DialogTitle>{modeLabel} konfigurieren</DialogTitle>
             <DialogDescription>
-              Optional: begrenze die Kartenauswahl für diese Runde.
+              Stelle Setup und Kartenauswahl ein und starte dann das Spiel.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Richtung</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("TH_DE")}
+                >
+                  Thai → Deutsch
+                </Button>
+                <Button
+                  size="sm"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("DE_TH")}
+                >
+                  Deutsch → Thai
+                </Button>
+              </div>
+            </div>
+
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-primary"
-                checked={onlyDue}
-                onChange={(e) => setOnlyDue(e.target.checked)}
+                checked={onlyLearned}
+                disabled={allLearnedModeActive}
+                onChange={(e) => {
+                  if (allLearnedModeActive) return;
+                  setOnlyLearned(e.target.checked);
+                }}
               />
-              nur fällige Karten
+              nur gelernte Karten
             </label>
+
+            {mode === "blitz" ? (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Zeitlimit</p>
+                <div className="flex flex-wrap gap-2">
+                  {([60, 90, 120] as BlitzDurationOption[]).map((seconds) => (
+                    <Button
+                      key={seconds}
+                      size="sm"
+                      variant={blitzDurationSec === seconds ? "default" : "secondary"}
+                      className={`min-h-[44px] transition-all ${
+                        blitzDurationSec === seconds
+                          ? "shadow-sm ring-2 ring-primary/30"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => setBlitzDurationSec(seconds)}
+                    >
+                      {seconds}s
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Fragenanzahl</p>
+                <div className="flex flex-wrap gap-2">
+                  {([10, 15, 20] as const).map((count) => (
+                    <Button
+                      key={count}
+                      size="sm"
+                      variant={selectedQuestionCount === count ? "default" : "secondary"}
+                      className={`min-h-[44px] transition-all ${
+                        selectedQuestionCount === count
+                          ? "shadow-sm ring-2 ring-primary/30"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
+                      }`}
+                      onClick={() => {
+                        if (mode === "quiz") setQuizQuestionCount(count);
+                        if (mode === "audio") setAudioQuestionCount(count);
+                      }}
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                  <Button
+                    size="sm"
+                    variant={selectedQuestionCount === "ALL" ? "default" : "secondary"}
+                    className={`min-h-[44px] transition-all ${
+                      selectedQuestionCount === "ALL"
+                        ? "shadow-sm ring-2 ring-primary/30"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      setOnlyLearned(true);
+                      if (mode === "quiz") setQuizQuestionCount("ALL");
+                      if (mode === "audio") setAudioQuestionCount("ALL");
+                    }}
+                  >
+                    Alle gelernten Karten
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Alle nutzt alle aktuell verfügbaren gelernten Karten.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="gameLessonSelect">
@@ -775,24 +941,66 @@ export default function Games() {
               </select>
             </div>
 
+            <p className="text-xs text-muted-foreground">
+              {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} Karten verfügbar`}
+            </p>
+            {status ? <div className="text-sm text-red-600">{status}</div> : null}
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
-                  setOnlyDue(false);
                   setSelectedLesson(undefined);
                 }}
               >
                 Zurücksetzen
               </Button>
-              <Button onClick={() => setFilterDialogOpen(false)}>Übernehmen</Button>
+              <Button
+                onClick={async () => {
+                  const started = await startGame();
+                  if (started) setSetupDialogOpen(false);
+                }}
+                disabled={loadingPreview}
+              >
+                Spiel starten
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
+      <Dialog open={endGameDialogOpen} onOpenChange={setEndGameDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Spiel beenden?</DialogTitle>
+            <DialogDescription>
+              Die aktuelle Runde wird beendet und mit dem bisherigen Ergebnis gespeichert.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setEndGameDialogOpen(false)}>
+              Weiterspielen
+            </Button>
+            <Button variant="destructive" onClick={endCurrentGame}>
+              Spiel jetzt beenden
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {gameRunning && question ? (
         <Card className="p-4 space-y-4">
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={() => setEndGameDialogOpen(true)}
+            >
+              Spiel beenden
+            </Button>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span>Punkte: {score}</span>
             {mode === "blitz" ? <span>Zeit: {timeLeft}s</span> : null}

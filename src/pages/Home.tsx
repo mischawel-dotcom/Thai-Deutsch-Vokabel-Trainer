@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getLessonProgress, getLessonExamScore, migrateProgressFromDb } from "../lib/lessonProgress";
+import { useLearningStreakStats } from "../hooks/useLearningStreakStats";
 
 type Route = "home" | "list" | "learn" | "test" | "exam" | "settings";
 
@@ -26,7 +27,7 @@ export default function Home({ onNavigate }: HomeProps) {
       const num = parseInt(saved, 10);
       if (!isNaN(num) && num > 0) return num;
     }
-    return 30;
+    return 10;
   };
 
   const initialDailyLimit = getInitialDailyLimit();
@@ -34,19 +35,19 @@ export default function Home({ onNavigate }: HomeProps) {
   const [total, setTotal] = useState<number>(0);
   const [dailyLimit, setDailyLimit] = useState<number>(initialDailyLimit);
   const [learnedToday, setLearnedToday] = useState<number>(0);
-  const [streak, setStreak] = useState<number>(0);
   const [lessons, setLessons] = useState<number[]>([]);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
   const [streakDialogOpen, setStreakDialogOpen] = useState<boolean>(false);
+  const { streakStats, refreshStreakStats } = useLearningStreakStats();
 
   async function refreshDashboardStats() {
     const now = Date.now();
     const vocab = await db.vocab.count();
 
-    // Read daily limit from localStorage (default: 30)
+    // Read daily limit from localStorage (default: 10)
     const savedLimit = localStorage.getItem("dailyLimit");
-    const limit = savedLimit ? parseInt(savedLimit, 10) : 30;
-    const validLimit = !isNaN(limit) && limit > 0 ? limit : 30;
+    const limit = savedLimit ? parseInt(savedLimit, 10) : 10;
+    const validLimit = !isNaN(limit) && limit > 0 ? limit : 10;
     setDailyLimit(validLimit);
 
     // Calculate learned today: only cards mastered (dueAt moved to future after correct streak)
@@ -68,9 +69,7 @@ export default function Home({ onNavigate }: HomeProps) {
     setDueCount(dueToday);
     setTotal(vocab);
 
-    // Calculate streak (consecutive days with reviews)
-    const lastStreak = localStorage.getItem("learningStreak");
-    setStreak(lastStreak ? parseInt(lastStreak, 10) : 0);
+    await refreshStreakStats(now);
   }
 
   async function refreshLessonProgress() {
@@ -146,7 +145,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">142</div>
+      <div className="text-3xl font-bold text-red-600">162</div>
       
       {/* Welcome Header */}
       <div>
@@ -236,12 +235,12 @@ export default function Home({ onNavigate }: HomeProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Streak</p>
-              <p className="text-3xl font-bold mt-2">{streak}</p>
+              <p className="text-3xl font-bold mt-2">{streakStats.streak}</p>
             </div>
             <div className="text-4xl">🔥</div>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            {streak > 0 ? "Tage in Folge" : "Starte jetzt!"}
+            {streakStats.streak > 0 ? "Tage in Folge" : "Starte jetzt!"}
           </p>
         </Card>
       </div>
@@ -251,16 +250,61 @@ export default function Home({ onNavigate }: HomeProps) {
           <DialogHeader>
             <DialogTitle>Streak</DialogTitle>
             <DialogDescription>
-              Deine aktuelle Lernserie
+              Deine Lernserie und Erfolge auf einen Blick.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">Aktuelle Streak</div>
+                <div className="text-2xl font-bold">{streakStats.streak}</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">Beste Streak</div>
+                <div className="text-2xl font-bold">{streakStats.bestStreak}</div>
+              </div>
+            </div>
+
             <div className="rounded-lg border p-3">
-              <div className="text-xs text-muted-foreground">Aktuelle Streak</div>
-              <div className="text-2xl font-bold">{streak} Tage</div>
+              <div className="text-xs text-muted-foreground mb-2">Letzte 7 Tage</div>
+              <div className="grid grid-cols-7 gap-1">
+                {streakStats.recentActivityDays.map((day) => (
+                  <div
+                    key={day.key}
+                    className={`rounded-md border p-1 text-center text-[10px] ${
+                      day.active
+                        ? "border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300"
+                        : "border-border bg-muted/40 text-muted-foreground"
+                    } ${day.isToday ? "ring-1 ring-primary/60" : ""}`}
+                    title={day.active ? "Lerntag" : "Kein Lerntag"}
+                  >
+                    <div className="font-medium">{day.label}</div>
+                    <div>{day.active ? "OK" : "-"}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="rounded-md border p-2">
+                <div className="text-muted-foreground">Aktive Tage</div>
+                <div className="text-base font-semibold">{streakStats.activeDaysLast7}/7</div>
+              </div>
+              <div className="rounded-md border p-2">
+                <div className="text-muted-foreground">Wiederholt</div>
+                <div className="text-base font-semibold">{streakStats.reviewedCardsLast7}</div>
+              </div>
+              <div className="rounded-md border p-2">
+                <div className="text-muted-foreground">Gelernt</div>
+                <div className="text-base font-semibold">{streakStats.masteredCardsLast7}</div>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Lerne täglich, um deine Serie zu halten.
+              {streakStats.todayLearned
+                ? "Stark! Heute ist erledigt, deine Serie bleibt aktiv."
+                : learnedToday >= dailyLimit
+                  ? "Tagesziel erreicht. Deine Serie bleibt heute gesichert."
+                  : `Noch ${Math.max(0, dailyLimit - learnedToday)} Karte(n) bis zum heutigen Lernziel.`}
             </p>
           </div>
         </DialogContent>
@@ -357,7 +401,7 @@ export default function Home({ onNavigate }: HomeProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Button
           size="lg"
           className="h-20 text-lg font-semibold"
@@ -365,14 +409,6 @@ export default function Home({ onNavigate }: HomeProps) {
           onClick={() => onNavigate?.("learn")}
         >
           🎯 Jetzt lernen ({dueCount})
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          className="h-20 text-lg font-semibold"
-          onClick={() => onNavigate?.("list")}
-        >
-          📝 Alle Vokabeln anzeigen
         </Button>
       </div>
 

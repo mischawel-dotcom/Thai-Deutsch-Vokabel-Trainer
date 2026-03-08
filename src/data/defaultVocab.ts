@@ -123,7 +123,7 @@ export const DEFAULT_VOCAB: VocabEntry[] = [
   },
   {
     "thai": "ไม่",
-    "german": "no/nicht",
+    "german": "nein/nicht",
     "transliteration": "mai",
     "pos": "Partikel",
     "lesson": 1,
@@ -583,6 +583,21 @@ export const DEFAULT_VOCAB: VocabEntry[] = [
     ],
     "exampleThai": "ฉันชื่อมาเรีย",
     "exampleGerman": "Ich heiße Maria.",
+    "createdAt": 1769891533945,
+    "updatedAt": 1769891533945
+  },
+  {
+    "thai": "ผม",
+    "german": "ich (maennlich)",
+    "transliteration": "pom",
+    "pos": "Pronomen",
+    "lesson": 1,
+    "tags": [
+      "Basics",
+      "A1"
+    ],
+    "exampleThai": "ผมชื่อไมเคิล",
+    "exampleGerman": "Ich heiße Michael.",
     "createdAt": 1769891533945,
     "updatedAt": 1769891533945
   },

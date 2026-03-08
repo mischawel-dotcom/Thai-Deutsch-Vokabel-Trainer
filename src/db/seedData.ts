@@ -81,7 +81,7 @@ export const seedVocabularyData = [
   },
   {
     thai: 'ไม่',
-    german: 'no/nicht',
+    german: 'nein/nicht',
     transliteration: 'mai',
     pos: 'Partikel',
     lesson: 1,
@@ -388,6 +388,16 @@ export const seedVocabularyData = [
     tags: ['Basics', 'A1'],
     exampleThai: 'ฉันชื่อมาเรีย',
     exampleGerman: 'Ich heiße Maria.',
+  },
+  {
+    thai: 'ผม',
+    german: 'ich (maennlich)',
+    transliteration: 'pom',
+    pos: 'Pronomen',
+    lesson: 1,
+    tags: ['Basics', 'A1'],
+    exampleThai: 'ผมชื่อไมเคิล',
+    exampleGerman: 'Ich heiße Michael.',
   },
   {
     thai: 'คุณ',
