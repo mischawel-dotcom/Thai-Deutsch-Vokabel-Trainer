@@ -146,6 +146,19 @@ export default function App() {
             );
           }
         }
+
+        // Data hotfix: normalize german translation for "ไม่" from "no/nicht" -> "nein/nicht".
+        const corrected = await db.vocab
+          .where("thai")
+          .equals("ไม่")
+          .and((entry) => entry.german === "no/nicht")
+          .modify((entry) => {
+            entry.german = "nein/nicht";
+            entry.updatedAt = Date.now();
+          });
+        if (corrected > 0) {
+          console.log(`[App Init] Corrected ${corrected} vocab entry/entries: no/nicht -> nein/nicht`);
+        }
       } catch (err) {
         console.error("Failed to load default vocab:", err);
       }

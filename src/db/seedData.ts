@@ -81,7 +81,7 @@ export const seedVocabularyData = [
   },
   {
     thai: 'ไม่',
-    german: 'no/nicht',
+    german: 'nein/nicht',
     transliteration: 'mai',
     pos: 'Partikel',
     lesson: 1,

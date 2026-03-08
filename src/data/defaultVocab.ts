@@ -123,7 +123,7 @@ export const DEFAULT_VOCAB: VocabEntry[] = [
   },
   {
     "thai": "ไม่",
-    "german": "no/nicht",
+    "german": "nein/nicht",
     "transliteration": "mai",
     "pos": "Partikel",
     "lesson": 1,
