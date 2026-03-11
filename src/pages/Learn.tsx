@@ -19,7 +19,9 @@ import {
 } from "@/components/ui/dialog";
 
 type LearnCard = VocabEntry & {
-  sourceType?: "vocab" | "numbers";
+  sourceType?: "vocab" | "numbers" | "numbers_info";
+  infoRows?: Array<{ arabic: string; thaiDigit: string; thaiWord: string; transliteration: string }>;
+  infoNotes?: string[];
 };
 
 // Session-State für Learn
@@ -85,6 +87,93 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
 }
 
 export default function Learn() {
+  const NUMBER_INFO_CARDS: LearnCard[] = useMemo(
+    () => [
+      {
+        id: 9_000_000_001,
+        thai: "Grundlagen Thai-Zahlen: 0-9",
+        german: "Die Ziffern und Grundwörter",
+        transliteration: "Grundformen",
+        lesson: 0,
+        tags: ["Numbers", "Info"],
+        viewed: true,
+        createdAt: 0,
+        updatedAt: 0,
+        sourceType: "numbers_info",
+        infoRows: [
+          { arabic: "0", thaiDigit: "๐", thaiWord: "ศูนย์", transliteration: "soon" },
+          { arabic: "1", thaiDigit: "๑", thaiWord: "หนึ่ง", transliteration: "nueng" },
+          { arabic: "2", thaiDigit: "๒", thaiWord: "สอง", transliteration: "song" },
+          { arabic: "3", thaiDigit: "๓", thaiWord: "สาม", transliteration: "sam" },
+          { arabic: "4", thaiDigit: "๔", thaiWord: "สี่", transliteration: "si" },
+          { arabic: "5", thaiDigit: "๕", thaiWord: "ห้า", transliteration: "ha" },
+          { arabic: "6", thaiDigit: "๖", thaiWord: "หก", transliteration: "hok" },
+          { arabic: "7", thaiDigit: "๗", thaiWord: "เจ็ด", transliteration: "chet" },
+          { arabic: "8", thaiDigit: "๘", thaiWord: "แปด", transliteration: "paet" },
+          { arabic: "9", thaiDigit: "๙", thaiWord: "เก้า", transliteration: "kao" },
+        ],
+      },
+      {
+        id: 9_000_000_002,
+        thai: "Zehnerpotenzen",
+        german: "10, 100, 1000, 10000, 100000, 1000000",
+        transliteration: "Bauwoerter",
+        lesson: 0,
+        tags: ["Numbers", "Info"],
+        viewed: true,
+        createdAt: 0,
+        updatedAt: 0,
+        sourceType: "numbers_info",
+        infoRows: [
+          { arabic: "10", thaiDigit: "๑๐", thaiWord: "สิบ", transliteration: "sip" },
+          { arabic: "100", thaiDigit: "๑๐๐", thaiWord: "ร้อย", transliteration: "roi" },
+          { arabic: "1000", thaiDigit: "๑๐๐๐", thaiWord: "พัน", transliteration: "phan" },
+          { arabic: "10000", thaiDigit: "๑๐๐๐๐", thaiWord: "หมื่น", transliteration: "muen" },
+          { arabic: "100000", thaiDigit: "๑๐๐๐๐๐", thaiWord: "แสน", transliteration: "saen" },
+          { arabic: "1000000", thaiDigit: "๑๐๐๐๐๐๐", thaiWord: "ล้าน", transliteration: "lan" },
+        ],
+      },
+      {
+        id: 9_000_000_003,
+        thai: "Wie Zahlen zusammengesetzt werden",
+        german: "Beispiele aus 0-9 + Bauwoertern",
+        transliteration: "Muster",
+        lesson: 0,
+        tags: ["Numbers", "Info"],
+        viewed: true,
+        createdAt: 0,
+        updatedAt: 0,
+        sourceType: "numbers_info",
+        infoRows: [
+          { arabic: "25", thaiDigit: "๒๕", thaiWord: "ยี่สิบห้า", transliteration: "yi-sip-ha" },
+          { arabic: "108", thaiDigit: "๑๐๘", thaiWord: "หนึ่งร้อยแปด", transliteration: "nueng-roi-paet" },
+          { arabic: "321", thaiDigit: "๓๒๑", thaiWord: "สามร้อยยี่สิบเอ็ด", transliteration: "sam-roi-yi-sip-et" },
+          { arabic: "4 502", thaiDigit: "๔๕๐๒", thaiWord: "สี่พันห้าร้อยสอง", transliteration: "si-phan-ha-roi-song" },
+          { arabic: "78 900", thaiDigit: "๗๘๙๐๐", thaiWord: "เจ็ดหมื่นแปดพันเก้าร้อย", transliteration: "chet-muen-paet-phan-kao-roi" },
+        ],
+      },
+      {
+        id: 9_000_000_004,
+        thai: "Wichtige Besonderheiten",
+        german: "Ausnahmen, die du frueh kennen solltest",
+        transliteration: "Tipps",
+        lesson: 0,
+        tags: ["Numbers", "Info"],
+        viewed: true,
+        createdAt: 0,
+        updatedAt: 0,
+        sourceType: "numbers_info",
+        infoNotes: [
+          "11 ist สิบเอ็ด (sip-et), nicht sip-nueng.",
+          "21 ist ยี่สิบเอ็ด (yi-sip-et). In der Einerstelle oft เอด/et statt nueng.",
+          "20 beginnt mit ยี่สิบ (yi-sip), nicht song-sip.",
+          "Bei 101, 1001 usw. bleibt die letzte 1 haeufig หนึ่ง (nueng), z. B. หนึ่งร้อยหนึ่ง.",
+          "Million = ล้าน (lan). Darueber beginnt Thai die Struktur erneut in Millionenbloecken.",
+        ],
+      },
+    ],
+    []
+  );
   // Session-State mit useReducer
   const [sessionState, dispatchSession] = useReducer(sessionReducer, {
     sessionActive: false,
@@ -395,6 +484,14 @@ export default function Learn() {
     }
   }
 
+  function startNumbersBasicsSession() {
+    dispatchSession({
+      type: "SET",
+      payload: { lessonCards: NUMBER_INFO_CARDS },
+    });
+    setStatus("Grundlagen Thai-Zahlen gestartet (4 Infokarten).");
+  }
+
   const {
     dialogOpen,
     setDialogOpen,
@@ -430,6 +527,10 @@ export default function Learn() {
   async function markCurrentAsViewed() {
     if (sessionState.currentIndex < sessionState.lessonCards.length) {
       const card = sessionState.lessonCards[sessionState.currentIndex];
+      if (card.sourceType === "numbers_info") {
+        setStatus("Infokarten haben keinen Lernstatus.");
+        return;
+      }
       if (card.id != null) {
         try {
           // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
@@ -499,8 +600,8 @@ export default function Learn() {
   const selectedLessonLearnedCount = selectedLessonMeta?.learnedCount ?? 0;
   const thaiLang = "th-TH";
   const germanLang = "de-DE";
-  const getSpeakableText = (text: string, sourceType?: "vocab" | "numbers") => {
-    if (sourceType !== "numbers") return text;
+  const getSpeakableText = (text: string, sourceType?: "vocab" | "numbers" | "numbers_info") => {
+    if (sourceType !== "numbers" && sourceType !== "numbers_info") return text;
     return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
   };
 
@@ -544,16 +645,25 @@ export default function Learn() {
                     </Button>
                   ))}
                   {numbersMeta.count > 0 ? (
-                    <Button
-                      onClick={openNumbersDialog}
-                      className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
-                      title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
-                    >
-                      🔢 Zahlenlektion{" "}
-                      <span className="text-xs opacity-90 ml-2">
-                        ({numbersMeta.learnedCount}/{numbersMeta.count})
-                      </span>
-                    </Button>
+                    <>
+                      <Button
+                        onClick={startNumbersBasicsSession}
+                        className="h-12 px-6 text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70"
+                        title="Grundlagen Thai-Zahlen als Infokarten starten"
+                      >
+                        📘 Grundlagen Thai-Zahlen
+                      </Button>
+                      <Button
+                        onClick={openNumbersDialog}
+                        className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+                        title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
+                      >
+                        🔢 Zahlenlektion{" "}
+                        <span className="text-xs opacity-90 ml-2">
+                          ({numbersMeta.learnedCount}/{numbersMeta.count})
+                        </span>
+                      </Button>
+                    </>
                   ) : null}
                 </>
               )}
@@ -601,60 +711,149 @@ export default function Learn() {
           {/* Lernkarte */}
           <Card className="mx-auto mt-2 flex w-full min-h-0 max-w-xs flex-1 flex-col overflow-y-auto p-3 shadow-lg sm:max-w-md sm:p-6 md:max-w-2xl md:p-8">
             <div className="w-full space-y-4">
-              {/* Thai mit Ton */}
-              <div className="space-y-2">
-                <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">{current.thai}</div>
-                
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)}
-                    title="Thai Wort vorlesen"
-                    className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
-                  >
-                    🔊 Thai sprechen
-                  </Button>
-                </div>
-              </div>
-
-              {/* Trennlinie */}
-              <div className="border-t my-3" />
-
-              {/* Lautschrift */}
-              {current.transliteration ? (
-                <div className="text-center">
-                  <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+              {/* Infokarte Grundlagen Thai-Zahlen */}
+              {current.sourceType === "numbers_info" ? (
+                <div className="space-y-4">
+                  <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug">{current.thai}</div>
+                  <div className="text-center text-sm text-muted-foreground">{current.german}</div>
+                  {current.infoRows?.length ? (
+                    <div className="rounded-md border bg-muted/20 p-2 sm:p-3">
+                      {current.id === 9_000_000_003 ? (
+                        <div className="space-y-2">
+                          {current.infoRows.map((row) => (
+                            <div
+                              key={`${current.id}-${row.arabic}-${row.thaiDigit}`}
+                              className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-start gap-2 rounded-md border bg-background px-2 py-2"
+                            >
+                              <div className="space-y-1 text-[11px] font-semibold text-muted-foreground">
+                                <div>#</div>
+                                <div>TH</div>
+                                <div>Thai Wort</div>
+                              </div>
+                              <div className="min-w-0 space-y-1">
+                                <div className="text-sm font-semibold leading-tight break-all">{row.arabic}</div>
+                                <div className="text-sm font-semibold leading-tight break-all">{row.thaiDigit}</div>
+                                <div className="text-sm leading-snug break-words">{row.thaiWord}</div>
+                                <div className="text-xs text-muted-foreground italic leading-snug break-words">
+                                  {row.transliteration}
+                                </div>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => void speak(row.thaiWord, thaiLang)}
+                                title={`Thai sprechen: ${row.thaiWord}`}
+                              >
+                                🔊
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-[minmax(52px,80px)_minmax(52px,86px)_minmax(0,1fr)_auto] gap-2 text-xs font-semibold text-muted-foreground px-1 pb-2">
+                            <div>#</div>
+                            <div>TH</div>
+                            <div>Thai Wort</div>
+                            <div>Audio</div>
+                          </div>
+                          <div className="space-y-1">
+                            {current.infoRows.map((row) => (
+                              <div
+                                key={`${current.id}-${row.arabic}-${row.thaiDigit}`}
+                                className="grid grid-cols-[minmax(52px,80px)_minmax(52px,86px)_minmax(0,1fr)_auto] items-start gap-2 rounded-md border bg-background px-2 py-1.5"
+                              >
+                                <div className="text-xs sm:text-sm font-semibold leading-tight break-all">{row.arabic}</div>
+                                <div className="text-sm sm:text-base font-semibold leading-tight break-all">{row.thaiDigit}</div>
+                                <div className="min-w-0">
+                                  <div className="text-sm leading-snug break-words">{row.thaiWord}</div>
+                                  <div className="text-xs text-muted-foreground italic leading-snug break-words">{row.transliteration}</div>
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => void speak(row.thaiWord, thaiLang)}
+                                  title={`Thai sprechen: ${row.thaiWord}`}
+                                >
+                                  🔊
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
+                  {current.infoNotes?.length ? (
+                    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+                      {current.infoNotes.map((note, idx) => (
+                        <p key={`${current.id}-note-${idx}`} className="text-sm leading-relaxed">
+                          {note}
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
+              {/* Standard-Lernkarte */}
+              {current.sourceType !== "numbers_info" ? (
+                <>
+                  {/* Thai mit Ton */}
+                  <div className="space-y-2">
+                    <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">{current.thai}</div>
 
-              {/* Trennlinie */}
-              <div className="border-t my-3" />
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)}
+                        title="Thai Wort vorlesen"
+                        className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                      >
+                        🔊 Thai sprechen
+                      </Button>
+                    </div>
+                  </div>
 
-              {/* Deutsch mit Ton */}
-              <div className="space-y-2">
-                <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{current.german}</div>
-                
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => void speak(getSpeakableText(current.german, current.sourceType), germanLang)}
-                    title="Deutsche Übersetzung vorlesen"
-                    className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
-                  >
-                    🔊 Deutsch sprechen
-                  </Button>
-                </div>
-              </div>
+                  {/* Trennlinie */}
+                  <div className="border-t my-3" />
+
+                  {/* Lautschrift */}
+                  {current.transliteration ? (
+                    <div className="text-center">
+                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                    </div>
+                  ) : null}
+
+                  {/* Trennlinie */}
+                  <div className="border-t my-3" />
+
+                  {/* Deutsch mit Ton */}
+                  <div className="space-y-2">
+                    <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{current.german}</div>
+
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void speak(getSpeakableText(current.german, current.sourceType), germanLang)}
+                        title="Deutsche Übersetzung vorlesen"
+                        className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                      >
+                        🔊 Deutsch sprechen
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : null}
 
               {/* Beispiele (falls vorhanden) */}
-              {current.exampleThai || current.exampleGerman ? (
+              {current.sourceType !== "numbers_info" && (current.exampleThai || current.exampleGerman) ? (
                 <>
                   <div className="border-t my-3" />
                   <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
                     <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
-                    
+
                     {current.exampleThai ? (
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         <span className="text-muted-foreground">TH:</span>
@@ -695,17 +894,19 @@ export default function Learn() {
             <div className="mx-auto w-full max-w-2xl rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
               <div className="space-y-2">
                 {/* Markieren als gesehen */}
-                <Button
-                  onClick={markCurrentAsViewed}
-                  size="sm"
-                  className={`w-full h-11 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
-                    current.viewed
-                      ? "bg-red-600 hover:bg-red-700 text-white"
-                      : "bg-green-600 hover:bg-green-700 text-white"
-                  }`}
-                >
-                  {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
-                </Button>
+                {current.sourceType !== "numbers_info" ? (
+                  <Button
+                    onClick={markCurrentAsViewed}
+                    size="sm"
+                    className={`w-full h-11 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
+                      current.viewed
+                        ? "bg-red-600 hover:bg-red-700 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white"
+                    }`}
+                  >
+                    {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
+                  </Button>
+                ) : null}
 
                 {/* Navigation */}
                 <div className="flex flex-wrap justify-center gap-2">
