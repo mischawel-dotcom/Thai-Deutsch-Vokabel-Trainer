@@ -5,7 +5,7 @@ import { recalculateLearningProgress } from "../lib/lessonProgress";
 import type { VocabEntry } from "../db/db";
 import type { SessionDispatch } from "./useSessionState";
 
-type CardSourceType = "vocab" | "numbers";
+type CardSourceType = "vocab" | "numbers" | "numbers_generated";
 type GradingCard = VocabEntry & { sourceType?: CardSourceType };
 
 interface UseCardGradingProps {
@@ -44,10 +44,15 @@ export function useCardGrading({
         return;
       }
 
-      const sourceType: CardSourceType = current?.sourceType === "numbers" ? "numbers" : "vocab";
+      const sourceType: CardSourceType =
+        current?.sourceType === "numbers"
+          ? "numbers"
+          : current?.sourceType === "numbers_generated"
+            ? "numbers_generated"
+            : "vocab";
       if (sourceType === "numbers") {
         await gradeNumberCard(currentId, isRight ? 2 : 0);
-      } else {
+      } else if (sourceType === "vocab") {
         await gradeCard(currentId, isRight ? 2 : 0);
       }
       setLastAnswer(isRight ? "right" : "wrong");
@@ -79,7 +84,7 @@ export function useCardGrading({
         dispatchSession({ type: "addDone", id: currentId });
         if (sourceType === "numbers") {
           await db.numbersVocab.update(currentId, { viewed: true });
-        } else {
+        } else if (sourceType === "vocab") {
           await db.vocab.update(currentId, { viewed: true });
         }
 

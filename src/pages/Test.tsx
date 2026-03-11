@@ -14,6 +14,7 @@ import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
 import { usePersistedSession } from "../hooks/usePersistedSession";
 import { serializeTestSession } from "../lib/testSessionCodec";
 import { shuffle } from "../lib/shuffle";
+import { generateNumber, MAX_GENERATED_NUMBER } from "../lib/number-generator";
 import {
   isPersistedTestSessionData,
   type LearnDirection,
@@ -33,7 +34,7 @@ import {
 } from "@/components/ui/dialog";
 
 type ConfirmAction = "restart" | "end";
-type TestCard = VocabEntry & { sourceType?: "vocab" | "numbers" };
+type TestCard = VocabEntry & { sourceType?: "vocab" | "numbers" | "numbers_generated" };
 
 export default function Test() {
   // ===== State =====
@@ -80,6 +81,23 @@ export default function Test() {
   const [numberQuickStartDialogOpen, setNumberQuickStartDialogOpen] = useState<boolean>(false);
   const [numberQuickStartIncludeAllLearned, setNumberQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [numberQuickStartLimit, setNumberQuickStartLimit] = useState<string>("");
+  const [numberGeneratorMode, setNumberGeneratorMode] = useState<boolean>(() => {
+    return localStorage.getItem("numberTestGeneratorMode") === "true";
+  });
+  const [numberGeneratorFrom, setNumberGeneratorFrom] = useState<string>(() => {
+    const raw = localStorage.getItem("numberTestGeneratorFrom");
+    if (!raw) return "0";
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return "0";
+    return String(Math.min(MAX_GENERATED_NUMBER, parsed));
+  });
+  const [numberGeneratorTo, setNumberGeneratorTo] = useState<string>(() => {
+    const raw = localStorage.getItem("numberTestGeneratorTo");
+    if (!raw) return "100";
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return "100";
+    return String(Math.min(MAX_GENERATED_NUMBER, parsed));
+  });
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
@@ -141,6 +159,18 @@ export default function Test() {
     localStorage.setItem("showTransliterationInTest", showTransliteration ? "true" : "false");
   }, [showTransliteration]);
 
+  useEffect(() => {
+    localStorage.setItem("numberTestGeneratorMode", numberGeneratorMode ? "true" : "false");
+  }, [numberGeneratorMode]);
+
+  useEffect(() => {
+    localStorage.setItem("numberTestGeneratorFrom", numberGeneratorFrom);
+  }, [numberGeneratorFrom]);
+
+  useEffect(() => {
+    localStorage.setItem("numberTestGeneratorTo", numberGeneratorTo);
+  }, [numberGeneratorTo]);
+
 
   // ===== Derived data =====
   // Tag-Index
@@ -192,9 +222,10 @@ export default function Test() {
   const frontLang = direction === "TH_DE" ? "th-TH" : "de-DE";
   const backLang = direction === "TH_DE" ? "de-DE" : "th-TH";
   const getSpeakableText = (text: string) => {
-    if (current?.sourceType !== "numbers") return text;
+    if (current?.sourceType !== "numbers" && current?.sourceType !== "numbers_generated") return text;
     return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
   };
+  const isNumberSessionCard = current?.sourceType === "numbers" || current?.sourceType === "numbers_generated";
 
   const remainingUniqueCount = useMemo(() => {
     const unique = new Set(queue);
@@ -528,6 +559,64 @@ export default function Test() {
     const numberLimit =
       Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
     const includeAllLearned = numberQuickStartIncludeAllLearned;
+
+    if (numberGeneratorMode) {
+      const parsedFrom = numberGeneratorFrom.trim() ? Number.parseInt(numberGeneratorFrom, 10) : NaN;
+      const parsedTo = numberGeneratorTo.trim() ? Number.parseInt(numberGeneratorTo, 10) : NaN;
+      const safeFrom = Number.isFinite(parsedFrom) ? Math.max(0, Math.min(MAX_GENERATED_NUMBER, parsedFrom)) : 0;
+      const safeTo = Number.isFinite(parsedTo) ? Math.max(0, Math.min(MAX_GENERATED_NUMBER, parsedTo)) : 100;
+      const fromValue = Math.min(safeFrom, safeTo);
+      const toValue = Math.max(safeFrom, safeTo);
+      const rangeSize = toValue - fromValue + 1;
+      const targetSize = rangeSize <= 5000 ? rangeSize : 2000;
+      const values = new Set<number>();
+      for (let i = fromValue; i <= Math.min(toValue, fromValue + 100); i += 1) {
+        values.add(i);
+      }
+      while (values.size < targetSize) {
+        values.add(fromValue + Math.floor(Math.random() * rangeSize));
+      }
+      const generatedCards: TestCard[] = Array.from(values)
+        .sort((a, b) => a - b)
+        .map((value) => {
+          const generated = generateNumber(value);
+          return {
+            id: 2_000_000_000 + value,
+            thai: `${generated.thaiWord} (${generated.thaiDigit})`,
+            german: `${generated.german} (${generated.arabic})`,
+            transliteration: generated.transliteration,
+            lesson: 1,
+            tags: ["Numbers", "Generated", "Kardinalzahlen"],
+            viewed: true,
+            createdAt: 0,
+            updatedAt: 0,
+            sourceType: "numbers_generated",
+          };
+        });
+
+      const ids = generatedCards
+        .map((v) => v.id)
+        .filter((id): id is number => typeof id === "number");
+      const cardsToUse = numberLimit ? shuffle(ids).slice(0, numberLimit) : shuffle(ids);
+      const shuffledRound = shuffle(cardsToUse);
+      setAllNumbers(generatedCards);
+      dispatchSession({
+        type: "set",
+        payload: {
+          sessionActive: true,
+          queue: cardsToUse,
+          currentRound: shuffledRound,
+          roundIndex: 0,
+          currentId: shuffledRound[0] ?? null,
+          flipped: false,
+          streaks: new Map(cardsToUse.map((id) => [id, 0])),
+          doneIds: new Set(),
+        },
+      });
+      setStatus(`Generator-Zahlentest gestartet: ${cardsToUse.length} Karten (${fromValue}-${toValue})`);
+      setNumberQuickStartDialogOpen(false);
+      return;
+    }
 
     let numbers = allNumbers;
     if (numbers.length === 0) {
@@ -1064,7 +1153,7 @@ export default function Test() {
                     {frontText}
                   </div>
 
-                  {showTransliteration && direction === "TH_DE" && current.transliteration ? (
+                  {!isNumberSessionCard && showTransliteration && direction === "TH_DE" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -1112,7 +1201,7 @@ export default function Test() {
 
                   <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug">{backText}</div>
 
-                  {showTransliteration && direction === "DE_TH" && current.transliteration ? (
+                  {!isNumberSessionCard && showTransliteration && direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -1273,7 +1362,7 @@ export default function Test() {
                   aria-pressed={direction === "TH_DE"}
                   aria-label="Schnellstart-Richtung: Thai nach Deutsch"
                 >
-                  Thai-Ziffern → Arabisch
+                  Thai → Deutsch
                 </Button>
                 <Button
                   type="button"
@@ -1288,7 +1377,7 @@ export default function Test() {
                   aria-pressed={direction === "DE_TH"}
                   aria-label="Schnellstart-Richtung: Deutsch nach Thai"
                 >
-                  Arabisch → Thai-Ziffern
+                  Deutsch → Thai
                 </Button>
               </div>
             </div>
@@ -1362,7 +1451,7 @@ export default function Test() {
           <DialogHeader>
             <DialogTitle>Zahlentest</DialogTitle>
             <DialogDescription>
-              Konfiguriere deinen Zahlen-Schnellstart (0–100)
+              Konfiguriere deinen Zahlen-Schnellstart
             </DialogDescription>
           </DialogHeader>
 
@@ -1407,23 +1496,68 @@ export default function Test() {
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-primary"
-                checked={showTransliteration}
-                onChange={(e) => setShowTransliteration(e.target.checked)}
-                aria-label="Lautschrift im Zahlentest anzeigen"
+                checked={numberQuickStartIncludeAllLearned}
+                onChange={(e) => setNumberQuickStartIncludeAllLearned(e.target.checked)}
+                disabled={numberGeneratorMode}
+                aria-label="Alle gelernten Zahlen statt nur fällige Zahlen testen"
               />
-              Lautschrift anzeigen
+              Alle gelernten Zahlen (statt nur fällige)
             </label>
 
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-primary"
-                checked={numberQuickStartIncludeAllLearned}
-                onChange={(e) => setNumberQuickStartIncludeAllLearned(e.target.checked)}
-                aria-label="Alle gelernten Zahlen statt nur fällige Zahlen testen"
+                checked={numberGeneratorMode}
+                onChange={(e) => setNumberGeneratorMode(e.target.checked)}
+                aria-label="Zahlen von bis testen aktivieren"
               />
-              Alle gelernten Zahlen (statt nur fällige)
+              Zahlen von-bis testen
             </label>
+
+            {numberGeneratorMode ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium" htmlFor="numberGeneratorFrom">
+                      Von
+                    </label>
+                    <input
+                      id="numberGeneratorFrom"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={MAX_GENERATED_NUMBER}
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      placeholder="z.B. 850"
+                      value={numberGeneratorFrom}
+                      onChange={(e) => setNumberGeneratorFrom(e.target.value)}
+                      aria-label="Von Zahl fuer Generator-Zahlentest"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium" htmlFor="numberGeneratorTo">
+                      Bis
+                    </label>
+                    <input
+                      id="numberGeneratorTo"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={MAX_GENERATED_NUMBER}
+                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                      placeholder="z.B. 950"
+                      value={numberGeneratorTo}
+                      onChange={(e) => setNumberGeneratorTo(e.target.value)}
+                      aria-label="Bis Zahl fuer Generator-Zahlentest"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Zahlen werden dynamisch im gewählten Bereich erzeugt (z. B. 850 bis 950).
+                </p>
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="numberQuickStartLimit">
@@ -1434,7 +1568,7 @@ export default function Test() {
                 type="number"
                 inputMode="numeric"
                 min={1}
-                max={101}
+                max={2000}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 placeholder="z.B. 20"
                 value={numberQuickStartLimit}
@@ -1444,8 +1578,9 @@ export default function Test() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Standard ist SRS-orientiert (nur fällige gelernte Zahlen). Für Voll-Review optional
-              "Alle gelernten Zahlen" aktivieren.
+              {numberGeneratorMode
+                ? "Von-bis-Test ignoriert SRS-Faelligkeit und erstellt einen dynamischen Zahlenpool."
+                : "Standard ist SRS-orientiert (nur fällige gelernte Zahlen). Für Voll-Review optional \"Alle gelernten Zahlen\" aktivieren."}
             </p>
           </div>
 
