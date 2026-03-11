@@ -73,6 +73,7 @@ export default function Test() {
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
   const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
+  const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
@@ -450,6 +451,17 @@ export default function Test() {
     setSelectedTags([]);
   }
 
+  function startQuickStartSession() {
+    const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
+    const quickLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+    void quickStartLearnedHook({
+      includeAllLearned: quickStartIncludeAllLearned,
+      limit: quickLimit,
+    });
+    setQuickStartDialogOpen(false);
+  }
+
   const selectedCardsCount = useMemo(() => {
     return buildSessionIds().length;
   }, [allVocab, selectedLesson, selectedTags, onlyViewed]);
@@ -525,15 +537,7 @@ export default function Test() {
           
           <div className="grid grid-cols-1 gap-2">
             <Button
-              onClick={() => {
-                const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
-                const quickLimit =
-                  Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
-                void quickStartLearnedHook({
-                  includeAllLearned: quickStartIncludeAllLearned,
-                  limit: quickLimit,
-                });
-              }}
+              onClick={() => setQuickStartDialogOpen(true)}
               size="lg"
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
               title="Teste standardmäßig fällige gelernte Karten"
@@ -541,38 +545,6 @@ export default function Test() {
             >
               📖 Fällige Karten testen
             </Button>
-            <div className="rounded-md border bg-muted/30 p-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-primary"
-                    checked={quickStartIncludeAllLearned}
-                    onChange={(e) => setQuickStartIncludeAllLearned(e.target.checked)}
-                    aria-label="Alle gelernten Karten statt nur fällige Karten testen"
-                  />
-                  Alle gelernten Karten (statt nur fällige)
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  Kartenlimit
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={500}
-                    className="h-8 w-24 rounded-md border bg-background px-2 text-sm"
-                    placeholder="z.B. 20"
-                    value={quickStartLimit}
-                    onChange={(e) => setQuickStartLimit(e.target.value)}
-                    aria-label="Optionales Kartenlimit für Schnellstart"
-                  />
-                </label>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Standard ist SRS-orientiert (nur fällige gelernte Karten). Für Voll-Review optional
-                "Alle gelernten Karten" aktivieren.
-              </p>
-            </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
               {allLessons.length > 0 ? (
@@ -592,15 +564,6 @@ export default function Test() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            aria-expanded={showAdvancedFilters}
-            aria-controls="advanced-filters"
-            aria-label={showAdvancedFilters ? "Erweiterte Filter ausblenden" : "Erweiterte Filter anzeigen"}
-          >
-            {showAdvancedFilters ? "⬆️" : "⬇️"} Erweiterte Filter {showAdvancedFilters ? "ausblenden" : "anzeigen"}
-          </button>
         </div>
       ) : null}
 
@@ -840,9 +803,34 @@ export default function Test() {
 
       {/* Keine Session */}
       {!sessionActive ? (
-        <p className="text-center text-sm text-muted-foreground">
-          Wähle Richtung + optional Lektion/Tags/Filter und klicke auf <b>Session starten</b>. Für einen SRS-fokussierten Durchgang aktiviere "nur fällige Karten".
-        </p>
+        <div className="space-y-2">
+          <p className="text-center text-sm text-muted-foreground">
+            Wähle <b>Fällige Karten testen</b> oder eine <b>Lektion</b>. Richtung und Optionen
+            konfigurierst du im jeweiligen Startdialog.
+          </p>
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              type="button"
+              variant={showAdvancedFilters ? "secondary" : "outline"}
+              size="sm"
+              className="h-10 min-w-[220px] font-medium"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              aria-expanded={showAdvancedFilters}
+              aria-controls="advanced-filters"
+              aria-label={
+                showAdvancedFilters
+                  ? "Erweiterte Filter ausblenden"
+                  : "Erweiterte Filter anzeigen"
+              }
+            >
+              {showAdvancedFilters ? "⬆️ Erweiterte Filter ausblenden" : "⬇️ Erweiterte Filter anzeigen"}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Erweiterte Filter sind optional für einen individuellen Testlauf (Tags, Lektionen,
+              fällige/gelernte Karten, Kartenanzahl).
+            </p>
+          </div>
+        </div>
       ) : null}
 
       {/* Session-Controls */}
@@ -1129,6 +1117,106 @@ export default function Test() {
         </div>
       ) : null}
 
+      {/* Dialog für Schnellstart (fällige Karten testen) */}
+      <Dialog open={quickStartDialogOpen} onOpenChange={setQuickStartDialogOpen}>
+        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Fällige Karten testen</DialogTitle>
+            <DialogDescription>
+              Konfiguriere deinen Schnellstart-Test
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Richtung</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("TH_DE")}
+                  aria-pressed={direction === "TH_DE"}
+                  aria-label="Schnellstart-Richtung: Thai nach Deutsch"
+                >
+                  Thai → Deutsch
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("DE_TH")}
+                  aria-pressed={direction === "DE_TH"}
+                  aria-label="Schnellstart-Richtung: Deutsch nach Thai"
+                >
+                  Deutsch → Thai
+                </Button>
+              </div>
+            </div>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={quickStartIncludeAllLearned}
+                onChange={(e) => setQuickStartIncludeAllLearned(e.target.checked)}
+                aria-label="Alle gelernten Karten statt nur fällige Karten testen"
+              />
+              Alle gelernten Karten (statt nur fällige)
+            </label>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="quickStartLimit">
+                Kartenlimit (optional)
+              </label>
+              <input
+                id="quickStartLimit"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={500}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                placeholder="z.B. 20"
+                value={quickStartLimit}
+                onChange={(e) => setQuickStartLimit(e.target.value)}
+                aria-label="Optionales Kartenlimit für Schnellstart"
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Standard ist SRS-orientiert (nur fällige gelernte Karten). Für Voll-Review optional
+              "Alle gelernten Karten" aktivieren.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setQuickStartDialogOpen(false)}
+              className="h-11"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={startQuickStartSession}
+              className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Test starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog für Lektion-Auswahl */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent
@@ -1143,6 +1231,43 @@ export default function Test() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Richtung */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Richtung</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("TH_DE")}
+                  aria-pressed={direction === "TH_DE"}
+                  aria-label="Richtung im Testdialog: Thai nach Deutsch"
+                >
+                  Thai → Deutsch
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("DE_TH")}
+                  aria-pressed={direction === "DE_TH"}
+                  aria-label="Richtung im Testdialog: Deutsch nach Thai"
+                >
+                  Deutsch → Thai
+                </Button>
+              </div>
+            </div>
+
             {/* Anzahl der Karten */}
             <div className="space-y-2">
               <label htmlFor="cardLimit" className="text-sm font-medium">
