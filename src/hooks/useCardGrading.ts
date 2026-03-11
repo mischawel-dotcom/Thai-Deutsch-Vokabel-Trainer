@@ -1,16 +1,19 @@
 import { useCallback } from "react";
 import { db } from "../db/db";
-import { gradeCard } from "../db/srs";
+import { gradeCard, gradeNumberCard } from "../db/srs";
 import { recalculateLearningProgress } from "../lib/lessonProgress";
 import type { VocabEntry } from "../db/db";
 import type { SessionDispatch } from "./useSessionState";
+
+type CardSourceType = "vocab" | "numbers" | "numbers_generated";
+type GradingCard = VocabEntry & { sourceType?: CardSourceType };
 
 interface UseCardGradingProps {
   dispatchSession: SessionDispatch;
   currentId: number | null;
   flipped: boolean;
   streaks: Map<number, number>;
-  current: VocabEntry | null;
+  current: GradingCard | null;
   playFeedbackTone: (tone: "right" | "wrong") => void;
   setLastAnswer: (answer: "right" | "wrong" | null) => void;
   requeueCurrentToEnd: () => void;
@@ -41,7 +44,17 @@ export function useCardGrading({
         return;
       }
 
-      await gradeCard(currentId, isRight ? 2 : 0);
+      const sourceType: CardSourceType =
+        current?.sourceType === "numbers"
+          ? "numbers"
+          : current?.sourceType === "numbers_generated"
+            ? "numbers_generated"
+            : "vocab";
+      if (sourceType === "numbers") {
+        await gradeNumberCard(currentId, isRight ? 2 : 0);
+      } else if (sourceType === "vocab") {
+        await gradeCard(currentId, isRight ? 2 : 0);
+      }
       setLastAnswer(isRight ? "right" : "wrong");
       setTimeout(() => setLastAnswer(null), 350);
       playFeedbackTone(isRight ? "right" : "wrong");
@@ -69,9 +82,13 @@ export function useCardGrading({
         // 5x RICHTIG in dieser Session: Karte als erledigt markieren.
         // Das persistente SRS (dueAt/intervall/repetitions) kommt aus gradeCard().
         dispatchSession({ type: "addDone", id: currentId });
-        await db.vocab.update(currentId, { viewed: true });
+        if (sourceType === "numbers") {
+          await db.numbersVocab.update(currentId, { viewed: true });
+        } else if (sourceType === "vocab") {
+          await db.vocab.update(currentId, { viewed: true });
+        }
 
-        if (current && current.lesson) {
+        if (sourceType === "vocab" && current && current.lesson) {
           const viewedCount = await db.vocab
             .where("lesson")
             .equals(current.lesson)

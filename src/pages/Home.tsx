@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { getLessonProgress, getLessonExamScore, migrateProgressFromDb } from "../lib/lessonProgress";
 import { useLearningStreakStats } from "../hooks/useLearningStreakStats";
 
-type Route = "home" | "list" | "learn" | "test" | "exam" | "settings";
+type Route = "home" | "list" | "learn" | "test" | "exam" | "games" | "settings";
 
 interface HomeProps {
   onNavigate?: (route: Route) => void;
@@ -145,7 +145,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">162</div>
+      <div className="text-3xl font-bold text-red-600">203</div>
       
       {/* Welcome Header */}
       <div>
@@ -411,6 +411,58 @@ export default function Home({ onNavigate }: HomeProps) {
           🎯 Jetzt lernen ({dueCount})
         </Button>
       </div>
+
+      {/* Numbers Quick Access */}
+      <Card className="p-4 space-y-3 border-indigo-200/70 bg-indigo-50/40 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+        <div>
+          <h3 className="text-lg font-semibold">🔢 Zahlenmodule</h3>
+          <p className="text-xs text-muted-foreground">
+            Zahlen sind von normalen Vokabeln getrennt (eigener Lernfortschritt, Tests, Examen, Spiele).
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => {
+              localStorage.setItem("openNumbersLessonDialog", "true");
+              onNavigate?.("learn");
+            }}
+          >
+            Lernen
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => {
+              localStorage.setItem("openNumberQuickStartDialog", "true");
+              onNavigate?.("test");
+            }}
+          >
+            Test
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => {
+              localStorage.setItem("openNumbersExamMode", "true");
+              onNavigate?.("exam");
+            }}
+          >
+            Examen
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => {
+              localStorage.setItem("openNumbersGameSetup", "true");
+              onNavigate?.("games");
+            }}
+          >
+            Spiel
+          </Button>
+        </div>
+      </Card>
 
       {/* Motivation Message */}
       {dueCount > 0 && (

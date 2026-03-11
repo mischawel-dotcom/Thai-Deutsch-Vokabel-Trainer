@@ -17,8 +17,9 @@ const Exam = lazy(() => import("./pages/Exam"));
 const Games = lazy(() => import("./pages/Games"));
 const Settings = lazy(() => import("./pages/Settings"));
 import { db } from "./db/db";
-import { ensureProgressForEntries } from "./db/srs";
+import { ensureProgressForEntries, ensureProgressForNumberEntries } from "./db/srs";
 import { DEFAULT_VOCAB } from "./data/defaultVocab";
+import { DEFAULT_NUMBERS } from "./data/defaultNumbers";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,10 @@ function buildDefaultVocabKey(thai: string, transliteration?: string): string {
   const safeThai = thai.trim();
   const safeTransliteration = (transliteration ?? "").trim().toLowerCase();
   return `${safeThai}__${safeTransliteration}`;
+}
+
+function buildDefaultNumberKey(arabic: number, thaiWord: string, thaiDigit: string): string {
+  return `${arabic}__${thaiWord.trim()}__${thaiDigit.trim()}`;
 }
 
 function isRoute(value: string): value is Route {
@@ -255,6 +260,114 @@ export default function App() {
             .filter((id): id is number => Number.isFinite(id) && id > 0);
           await ensureProgressForEntries(normalizedIds);
           console.log(`[App Init] Added ${toAdd.length} missing default vocab entries`);
+        }
+
+        // Numbers world init + migration (separate from normal vocab)
+        const numbersCount = await db.numbersVocab.count();
+        const expectedNumbersCount = DEFAULT_NUMBERS.length;
+        if (numbersCount === 0) {
+          const now = Date.now();
+          const numberEntries = DEFAULT_NUMBERS.map((entry) => ({
+            ...entry,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          await db.numbersVocab.bulkAdd(numberEntries);
+          const numberIds = (await db.numbersVocab.toCollection().primaryKeys()) as number[];
+          await ensureProgressForNumberEntries(numberIds);
+          console.log(
+            `✅ [App Init] Default numbers loaded: ${expectedNumbersCount} entries`
+          );
+        } else {
+          const numbersProgressCount = await db.numbersProgress.count();
+          if (numbersProgressCount < numbersCount) {
+            const ids = (await db.numbersVocab.toCollection().primaryKeys()) as number[];
+            await ensureProgressForNumberEntries(ids);
+            console.log(
+              `[App Init] Numbers progress repaired: ${numbersProgressCount} -> ${ids.length}`
+            );
+          }
+        }
+
+        const existingNumbers = await db.numbersVocab.toArray();
+        const defaultNumbersByKey = new Map(
+          DEFAULT_NUMBERS.map((entry) => [
+            buildDefaultNumberKey(entry.arabic, entry.thaiWord, entry.thaiDigit),
+            entry,
+          ])
+        );
+        const existingNumbersByKey = new Map<string, typeof existingNumbers>();
+        for (const entry of existingNumbers) {
+          const key = buildDefaultNumberKey(entry.arabic, entry.thaiWord, entry.thaiDigit);
+          const list = existingNumbersByKey.get(key);
+          if (list) list.push(entry);
+          else existingNumbersByKey.set(key, [entry]);
+        }
+
+        const numberIdsToRemove: number[] = [];
+        const numberIdsToEnsureProgress = new Set<number>();
+        for (const [key, defaultsEntry] of defaultNumbersByKey.entries()) {
+          const matches = existingNumbersByKey.get(key) ?? [];
+          if (matches.length === 0) continue;
+
+          const canonical = matches[0];
+          if (canonical.id != null) {
+            await db.numbersVocab.update(canonical.id, {
+              arabic: defaultsEntry.arabic,
+              thaiWord: defaultsEntry.thaiWord,
+              thaiDigit: defaultsEntry.thaiDigit,
+              german: defaultsEntry.german,
+              transliteration: defaultsEntry.transliteration,
+              lesson: defaultsEntry.lesson,
+              tags: defaultsEntry.tags,
+              updatedAt: Date.now(),
+            });
+            numberIdsToEnsureProgress.add(canonical.id);
+          }
+
+          for (const duplicate of matches) {
+            if (duplicate.id == null || duplicate.id === canonical.id) continue;
+            numberIdsToRemove.push(duplicate.id);
+          }
+        }
+
+        if (numberIdsToRemove.length > 0) {
+          await db.transaction("rw", db.numbersVocab, db.numbersProgress, async () => {
+            await db.numbersVocab.bulkDelete(numberIdsToRemove);
+            await db.numbersProgress.bulkDelete(numberIdsToRemove);
+          });
+          console.log(`[App Init] Removed ${numberIdsToRemove.length} duplicate default numbers`);
+        }
+
+        if (numberIdsToEnsureProgress.size > 0) {
+          await ensureProgressForNumberEntries(Array.from(numberIdsToEnsureProgress));
+        }
+
+        const existingNumberKeys = new Set(
+          (await db.numbersVocab.toArray()).map((entry) =>
+            buildDefaultNumberKey(entry.arabic, entry.thaiWord, entry.thaiDigit)
+          )
+        );
+        const missingDefaultNumbers = DEFAULT_NUMBERS.filter(
+          (entry) =>
+            !existingNumberKeys.has(
+              buildDefaultNumberKey(entry.arabic, entry.thaiWord, entry.thaiDigit)
+            )
+        );
+
+        if (missingDefaultNumbers.length > 0) {
+          const now = Date.now();
+          const toAdd = missingDefaultNumbers.map((entry) => ({
+            ...entry,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const insertedIds = await db.numbersVocab.bulkAdd(toAdd, { allKeys: true });
+          const normalizedIds = insertedIds
+            .map((id) => Number(id))
+            .filter((id): id is number => Number.isFinite(id) && id > 0);
+          await ensureProgressForNumberEntries(normalizedIds);
+          console.log(`[App Init] Added ${toAdd.length} missing default number entries`);
         }
       } catch (err) {
         console.error("Failed to load default vocab:", err);
