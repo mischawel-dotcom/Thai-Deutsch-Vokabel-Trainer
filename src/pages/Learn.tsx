@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useReducer } from "react";
 import { db } from "../db/db";
-import type { VocabEntry } from "../db/db";
+import type { NumberEntry, VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
 import { isLearnSessionData, type LearnSessionData } from "../lib/sessionTypes";
 import { usePersistedSession } from "../hooks/usePersistedSession";
@@ -18,19 +18,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type LearnCard = VocabEntry & {
+  sourceType?: "vocab" | "numbers";
+};
+
 // Session-State für Learn
 type SessionState = {
   sessionActive: boolean;
-  lessonCards: VocabEntry[];
+  lessonCards: LearnCard[];
   currentIndex: number;
 };
 
 type SessionAction =
-  | { type: "SET"; payload: { lessonCards: VocabEntry[]; currentIndex?: number } }
+  | { type: "SET"; payload: { lessonCards: LearnCard[]; currentIndex?: number } }
   | { type: "NEXT_CARD" }
   | { type: "PREV_CARD" }
   | { type: "END_SESSION" }
-  | { type: "UPDATE_CARD"; payload: VocabEntry }
+  | { type: "UPDATE_CARD"; payload: LearnCard }
   | { type: "UPDATE_CURRENT_VIEWED"; payload: boolean };
 
 function sessionReducer(state: SessionState, action: SessionAction): SessionState {
@@ -92,14 +96,22 @@ export default function Learn() {
   const [allLessons, setAllLessons] = useState<
     Array<{ lesson: number; count: number; learnedCount: number }>
   >([]);
+  const [numbersMeta, setNumbersMeta] = useState<{ count: number; learnedCount: number }>({
+    count: 0,
+    learnedCount: 0,
+  });
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   // Dialog-State
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [numbersDialogOpen, setNumbersDialogOpen] = useState(false);
+  const [numbersIncludeViewed, setNumbersIncludeViewed] = useState(false);
+  const [numbersCardLimit, setNumbersCardLimit] = useState<string>("");
 
   // Lesson Cache für bereits geladene Lektionen
-  const lessonCacheRef = useMemo(() => new Map<number, VocabEntry[]>(), []);
+  const lessonCacheRef = useMemo(() => new Map<number, LearnCard[]>(), []);
+  const numbersCacheRef = useMemo(() => ({ cards: null as LearnCard[] | null }), []);
   const {
     hydrated: learnSessionHydrated,
     savePersistedSession: saveLearnSession,
@@ -108,6 +120,21 @@ export default function Learn() {
     key: "learnSession",
     isValid: isLearnSessionData,
   });
+
+  function mapNumberEntryToLearnCard(entry: NumberEntry): LearnCard {
+    return {
+      id: entry.id,
+      thai: `${entry.thaiWord} (${entry.thaiDigit})`,
+      german: `${entry.german} (${entry.arabic})`,
+      transliteration: entry.transliteration,
+      lesson: entry.lesson,
+      tags: entry.tags,
+      viewed: entry.viewed,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      sourceType: "numbers",
+    };
+  }
 
   async function loadLessonMetadata() {
     setError("");
@@ -140,8 +167,12 @@ export default function Learn() {
         }));
 
       setAllLessons(lessons);
+      const numbers = await db.numbersVocab.toArray();
+      const numbersCount = numbers.length;
+      const numbersLearnedCount = numbers.filter((n) => n.viewed).length;
+      setNumbersMeta({ count: numbersCount, learnedCount: numbersLearnedCount });
       if (!lessons.length) {
-        setStatus("Keine Lektionen vorhanden.");
+        setStatus(numbersCount > 0 ? "" : "Keine Lektionen vorhanden.");
       }
     } catch (e: any) {
       console.error(e);
@@ -150,18 +181,33 @@ export default function Learn() {
     }
   }
 
-  async function loadLesson(lessonNum: number): Promise<VocabEntry[]> {
+  async function loadLesson(lessonNum: number): Promise<LearnCard[]> {
     // Check cache first
     if (lessonCacheRef.has(lessonNum)) {
       return lessonCacheRef.get(lessonNum) ?? [];
     }
 
     try {
-      const cards = await db.vocab.where("lesson").equals(lessonNum).toArray();
+      const cards = (await db.vocab.where("lesson").equals(lessonNum).toArray()).map((card) => ({
+        ...card,
+        sourceType: "vocab" as const,
+      }));
       lessonCacheRef.set(lessonNum, cards);
       return cards;
     } catch (e) {
       console.error(`Fehler beim Laden von Lektion ${lessonNum}:`, e);
+      return [];
+    }
+  }
+
+  async function loadNumbersCards(): Promise<LearnCard[]> {
+    if (numbersCacheRef.cards) return numbersCacheRef.cards;
+    try {
+      const cards = (await db.numbersVocab.orderBy("arabic").toArray()).map(mapNumberEntryToLearnCard);
+      numbersCacheRef.cards = cards;
+      return cards;
+    } catch (e) {
+      console.error("Fehler beim Laden der Zahlenlektion:", e);
       return [];
     }
   }
@@ -300,6 +346,46 @@ export default function Learn() {
     })();
   }, [allLessons, sessionState.sessionActive]);
 
+  function openNumbersDialog() {
+    const rawDailyLimit = localStorage.getItem("dailyLimit");
+    const parsedDailyLimit = rawDailyLimit ? parseInt(rawDailyLimit, 10) : 10;
+    const validDailyLimit = !isNaN(parsedDailyLimit) && parsedDailyLimit > 0 ? parsedDailyLimit : 10;
+    setNumbersIncludeViewed(false);
+    setNumbersCardLimit(String(validDailyLimit));
+    setNumbersDialogOpen(true);
+  }
+
+  async function startNumbersSession() {
+    try {
+      let cards = await loadNumbersCards();
+      if (!numbersIncludeViewed) {
+        cards = cards.filter((v) => !v.viewed);
+      }
+      cards.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+
+      const limit = parseInt(numbersCardLimit, 10);
+      if (!isNaN(limit) && limit > 0) {
+        cards = cards.slice(0, limit);
+      }
+
+      if (cards.length === 0) {
+        setStatus("Keine Karten in der Zahlenlektion vorhanden.");
+        setNumbersDialogOpen(false);
+        return;
+      }
+
+      dispatchSession({
+        type: "SET",
+        payload: { lessonCards: cards },
+      });
+      setStatus(`Zahlenlektion: ${cards.length} Karte(n)`);
+      setNumbersDialogOpen(false);
+    } catch (e) {
+      console.error("Fehler beim Starten der Zahlenlektion:", e);
+      setError("Fehler beim Starten der Zahlenlektion");
+    }
+  }
+
   const {
     dialogOpen,
     setDialogOpen,
@@ -339,7 +425,11 @@ export default function Learn() {
         try {
           // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
           const newViewedState = !card.viewed;
-          await db.vocab.update(card.id, { viewed: newViewedState });
+          if (card.sourceType === "numbers") {
+            await db.numbersVocab.update(card.id, { viewed: newViewedState });
+          } else {
+            await db.vocab.update(card.id, { viewed: newViewedState });
+          }
 
           dispatchSession({
             type: "UPDATE_CURRENT_VIEWED",
@@ -347,7 +437,14 @@ export default function Learn() {
           });
 
           // Update lesson metadata counters in-place for immediate UI feedback.
-          if (typeof card.lesson === "number" && card.lesson > 0) {
+          if (card.sourceType === "numbers") {
+            setNumbersMeta((prev) => {
+              const nextLearnedCount = newViewedState
+                ? Math.min(prev.count, prev.learnedCount + 1)
+                : Math.max(0, prev.learnedCount - 1);
+              return { ...prev, learnedCount: nextLearnedCount };
+            });
+          } else if (typeof card.lesson === "number" && card.lesson > 0) {
             setAllLessons((prev) =>
               prev.map((lessonMeta) => {
                 if (lessonMeta.lesson !== card.lesson) return lessonMeta;
@@ -393,6 +490,10 @@ export default function Learn() {
   const selectedLessonLearnedCount = selectedLessonMeta?.learnedCount ?? 0;
   const thaiLang = "th-TH";
   const germanLang = "de-DE";
+  const getSpeakableText = (text: string, sourceType?: "vocab" | "numbers") => {
+    if (sourceType !== "numbers") return text;
+    return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  };
 
   return (
     <PageShell
@@ -416,22 +517,36 @@ export default function Learn() {
             <div className="text-sm font-semibold text-muted-foreground">📚 Lektion auswählen:</div>
 
             <div className="flex flex-wrap gap-2">
-              {allLessons.length === 0 ? (
+              {allLessons.length === 0 && numbersMeta.count === 0 ? (
                 <div className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</div>
               ) : (
-                allLessons.map(({ lesson, count, learnedCount = 0 }) => (
-                  <Button
-                    key={lesson}
-                    onClick={() => openLessonDialog(lesson)}
-                    className="h-12 px-6 text-base font-medium"
-                    title={`Lektion ${lesson} starten (${learnedCount}/${count} gelernt)`}
-                  >
-                    Lektion {lesson}{" "}
-                    <span className="text-xs opacity-75 ml-2">
-                      ({learnedCount}/{count})
-                    </span>
-                  </Button>
-                ))
+                <>
+                  {allLessons.map(({ lesson, count, learnedCount = 0 }) => (
+                    <Button
+                      key={lesson}
+                      onClick={() => openLessonDialog(lesson)}
+                      className="h-12 px-6 text-base font-medium"
+                      title={`Lektion ${lesson} starten (${learnedCount}/${count} gelernt)`}
+                    >
+                      Lektion {lesson}{" "}
+                      <span className="text-xs opacity-75 ml-2">
+                        ({learnedCount}/{count})
+                      </span>
+                    </Button>
+                  ))}
+                  {numbersMeta.count > 0 ? (
+                    <Button
+                      onClick={openNumbersDialog}
+                      className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+                      title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
+                    >
+                      🔢 Zahlenlektion{" "}
+                      <span className="text-xs opacity-90 ml-2">
+                        ({numbersMeta.learnedCount}/{numbersMeta.count})
+                      </span>
+                    </Button>
+                  ) : null}
+                </>
               )}
             </div>
           </div>
@@ -485,7 +600,7 @@ export default function Learn() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => void speak(current.thai, thaiLang)}
+                    onClick={() => void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)}
                     title="Thai Wort vorlesen"
                     className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                   >
@@ -515,7 +630,7 @@ export default function Learn() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => void speak(current.german, germanLang)}
+                    onClick={() => void speak(getSpeakableText(current.german, current.sourceType), germanLang)}
                     title="Deutsche Übersetzung vorlesen"
                     className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                   >
@@ -621,9 +736,70 @@ export default function Learn() {
       {/* Leer-Zustand */}
       {!sessionState.sessionActive && allLessons.length === 0 ? (
         <Card className="p-6 text-center">
-          <p className="text-muted-foreground">Keine Lektionen gefunden. Bitte importiere zuerst Vokabeln.</p>
+          <p className="text-muted-foreground">
+            {numbersMeta.count > 0
+              ? "Keine Vokabel-Lektionen gefunden. Du kannst aber die Zahlenlektion starten."
+              : "Keine Lektionen gefunden. Bitte importiere zuerst Vokabeln."}
+          </p>
         </Card>
       ) : null}
+
+      {/* Zahlen-Konfigurations-Dialog */}
+      <Dialog open={numbersDialogOpen} onOpenChange={setNumbersDialogOpen}>
+        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Zahlenlektion starten</DialogTitle>
+            <DialogDescription>
+              Konfiguriere deine Zahlen-Lernsession (0–100)
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="includeViewedNumbers"
+                checked={numbersIncludeViewed}
+                onChange={(e) => setNumbersIncludeViewed(e.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              <label htmlFor="includeViewedNumbers" className="text-sm font-medium cursor-pointer">
+                Bereits gelernte Zahlen anzeigen ({numbersMeta.learnedCount})
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="numbersCardLimit" className="text-sm font-medium">
+                Anzahl der Karten
+              </label>
+              <input
+                type="number"
+                id="numbersCardLimit"
+                value={numbersCardLimit}
+                onChange={(e) => setNumbersCardLimit(e.target.value)}
+                min="1"
+                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="z.B. 10"
+              />
+              <p className="text-xs text-muted-foreground">
+                Standard: dein tägliches Lernziel. Leer = alle verfügbaren Zahlenkarten.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setNumbersDialogOpen(false)} className="h-11">
+              Abbrechen
+            </Button>
+            <Button
+              onClick={() => void startNumbersSession()}
+              className="h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Lektions-Konfigurations-Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
