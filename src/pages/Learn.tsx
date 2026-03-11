@@ -1,28 +1,19 @@
 import { useEffect, useMemo, useState, useReducer } from "react";
 import { db } from "../db/db";
-import type { NumberEntry, VocabEntry } from "../db/db";
+import type { VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
 import { isLearnSessionData, type LearnSessionData } from "../lib/sessionTypes";
 import { usePersistedSession } from "../hooks/usePersistedSession";
 import { useLearnLessonFlow } from "../hooks/useLearnLessonFlow";
+import type { LearnCard } from "../features/learn/types";
+import { NUMBER_INFO_CARDS, mapNumberEntryToLearnCard } from "../features/learn/numbers";
+import { NumbersLessonDialog } from "../features/learn/components/NumbersLessonDialog";
+import { LessonConfigDialog } from "../features/learn/components/LessonConfigDialog";
+import { EndSessionConfirmDialog } from "../features/learn/components/EndSessionConfirmDialog";
 
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-type LearnCard = VocabEntry & {
-  sourceType?: "vocab" | "numbers" | "numbers_info";
-  infoRows?: Array<{ arabic: string; thaiDigit: string; thaiWord: string; transliteration: string }>;
-  infoNotes?: string[];
-};
 
 // Session-State für Learn
 type SessionState = {
@@ -87,93 +78,6 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
 }
 
 export default function Learn() {
-  const NUMBER_INFO_CARDS: LearnCard[] = useMemo(
-    () => [
-      {
-        id: 9_000_000_001,
-        thai: "Grundlagen Thai-Zahlen: 0-9",
-        german: "Die Ziffern und Grundwörter",
-        transliteration: "Grundformen",
-        lesson: 0,
-        tags: ["Numbers", "Info"],
-        viewed: true,
-        createdAt: 0,
-        updatedAt: 0,
-        sourceType: "numbers_info",
-        infoRows: [
-          { arabic: "0", thaiDigit: "๐", thaiWord: "ศูนย์", transliteration: "suun" },
-          { arabic: "1", thaiDigit: "๑", thaiWord: "หนึ่ง", transliteration: "nüng" },
-          { arabic: "2", thaiDigit: "๒", thaiWord: "สอง", transliteration: "song" },
-          { arabic: "3", thaiDigit: "๓", thaiWord: "สาม", transliteration: "sam" },
-          { arabic: "4", thaiDigit: "๔", thaiWord: "สี่", transliteration: "sii" },
-          { arabic: "5", thaiDigit: "๕", thaiWord: "ห้า", transliteration: "haa" },
-          { arabic: "6", thaiDigit: "๖", thaiWord: "หก", transliteration: "hok" },
-          { arabic: "7", thaiDigit: "๗", thaiWord: "เจ็ด", transliteration: "chet" },
-          { arabic: "8", thaiDigit: "๘", thaiWord: "แปด", transliteration: "päät" },
-          { arabic: "9", thaiDigit: "๙", thaiWord: "เก้า", transliteration: "gao" },
-        ],
-      },
-      {
-        id: 9_000_000_002,
-        thai: "Zehnerpotenzen",
-        german: "10, 100, 1000, 10000, 100000, 1000000",
-        transliteration: "Bauwoerter",
-        lesson: 0,
-        tags: ["Numbers", "Info"],
-        viewed: true,
-        createdAt: 0,
-        updatedAt: 0,
-        sourceType: "numbers_info",
-        infoRows: [
-          { arabic: "10", thaiDigit: "๑๐", thaiWord: "สิบ", transliteration: "sip" },
-          { arabic: "100", thaiDigit: "๑๐๐", thaiWord: "ร้อย", transliteration: "roi" },
-          { arabic: "1000", thaiDigit: "๑๐๐๐", thaiWord: "พัน", transliteration: "pan" },
-          { arabic: "10000", thaiDigit: "๑๐๐๐๐", thaiWord: "หมื่น", transliteration: "müün" },
-          { arabic: "100000", thaiDigit: "๑๐๐๐๐๐", thaiWord: "แสน", transliteration: "sään" },
-          { arabic: "1000000", thaiDigit: "๑๐๐๐๐๐๐", thaiWord: "ล้าน", transliteration: "lan" },
-        ],
-      },
-      {
-        id: 9_000_000_003,
-        thai: "Wie Zahlen zusammengesetzt werden",
-        german: "Beispiele aus 0-9 + Bauwoertern",
-        transliteration: "Muster",
-        lesson: 0,
-        tags: ["Numbers", "Info"],
-        viewed: true,
-        createdAt: 0,
-        updatedAt: 0,
-        sourceType: "numbers_info",
-        infoRows: [
-          { arabic: "25", thaiDigit: "๒๕", thaiWord: "ยี่สิบห้า", transliteration: "ji-sip-haa" },
-          { arabic: "108", thaiDigit: "๑๐๘", thaiWord: "หนึ่งร้อยแปด", transliteration: "nüng-roi-päät" },
-          { arabic: "321", thaiDigit: "๓๒๑", thaiWord: "สามร้อยยี่สิบเอ็ด", transliteration: "sam-roi-ji-sip-et" },
-          { arabic: "4 502", thaiDigit: "๔๕๐๒", thaiWord: "สี่พันห้าร้อยสอง", transliteration: "sii-pan-haa-roi-song" },
-          { arabic: "78 900", thaiDigit: "๗๘๙๐๐", thaiWord: "เจ็ดหมื่นแปดพันเก้าร้อย", transliteration: "chet-müün-päät-pan-gao-roi" },
-        ],
-      },
-      {
-        id: 9_000_000_004,
-        thai: "Wichtige Besonderheiten",
-        german: "Ausnahmen, die du frueh kennen solltest",
-        transliteration: "Tipps",
-        lesson: 0,
-        tags: ["Numbers", "Info"],
-        viewed: true,
-        createdAt: 0,
-        updatedAt: 0,
-        sourceType: "numbers_info",
-        infoNotes: [
-          "11 ist สิบเอ็ด (sip-et), nicht sip-nüng.",
-          "21 ist ยี่สิบเอ็ด (ji-sip-et). In der Einerstelle oft เอด/et statt nüng.",
-          "20 beginnt mit ยี่สิบ (ji-sip), nicht song-sip.",
-          "Bei 101, 1001 usw. bleibt die letzte 1 haeufig หนึ่ง (nüng), z. B. หนึ่งร้อยหนึ่ง.",
-          "Million = ล้าน (lan). Darueber beginnt Thai die Struktur erneut in Millionenbloecken.",
-        ],
-      },
-    ],
-    []
-  );
   // Session-State mit useReducer
   const [sessionState, dispatchSession] = useReducer(sessionReducer, {
     sessionActive: false,
@@ -209,21 +113,6 @@ export default function Learn() {
     key: "learnSession",
     isValid: isLearnSessionData,
   });
-
-  function mapNumberEntryToLearnCard(entry: NumberEntry): LearnCard {
-    return {
-      id: entry.id,
-      thai: `${entry.thaiWord} (${entry.thaiDigit})`,
-      german: `${entry.german} (${entry.arabic})`,
-      transliteration: entry.transliteration,
-      lesson: entry.lesson,
-      tags: entry.tags,
-      viewed: entry.viewed,
-      createdAt: entry.createdAt,
-      updatedAt: entry.updatedAt,
-      sourceType: "numbers",
-    };
-  }
 
   async function loadLessonMetadata() {
     setError("");
@@ -955,156 +844,36 @@ export default function Learn() {
       ) : null}
 
       {/* Zahlen-Konfigurations-Dialog */}
-      <Dialog open={numbersDialogOpen} onOpenChange={setNumbersDialogOpen}>
-        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Zahlenlektion starten</DialogTitle>
-            <DialogDescription>
-              Konfiguriere deine Zahlen-Lernsession (0–100)
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="includeViewedNumbers"
-                checked={numbersIncludeViewed}
-                onChange={(e) => setNumbersIncludeViewed(e.target.checked)}
-                className="h-4 w-4 accent-primary"
-              />
-              <label htmlFor="includeViewedNumbers" className="text-sm font-medium cursor-pointer">
-                Bereits gelernte Zahlen anzeigen ({numbersMeta.learnedCount})
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="numbersCardLimit" className="text-sm font-medium">
-                Anzahl der Karten
-              </label>
-              <input
-                type="number"
-                id="numbersCardLimit"
-                value={numbersCardLimit}
-                onChange={(e) => setNumbersCardLimit(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="z.B. 10"
-              />
-              <p className="text-xs text-muted-foreground">
-                Standard: dein tägliches Lernziel. Leer = alle verfügbaren Zahlenkarten.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setNumbersDialogOpen(false)} className="h-11">
-              Abbrechen
-            </Button>
-            <Button
-              onClick={() => void startNumbersSession()}
-              className="h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              Starten
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NumbersLessonDialog
+        open={numbersDialogOpen}
+        onOpenChange={setNumbersDialogOpen}
+        numbersIncludeViewed={numbersIncludeViewed}
+        onNumbersIncludeViewedChange={setNumbersIncludeViewed}
+        numbersLearnedCount={numbersMeta.learnedCount}
+        numbersCardLimit={numbersCardLimit}
+        onNumbersCardLimitChange={setNumbersCardLimit}
+        onStart={() => void startNumbersSession()}
+      />
 
       {/* Lektions-Konfigurations-Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Lektion {selectedLesson} starten</DialogTitle>
-            <DialogDescription>
-              Konfiguriere deine Lernsession
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Bereits gelernte Karten anzeigen */}
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="includeViewed"
-                checked={includeViewed}
-                onChange={(e) => setIncludeViewed(e.target.checked)}
-                className="h-4 w-4 accent-primary"
-              />
-              <label htmlFor="includeViewed" className="text-sm font-medium cursor-pointer">
-                Bereits gelernte Karten anzeigen ({selectedLessonLearnedCount})
-              </label>
-            </div>
-
-            {/* Anzahl der Karten */}
-            <div className="space-y-2">
-              <label htmlFor="cardLimit" className="text-sm font-medium">
-                Anzahl der Karten
-              </label>
-              <input
-                type="number"
-                id="cardLimit"
-                value={cardLimit}
-                onChange={(e) => setCardLimit(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="z.B. 10"
-              />
-              <p className="text-xs text-muted-foreground">
-                Standard: dein tägliches Lernziel. Leer = alle verfügbaren Karten der Lektion.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              onPointerDown={() => {
-                const active = document.activeElement;
-                if (active instanceof HTMLInputElement) {
-                  active.blur();
-                }
-              }}
-              onClick={() => setDialogOpen(false)}
-              className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onPointerDown={() => {
-                const active = document.activeElement;
-                if (active instanceof HTMLInputElement) {
-                  active.blur();
-                }
-              }}
-              onClick={() => void startSession()}
-              className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
-            >
-              Starten
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LessonConfigDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        selectedLesson={selectedLesson}
+        includeViewed={includeViewed}
+        onIncludeViewedChange={setIncludeViewed}
+        selectedLessonLearnedCount={selectedLessonLearnedCount}
+        cardLimit={cardLimit}
+        onCardLimitChange={setCardLimit}
+        onStart={() => void startSession()}
+      />
 
       {/* Confirm Dialog: Session beenden */}
-      <Dialog open={confirmEndOpen} onOpenChange={setConfirmEndOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Lektion beenden?</DialogTitle>
-            <DialogDescription>
-              Du kannst später jederzeit eine neue Lernsession starten.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" className="h-11" onClick={() => setConfirmEndOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button variant="destructive" className="h-11" onClick={endSession}>
-              Beenden
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EndSessionConfirmDialog
+        open={confirmEndOpen}
+        onOpenChange={setConfirmEndOpen}
+        onConfirm={endSession}
+      />
     </PageShell>
   );
 }

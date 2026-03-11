@@ -1,0 +1,103 @@
+import type { NumberEntry } from "../../db/db";
+import type { LearnCard } from "./types";
+
+export const NUMBER_INFO_CARDS: LearnCard[] = [
+  {
+    id: 9_000_000_001,
+    thai: "Grundlagen Thai-Zahlen: 0-9",
+    german: "Die Ziffern und Grundwörter",
+    transliteration: "Grundformen",
+    lesson: 0,
+    tags: ["Numbers", "Info"],
+    viewed: true,
+    createdAt: 0,
+    updatedAt: 0,
+    sourceType: "numbers_info",
+    infoRows: [
+      { arabic: "0", thaiDigit: "๐", thaiWord: "ศูนย์", transliteration: "suun" },
+      { arabic: "1", thaiDigit: "๑", thaiWord: "หนึ่ง", transliteration: "nüng" },
+      { arabic: "2", thaiDigit: "๒", thaiWord: "สอง", transliteration: "song" },
+      { arabic: "3", thaiDigit: "๓", thaiWord: "สาม", transliteration: "sam" },
+      { arabic: "4", thaiDigit: "๔", thaiWord: "สี่", transliteration: "sii" },
+      { arabic: "5", thaiDigit: "๕", thaiWord: "ห้า", transliteration: "haa" },
+      { arabic: "6", thaiDigit: "๖", thaiWord: "หก", transliteration: "hok" },
+      { arabic: "7", thaiDigit: "๗", thaiWord: "เจ็ด", transliteration: "chet" },
+      { arabic: "8", thaiDigit: "๘", thaiWord: "แปด", transliteration: "päät" },
+      { arabic: "9", thaiDigit: "๙", thaiWord: "เก้า", transliteration: "gao" },
+    ],
+  },
+  {
+    id: 9_000_000_002,
+    thai: "Zehnerpotenzen",
+    german: "10, 100, 1000, 10000, 100000, 1000000",
+    transliteration: "Bauwoerter",
+    lesson: 0,
+    tags: ["Numbers", "Info"],
+    viewed: true,
+    createdAt: 0,
+    updatedAt: 0,
+    sourceType: "numbers_info",
+    infoRows: [
+      { arabic: "10", thaiDigit: "๑๐", thaiWord: "สิบ", transliteration: "sip" },
+      { arabic: "100", thaiDigit: "๑๐๐", thaiWord: "ร้อย", transliteration: "roi" },
+      { arabic: "1000", thaiDigit: "๑๐๐๐", thaiWord: "พัน", transliteration: "pan" },
+      { arabic: "10000", thaiDigit: "๑๐๐๐๐", thaiWord: "หมื่น", transliteration: "müün" },
+      { arabic: "100000", thaiDigit: "๑๐๐๐๐๐", thaiWord: "แสน", transliteration: "sään" },
+      { arabic: "1000000", thaiDigit: "๑๐๐๐๐๐๐", thaiWord: "ล้าน", transliteration: "lan" },
+    ],
+  },
+  {
+    id: 9_000_000_003,
+    thai: "Wie Zahlen zusammengesetzt werden",
+    german: "Beispiele aus 0-9 + Bauwoertern",
+    transliteration: "Muster",
+    lesson: 0,
+    tags: ["Numbers", "Info"],
+    viewed: true,
+    createdAt: 0,
+    updatedAt: 0,
+    sourceType: "numbers_info",
+    infoRows: [
+      { arabic: "25", thaiDigit: "๒๕", thaiWord: "ยี่สิบห้า", transliteration: "ji-sip-haa" },
+      { arabic: "108", thaiDigit: "๑๐๘", thaiWord: "หนึ่งร้อยแปด", transliteration: "nüng-roi-päät" },
+      { arabic: "321", thaiDigit: "๓๒๑", thaiWord: "สามร้อยยี่สิบเอ็ด", transliteration: "sam-roi-ji-sip-et" },
+      { arabic: "4 502", thaiDigit: "๔๕๐๒", thaiWord: "สี่พันห้าร้อยสอง", transliteration: "sii-pan-haa-roi-song" },
+      { arabic: "78 900", thaiDigit: "๗๘๙๐๐", thaiWord: "เจ็ดหมื่นแปดพันเก้าร้อย", transliteration: "chet-müün-päät-pan-gao-roi" },
+    ],
+  },
+  {
+    id: 9_000_000_004,
+    thai: "Wichtige Besonderheiten",
+    german: "Ausnahmen, die du frueh kennen solltest",
+    transliteration: "Tipps",
+    lesson: 0,
+    tags: ["Numbers", "Info"],
+    viewed: true,
+    createdAt: 0,
+    updatedAt: 0,
+    sourceType: "numbers_info",
+    infoNotes: [
+      "11 ist สิบเอ็ด (sip-et), nicht sip-nüng.",
+      "21 ist ยี่สิบเอ็ด (ji-sip-et). In der Einerstelle oft เอด/et statt nüng.",
+      "20 beginnt mit ยี่สิบ (ji-sip), nicht song-sip.",
+      "Bei 101, 1001 usw. bleibt die letzte 1 haeufig หนึ่ง (nüng), z. B. หนึ่งร้อยหนึ่ง.",
+      "Million = ล้าน (lan). Darueber beginnt Thai die Struktur erneut in Millionenbloecken.",
+    ],
+  },
+];
+
+export function mapNumberEntryToLearnCard(entry: NumberEntry): LearnCard {
+  return {
+    id: entry.id,
+    thai: `${entry.thaiWord} (${entry.thaiDigit})`,
+    german: `${entry.german} (${entry.arabic})`,
+    transliteration: entry.transliteration,
+    lesson: entry.lesson,
+    tags: entry.tags,
+    viewed: entry.viewed,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
+    sourceType: "numbers",
+  };
+}
+
