@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
-import type { VocabEntry } from "../db/db";
-import { ensureProgressForEntries } from "../db/srs";
+import type { NumberEntry, VocabEntry } from "../db/db";
+import { ensureProgressForEntries, ensureProgressForNumberEntries } from "../db/srs";
 import { useAudioFeedback } from "../hooks/useAudioFeedback";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 import { useSessionState } from "../hooks/useSessionState";
@@ -13,6 +13,7 @@ import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
 import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
 import { usePersistedSession } from "../hooks/usePersistedSession";
 import { serializeTestSession } from "../lib/testSessionCodec";
+import { shuffle } from "../lib/shuffle";
 import {
   isPersistedTestSessionData,
   type LearnDirection,
@@ -32,12 +33,14 @@ import {
 } from "@/components/ui/dialog";
 
 type ConfirmAction = "restart" | "end";
+type TestCard = VocabEntry & { sourceType?: "vocab" | "numbers" };
 
 export default function Test() {
   // ===== State =====
-  const [allVocab, setAllVocab] = useState<VocabEntry[]>([]);
+  const [allVocab, setAllVocab] = useState<TestCard[]>([]);
+  const [allNumbers, setAllNumbers] = useState<TestCard[]>([]);
   const [lessonMetadata, setLessonMetadata] = useState<{lesson: number, count: number}[]>([]);
-  const [lessonCache, setLessonCache] = useState<Map<number, VocabEntry[]>>(new Map());
+  const [lessonCache, setLessonCache] = useState<Map<number, TestCard[]>>(new Map());
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
@@ -74,6 +77,9 @@ export default function Test() {
   const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
+  const [numberQuickStartDialogOpen, setNumberQuickStartDialogOpen] = useState<boolean>(false);
+  const [numberQuickStartIncludeAllLearned, setNumberQuickStartIncludeAllLearned] = useState<boolean>(false);
+  const [numberQuickStartLimit, setNumberQuickStartLimit] = useState<string>("");
   const [lastAnswer, setLastAnswer] = useState<"right" | "wrong" | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
@@ -160,6 +166,8 @@ export default function Test() {
     // Suche erst in allVocab, dann im Cache
     let found = allVocab.find((v) => v.id === currentId);
     if (found) return found;
+    found = allNumbers.find((v) => v.id === currentId);
+    if (found) return found;
     
     // Durchsuche Cache
     for (const cachedVocab of lessonCache.values()) {
@@ -168,7 +176,7 @@ export default function Test() {
     }
     
     return null;
-  }, [allVocab, lessonCache, currentId]);
+  }, [allVocab, allNumbers, lessonCache, currentId]);
 
   // Front/Back abhängig von Richtung
   const frontText = useMemo(() => {
@@ -183,6 +191,10 @@ export default function Test() {
 
   const frontLang = direction === "TH_DE" ? "th-TH" : "de-DE";
   const backLang = direction === "TH_DE" ? "de-DE" : "th-TH";
+  const getSpeakableText = (text: string) => {
+    if (current?.sourceType !== "numbers") return text;
+    return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  };
 
   const remainingUniqueCount = useMemo(() => {
     const unique = new Set(queue);
@@ -196,13 +208,31 @@ export default function Test() {
   const completedCount = useMemo(() => doneIds.size, [doneIds]);
 
   // ===== Data loading =====
+  function mapNumberEntryToTestCard(entry: NumberEntry): TestCard {
+    return {
+      id: entry.id,
+      thai: `${entry.thaiWord} (${entry.thaiDigit})`,
+      german: `${entry.german} (${entry.arabic})`,
+      transliteration: entry.transliteration,
+      lesson: entry.lesson,
+      tags: entry.tags,
+      viewed: entry.viewed,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      sourceType: "numbers",
+    };
+  }
+
   async function loadAllVocab(silent: boolean = false) {
     setError("");
     if (!silent) {
       setStatus("Lade alle Vokabeln …");
     }
     try {
-      const vocab = await db.vocab.toArray();
+      const vocab = (await db.vocab.toArray()).map((entry) => ({
+        ...entry,
+        sourceType: "vocab" as const,
+      }));
       const ids = vocab
         .map((v) => v.id)
         .filter((id): id is number => typeof id === "number");
@@ -212,6 +242,30 @@ export default function Test() {
 
       if (!silent) {
         setStatus(vocab.length ? `Geladen: ${vocab.length} Einträge` : "Keine Einträge vorhanden.");
+      }
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? String(e));
+      if (!silent) {
+        setStatus("");
+      }
+    }
+  }
+
+  async function loadAllNumbers(silent: boolean = false) {
+    setError("");
+    if (!silent) {
+      setStatus("Lade Zahlen …");
+    }
+    try {
+      const numbers = (await db.numbersVocab.toArray()).map(mapNumberEntryToTestCard);
+      const ids = numbers
+        .map((v) => v.id)
+        .filter((id): id is number => typeof id === "number");
+      await ensureProgressForNumberEntries(ids);
+      setAllNumbers(numbers);
+      if (!silent) {
+        setStatus(numbers.length ? `Geladen: ${numbers.length} Zahlen` : "Keine Zahlen vorhanden.");
       }
     } catch (e: any) {
       console.error(e);
@@ -248,7 +302,7 @@ export default function Test() {
     }
   }
 
-  async function loadLesson(lessonNumber: number): Promise<VocabEntry[]> {
+  async function loadLesson(lessonNumber: number): Promise<TestCard[]> {
     // Prüfe Cache
     if (lessonCache.has(lessonNumber)) {
       return lessonCache.get(lessonNumber)!;
@@ -256,10 +310,10 @@ export default function Test() {
     
     setStatus(`Lade Lektion ${lessonNumber} …`);
     
-    const vocab = await db.vocab
+    const vocab = (await db.vocab
       .where("lesson")
       .equals(lessonNumber)
-      .toArray();
+      .toArray()).map((entry) => ({ ...entry, sourceType: "vocab" as const }));
     const ids = vocab
       .map((v) => v.id)
       .filter((id): id is number => typeof id === "number");
@@ -462,6 +516,65 @@ export default function Test() {
     setQuickStartDialogOpen(false);
   }
 
+  async function startNumberQuickStartSession() {
+    const parsedLimit = numberQuickStartLimit.trim() ? Number.parseInt(numberQuickStartLimit, 10) : NaN;
+    const numberLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+    const includeAllLearned = numberQuickStartIncludeAllLearned;
+
+    let numbers = allNumbers;
+    if (numbers.length === 0) {
+      await loadAllNumbers(true);
+      numbers = (await db.numbersVocab.toArray()).map(mapNumberEntryToTestCard);
+      setAllNumbers(numbers);
+    }
+
+    const learnedIds = numbers
+      .filter((v) => v.viewed === true && typeof v.id === "number")
+      .map((v) => v.id as number);
+
+    let ids = learnedIds;
+    if (!includeAllLearned) {
+      const dueProgress = await db.numbersProgress.where("dueAt").belowOrEqual(Date.now()).toArray();
+      const dueIds = new Set(
+        dueProgress
+          .map((p) => p.entryId)
+          .filter((id): id is number => typeof id === "number")
+      );
+      ids = learnedIds.filter((id) => dueIds.has(id));
+    }
+
+    if (ids.length === 0) {
+      setStatus(
+        includeAllLearned
+          ? "Keine gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen'."
+          : "Keine fälligen gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Zahlen'."
+      );
+      return;
+    }
+
+    const cardsToUse = numberLimit ? shuffle(ids).slice(0, numberLimit) : shuffle(ids);
+    const shuffledRound = shuffle(cardsToUse);
+
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: true,
+        queue: cardsToUse,
+        currentRound: shuffledRound,
+        roundIndex: 0,
+        currentId: shuffledRound[0] ?? null,
+        flipped: false,
+        streaks: new Map(cardsToUse.map((id) => [id, 0])),
+        doneIds: new Set(),
+      },
+    });
+
+    const modeLabel = includeAllLearned ? "gelernte Zahlen" : "fällige gelernte Zahlen";
+    setStatus(`Zahlentest gestartet: ${cardsToUse.length} ${modeLabel}`);
+    setNumberQuickStartDialogOpen(false);
+  }
+
   const selectedCardsCount = useMemo(() => {
     return buildSessionIds().length;
   }, [allVocab, selectedLesson, selectedTags, onlyViewed]);
@@ -544,6 +657,15 @@ export default function Test() {
               aria-label="Schnellstart: Teste fällige gelernte Karten"
             >
               📖 Fällige Karten testen
+            </Button>
+            <Button
+              onClick={() => setNumberQuickStartDialogOpen(true)}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
+              title="Teste standardmäßig fällige gelernte Zahlen"
+              aria-label="Schnellstart: Zahlentest"
+            >
+              🔢 Zahlentest
             </Button>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
@@ -948,7 +1070,7 @@ export default function Test() {
                       className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        void handleSpeak(frontText, frontLang, "front");
+                        void handleSpeak(getSpeakableText(frontText), frontLang, "front");
                       }}
                       title="Vorlesen"
                       aria-label={`Vorderseite vorlesen: ${frontText}`}
@@ -996,7 +1118,7 @@ export default function Test() {
                       className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                       onClick={(ev) => {
                         ev.stopPropagation();
-                        void handleSpeak(backText, backLang, "back");
+                        void handleSpeak(getSpeakableText(backText), backLang, "back");
                       }}
                       title="Vorlesen"
                       aria-label={`Rückseite vorlesen: ${backText}`}
@@ -1168,6 +1290,17 @@ export default function Test() {
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-primary"
+                checked={showTransliteration}
+                onChange={(e) => setShowTransliteration(e.target.checked)}
+                aria-label="Lautschrift im Schnellstart anzeigen"
+              />
+              Lautschrift anzeigen
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
                 checked={quickStartIncludeAllLearned}
                 onChange={(e) => setQuickStartIncludeAllLearned(e.target.checked)}
                 aria-label="Alle gelernten Karten statt nur fällige Karten testen"
@@ -1212,6 +1345,116 @@ export default function Test() {
               className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
             >
               Test starten
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={numberQuickStartDialogOpen} onOpenChange={setNumberQuickStartDialogOpen}>
+        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Zahlentest</DialogTitle>
+            <DialogDescription>
+              Konfiguriere deinen Zahlen-Schnellstart (0–100)
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Richtung</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("TH_DE")}
+                  aria-pressed={direction === "TH_DE"}
+                  aria-label="Zahlentest-Richtung: Thai nach Deutsch"
+                >
+                  Thai → Deutsch
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setDirection("DE_TH")}
+                  aria-pressed={direction === "DE_TH"}
+                  aria-label="Zahlentest-Richtung: Deutsch nach Thai"
+                >
+                  Deutsch → Thai
+                </Button>
+              </div>
+            </div>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={showTransliteration}
+                onChange={(e) => setShowTransliteration(e.target.checked)}
+                aria-label="Lautschrift im Zahlentest anzeigen"
+              />
+              Lautschrift anzeigen
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={numberQuickStartIncludeAllLearned}
+                onChange={(e) => setNumberQuickStartIncludeAllLearned(e.target.checked)}
+                aria-label="Alle gelernten Zahlen statt nur fällige Zahlen testen"
+              />
+              Alle gelernten Zahlen (statt nur fällige)
+            </label>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="numberQuickStartLimit">
+                Kartenlimit (optional)
+              </label>
+              <input
+                id="numberQuickStartLimit"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={101}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                placeholder="z.B. 20"
+                value={numberQuickStartLimit}
+                onChange={(e) => setNumberQuickStartLimit(e.target.value)}
+                aria-label="Optionales Kartenlimit für Zahlentest"
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Standard ist SRS-orientiert (nur fällige gelernte Zahlen). Für Voll-Review optional
+              "Alle gelernten Zahlen" aktivieren.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setNumberQuickStartDialogOpen(false)}
+              className="h-11"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={() => void startNumberQuickStartSession()}
+              className="h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Zahlentest starten
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1267,6 +1510,17 @@ export default function Test() {
                 </Button>
               </div>
             </div>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={showTransliteration}
+                onChange={(e) => setShowTransliteration(e.target.checked)}
+                aria-label="Lautschrift im Lektionstest anzeigen"
+              />
+              Lautschrift anzeigen
+            </label>
 
             {/* Anzahl der Karten */}
             <div className="space-y-2">

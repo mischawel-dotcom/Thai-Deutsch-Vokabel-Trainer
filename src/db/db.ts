@@ -15,6 +15,20 @@ export type VocabEntry = {
   updatedAt: number;
 };
 
+export type NumberEntry = {
+  id?: number;
+  arabic: number;
+  thaiWord: string;
+  thaiDigit: string;
+  german: string;
+  transliteration?: string;
+  lesson?: number;
+  tags?: string[];
+  viewed?: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type SrsProgress = {
   entryId: number;
   ease: number;
@@ -29,6 +43,8 @@ export type SrsProgress = {
 class AppDB extends Dexie {
   vocab!: Dexie.Table<VocabEntry, number>;
   progress!: Dexie.Table<SrsProgress, number>;
+  numbersVocab!: Dexie.Table<NumberEntry, number>;
+  numbersProgress!: Dexie.Table<SrsProgress, number>;
 
   constructor() {
     // Updated to v4 to force clean slate after fixing duplication bug
@@ -58,8 +74,18 @@ class AppDB extends Dexie {
       progress: "entryId, dueAt, lastReviewed, updatedAt",
     });
 
+    // Version 7: Add separate numbers world tables
+    this.version(7).stores({
+      vocab: "++id, thai, german, lesson, viewed, createdAt, updatedAt",
+      progress: "entryId, dueAt, lastReviewed, updatedAt",
+      numbersVocab: "++id, arabic, thaiWord, thaiDigit, lesson, viewed, createdAt, updatedAt",
+      numbersProgress: "entryId, dueAt, lastReviewed, updatedAt",
+    });
+
     this.vocab = this.table("vocab");
     this.progress = this.table("progress");
+    this.numbersVocab = this.table("numbersVocab");
+    this.numbersProgress = this.table("numbersProgress");
   }
 }
 

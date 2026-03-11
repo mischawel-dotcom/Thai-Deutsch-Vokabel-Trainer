@@ -93,8 +93,41 @@ export async function ensureProgressForEntries(entryIds: number[]) {
   }
 }
 
+export async function ensureProgressForNumberEntries(entryIds: number[]) {
+  const uniqueIds = Array.from(new Set(entryIds.filter((id) => Number.isFinite(id) && id > 0)));
+  if (uniqueIds.length === 0) return;
+
+  const table = db.table<SrsProgress, number>("numbersProgress");
+  const existing = await table.bulkGet(uniqueIds);
+  const now = Date.now();
+
+  const missing = uniqueIds
+    .filter((_, idx) => !existing[idx])
+    .map((entryId) => ({
+      entryId,
+      ease: 2.5,
+      intervalDays: 0,
+      repetitions: 0,
+      dueAt: now,
+      updatedAt: now,
+    }));
+
+  if (missing.length > 0) {
+    await table.bulkPut(missing);
+  }
+}
+
 export async function gradeCard(entryId: number, grade: Grade) {
   const table = db.table<SrsProgress, number>("progress");
+  const prev = await table.get(entryId);
+  const next = nextProgress(prev, grade);
+  next.entryId = entryId;
+  next.lastReviewed = Date.now();
+  await table.put(next);
+}
+
+export async function gradeNumberCard(entryId: number, grade: Grade) {
+  const table = db.table<SrsProgress, number>("numbersProgress");
   const prev = await table.get(entryId);
   const next = nextProgress(prev, grade);
   next.entryId = entryId;
