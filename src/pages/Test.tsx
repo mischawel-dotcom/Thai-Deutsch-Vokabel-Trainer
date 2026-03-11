@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
-import type { NumberEntry, VocabEntry } from "../db/db";
+import type { VocabEntry } from "../db/db";
 import { ensureProgressForEntries, ensureProgressForNumberEntries } from "../db/srs";
 import { useAudioFeedback } from "../hooks/useAudioFeedback";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
@@ -10,11 +10,15 @@ import { useSessionNavigation } from "../hooks/useSessionNavigation";
 import { useSessionStart } from "../hooks/useSessionStart";
 import { useSessionStartWithFilters } from "../hooks/useSessionStartWithFilters";
 import { useQuickStartLearned } from "../hooks/useQuickStartLearned";
+import { useNumberQuickStart } from "../hooks/useNumberQuickStart";
 import { useStartLessonFromDialog } from "../hooks/useStartLessonFromDialog";
 import { usePersistedSession } from "../hooks/usePersistedSession";
 import { serializeTestSession } from "../lib/testSessionCodec";
-import { shuffle } from "../lib/shuffle";
-import { generateNumber, MAX_GENERATED_NUMBER } from "../lib/number-generator";
+import { MAX_GENERATED_NUMBER } from "../lib/number-generator";
+import type { ConfirmAction, TestCard } from "../features/test/types";
+import {
+  mapNumberEntryToTestCard,
+} from "../features/test/numbers";
 import {
   isPersistedTestSessionData,
   type LearnDirection,
@@ -24,17 +28,10 @@ import {
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-type ConfirmAction = "restart" | "end";
-type TestCard = VocabEntry & { sourceType?: "vocab" | "numbers" | "numbers_generated" };
+import { QuickStartDialog } from "../features/test/components/QuickStartDialog";
+import { NumberQuickStartDialog } from "../features/test/components/NumberQuickStartDialog";
+import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
+import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
 
 export default function Test() {
   // ===== State =====
@@ -253,21 +250,6 @@ export default function Test() {
   const completedCount = useMemo(() => doneIds.size, [doneIds]);
 
   // ===== Data loading =====
-  function mapNumberEntryToTestCard(entry: NumberEntry): TestCard {
-    return {
-      id: entry.id,
-      thai: `${entry.thaiWord} (${entry.thaiDigit})`,
-      german: `${entry.german} (${entry.arabic})`,
-      transliteration: entry.transliteration,
-      lesson: entry.lesson,
-      tags: entry.tags,
-      viewed: entry.viewed,
-      createdAt: entry.createdAt,
-      updatedAt: entry.updatedAt,
-      sourceType: "numbers",
-    };
-  }
-
   async function loadAllVocab(silent: boolean = false) {
     setError("");
     if (!silent) {
@@ -463,6 +445,14 @@ export default function Test() {
     setAllVocab,
     setStatus,
   });
+  const { startNumberQuickStart } = useNumberQuickStart({
+    dispatchSession,
+    allNumbers,
+    setAllNumbers,
+    loadAllNumbers,
+    setStatus,
+    setDialogOpen: setNumberQuickStartDialogOpen,
+  });
 
   const { startLessonFromDialog: startLessonFromDialogHook } = useStartLessonFromDialog({
     selectedDialogLesson,
@@ -570,119 +560,14 @@ export default function Test() {
 
   async function startNumberQuickStartSession() {
     const parsedLimit = numberQuickStartLimit.trim() ? Number.parseInt(numberQuickStartLimit, 10) : NaN;
-    const numberLimit =
-      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
-    const includeAllLearned = numberQuickStartIncludeAllLearned;
-
-    if (numberGeneratorMode) {
-      const parsedFrom = numberGeneratorFrom.trim() ? Number.parseInt(numberGeneratorFrom, 10) : NaN;
-      const parsedTo = numberGeneratorTo.trim() ? Number.parseInt(numberGeneratorTo, 10) : NaN;
-      const safeFrom = Number.isFinite(parsedFrom) ? Math.max(0, Math.min(MAX_GENERATED_NUMBER, parsedFrom)) : 0;
-      const safeTo = Number.isFinite(parsedTo) ? Math.max(0, Math.min(MAX_GENERATED_NUMBER, parsedTo)) : 100;
-      const fromValue = Math.min(safeFrom, safeTo);
-      const toValue = Math.max(safeFrom, safeTo);
-      const rangeSize = toValue - fromValue + 1;
-      const targetSize = rangeSize <= 5000 ? rangeSize : 2000;
-      const values = new Set<number>();
-      for (let i = fromValue; i <= Math.min(toValue, fromValue + 100); i += 1) {
-        values.add(i);
-      }
-      while (values.size < targetSize) {
-        values.add(fromValue + Math.floor(Math.random() * rangeSize));
-      }
-      const generatedCards: TestCard[] = Array.from(values)
-        .sort((a, b) => a - b)
-        .map((value) => {
-          const generated = generateNumber(value);
-          return {
-            id: 2_000_000_000 + value,
-            thai: `${generated.thaiWord} (${generated.thaiDigit})`,
-            german: `${generated.german} (${generated.arabic})`,
-            transliteration: generated.transliteration,
-            lesson: 1,
-            tags: ["Numbers", "Generated", "Kardinalzahlen"],
-            viewed: true,
-            createdAt: 0,
-            updatedAt: 0,
-            sourceType: "numbers_generated",
-          };
-        });
-
-      const ids = generatedCards
-        .map((v) => v.id)
-        .filter((id): id is number => typeof id === "number");
-      const cardsToUse = numberLimit ? shuffle(ids).slice(0, numberLimit) : shuffle(ids);
-      const shuffledRound = shuffle(cardsToUse);
-      setAllNumbers(generatedCards);
-      dispatchSession({
-        type: "set",
-        payload: {
-          sessionActive: true,
-          queue: cardsToUse,
-          currentRound: shuffledRound,
-          roundIndex: 0,
-          currentId: shuffledRound[0] ?? null,
-          flipped: false,
-          streaks: new Map(cardsToUse.map((id) => [id, 0])),
-          doneIds: new Set(),
-        },
-      });
-      setStatus(`Generator-Zahlentest gestartet: ${cardsToUse.length} Karten (${fromValue}-${toValue})`);
-      setNumberQuickStartDialogOpen(false);
-      return;
-    }
-
-    let numbers = allNumbers;
-    if (numbers.length === 0) {
-      await loadAllNumbers(true);
-      numbers = (await db.numbersVocab.toArray()).map(mapNumberEntryToTestCard);
-      setAllNumbers(numbers);
-    }
-
-    const learnedIds = numbers
-      .filter((v) => v.viewed === true && typeof v.id === "number")
-      .map((v) => v.id as number);
-
-    let ids = learnedIds;
-    if (!includeAllLearned) {
-      const dueProgress = await db.numbersProgress.where("dueAt").belowOrEqual(Date.now()).toArray();
-      const dueIds = new Set(
-        dueProgress
-          .map((p) => p.entryId)
-          .filter((id): id is number => typeof id === "number")
-      );
-      ids = learnedIds.filter((id) => dueIds.has(id));
-    }
-
-    if (ids.length === 0) {
-      setStatus(
-        includeAllLearned
-          ? "Keine gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen'."
-          : "Keine fälligen gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Zahlen'."
-      );
-      return;
-    }
-
-    const cardsToUse = numberLimit ? shuffle(ids).slice(0, numberLimit) : shuffle(ids);
-    const shuffledRound = shuffle(cardsToUse);
-
-    dispatchSession({
-      type: "set",
-      payload: {
-        sessionActive: true,
-        queue: cardsToUse,
-        currentRound: shuffledRound,
-        roundIndex: 0,
-        currentId: shuffledRound[0] ?? null,
-        flipped: false,
-        streaks: new Map(cardsToUse.map((id) => [id, 0])),
-        doneIds: new Set(),
-      },
+    const numberLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+    await startNumberQuickStart({
+      includeAllLearned: numberQuickStartIncludeAllLearned,
+      limit: numberLimit,
+      generatorMode: numberGeneratorMode,
+      generatorFrom: numberGeneratorFrom,
+      generatorTo: numberGeneratorTo,
     });
-
-    const modeLabel = includeAllLearned ? "gelernte Zahlen" : "fällige gelernte Zahlen";
-    setStatus(`Zahlentest gestartet: ${cardsToUse.length} ${modeLabel}`);
-    setNumberQuickStartDialogOpen(false);
   }
 
   const selectedCardsCount = useMemo(() => {
@@ -1349,441 +1234,64 @@ export default function Test() {
         </div>
       ) : null}
 
-      {/* Dialog für Schnellstart (fällige Karten testen) */}
-      <Dialog open={quickStartDialogOpen} onOpenChange={setQuickStartDialogOpen}>
-        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Fällige Karten testen</DialogTitle>
-            <DialogDescription>
-              Konfiguriere deinen Schnellstart-Test
-            </DialogDescription>
-          </DialogHeader>
+      {/* Dialoge für Schnellstart */}
+      <QuickStartDialog
+        open={quickStartDialogOpen}
+        onOpenChange={setQuickStartDialogOpen}
+        direction={direction}
+        onDirectionChange={setDirection}
+        showTransliteration={showTransliteration}
+        onShowTransliterationChange={setShowTransliteration}
+        includeAllLearned={quickStartIncludeAllLearned}
+        onIncludeAllLearnedChange={setQuickStartIncludeAllLearned}
+        limit={quickStartLimit}
+        onLimitChange={setQuickStartLimit}
+        onStart={startQuickStartSession}
+      />
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Richtung</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "TH_DE" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "TH_DE"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("TH_DE")}
-                  aria-pressed={direction === "TH_DE"}
-                  aria-label="Schnellstart-Richtung: Thai nach Deutsch"
-                >
-                  Thai → Deutsch
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "DE_TH" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "DE_TH"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("DE_TH")}
-                  aria-pressed={direction === "DE_TH"}
-                  aria-label="Schnellstart-Richtung: Deutsch nach Thai"
-                >
-                  Deutsch → Thai
-                </Button>
-              </div>
-            </div>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={showTransliteration}
-                onChange={(e) => setShowTransliteration(e.target.checked)}
-                aria-label="Lautschrift im Schnellstart anzeigen"
-              />
-              Lautschrift anzeigen
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={quickStartIncludeAllLearned}
-                onChange={(e) => setQuickStartIncludeAllLearned(e.target.checked)}
-                aria-label="Alle gelernten Karten statt nur fällige Karten testen"
-              />
-              Alle gelernten Karten (statt nur fällige)
-            </label>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="quickStartLimit">
-                Kartenlimit (optional)
-              </label>
-              <input
-                id="quickStartLimit"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={500}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                placeholder="z.B. 20"
-                value={quickStartLimit}
-                onChange={(e) => setQuickStartLimit(e.target.value)}
-                aria-label="Optionales Kartenlimit für Schnellstart"
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Standard ist SRS-orientiert (nur fällige gelernte Karten). Für Voll-Review optional
-              "Alle gelernten Karten" aktivieren.
-            </p>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              onClick={() => setQuickStartDialogOpen(false)}
-              className="h-11"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onClick={startQuickStartSession}
-              className="h-11 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Test starten
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={numberQuickStartDialogOpen} onOpenChange={setNumberQuickStartDialogOpen}>
-        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Zahlentest</DialogTitle>
-            <DialogDescription>
-              Konfiguriere deinen Zahlen-Schnellstart
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Richtung</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "TH_DE" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "TH_DE"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("TH_DE")}
-                  aria-pressed={direction === "TH_DE"}
-                  aria-label="Zahlentest-Richtung: Thai nach Deutsch"
-                >
-                  Thai → Deutsch
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "DE_TH" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "DE_TH"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("DE_TH")}
-                  aria-pressed={direction === "DE_TH"}
-                  aria-label="Zahlentest-Richtung: Deutsch nach Thai"
-                >
-                  Deutsch → Thai
-                </Button>
-              </div>
-            </div>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={showNumberTransliteration}
-                onChange={(e) => setShowNumberTransliteration(e.target.checked)}
-                aria-label="Lautschrift im Zahlentest anzeigen"
-              />
-              Lautschrift anzeigen
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={numberQuickStartIncludeAllLearned}
-                onChange={(e) => setNumberQuickStartIncludeAllLearned(e.target.checked)}
-                disabled={numberGeneratorMode}
-                aria-label="Alle gelernten Zahlen statt nur fällige Zahlen testen"
-              />
-              Alle gelernten Zahlen (statt nur fällige)
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={numberGeneratorMode}
-                onChange={(e) => setNumberGeneratorMode(e.target.checked)}
-                aria-label="Zahlen von bis testen aktivieren"
-              />
-              Zahlen von-bis testen
-            </label>
-
-            {numberGeneratorMode ? (
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="numberGeneratorFrom">
-                      Von
-                    </label>
-                    <input
-                      id="numberGeneratorFrom"
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={MAX_GENERATED_NUMBER}
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      placeholder="z.B. 850"
-                      value={numberGeneratorFrom}
-                      onChange={(e) => setNumberGeneratorFrom(e.target.value)}
-                      aria-label="Von Zahl fuer Generator-Zahlentest"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium" htmlFor="numberGeneratorTo">
-                      Bis
-                    </label>
-                    <input
-                      id="numberGeneratorTo"
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={MAX_GENERATED_NUMBER}
-                      className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      placeholder="z.B. 950"
-                      value={numberGeneratorTo}
-                      onChange={(e) => setNumberGeneratorTo(e.target.value)}
-                      aria-label="Bis Zahl fuer Generator-Zahlentest"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Zahlen werden dynamisch im gewählten Bereich erzeugt (z. B. 850 bis 950).
-                </p>
-              </div>
-            ) : null}
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="numberQuickStartLimit">
-                Kartenlimit (optional)
-              </label>
-              <input
-                id="numberQuickStartLimit"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={2000}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                placeholder="z.B. 20"
-                value={numberQuickStartLimit}
-                onChange={(e) => setNumberQuickStartLimit(e.target.value)}
-                aria-label="Optionales Kartenlimit für Zahlentest"
-              />
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              {numberGeneratorMode
-                ? "Von-bis-Test ignoriert SRS-Faelligkeit und erstellt einen dynamischen Zahlenpool."
-                : "Standard ist SRS-orientiert (nur fällige gelernte Zahlen). Für Voll-Review optional \"Alle gelernten Zahlen\" aktivieren."}
-            </p>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              onClick={() => setNumberQuickStartDialogOpen(false)}
-              className="h-11"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onClick={() => void startNumberQuickStartSession()}
-              className="h-11 bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              Zahlentest starten
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NumberQuickStartDialog
+        open={numberQuickStartDialogOpen}
+        onOpenChange={setNumberQuickStartDialogOpen}
+        direction={direction}
+        onDirectionChange={setDirection}
+        showNumberTransliteration={showNumberTransliteration}
+        onShowNumberTransliterationChange={setShowNumberTransliteration}
+        includeAllLearned={numberQuickStartIncludeAllLearned}
+        onIncludeAllLearnedChange={setNumberQuickStartIncludeAllLearned}
+        generatorMode={numberGeneratorMode}
+        onGeneratorModeChange={setNumberGeneratorMode}
+        generatorFrom={numberGeneratorFrom}
+        onGeneratorFromChange={setNumberGeneratorFrom}
+        generatorTo={numberGeneratorTo}
+        onGeneratorToChange={setNumberGeneratorTo}
+        maxGeneratedNumber={MAX_GENERATED_NUMBER}
+        limit={numberQuickStartLimit}
+        onLimitChange={setNumberQuickStartLimit}
+        onStart={() => void startNumberQuickStartSession()}
+      />
 
       {/* Dialog für Lektion-Auswahl */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          className="max-w-sm max-h-[85dvh] overflow-y-auto"
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Lektion {selectedDialogLesson} testen</DialogTitle>
-            <DialogDescription>
-              Konfiguriere deine Test-Session
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Richtung */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Richtung</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "TH_DE" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "TH_DE"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("TH_DE")}
-                  aria-pressed={direction === "TH_DE"}
-                  aria-label="Richtung im Testdialog: Thai nach Deutsch"
-                >
-                  Thai → Deutsch
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "DE_TH" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "DE_TH"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("DE_TH")}
-                  aria-pressed={direction === "DE_TH"}
-                  aria-label="Richtung im Testdialog: Deutsch nach Thai"
-                >
-                  Deutsch → Thai
-                </Button>
-              </div>
-            </div>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={showTransliteration}
-                onChange={(e) => setShowTransliteration(e.target.checked)}
-                aria-label="Lautschrift im Lektionstest anzeigen"
-              />
-              Lautschrift anzeigen
-            </label>
-
-            {/* Anzahl der Karten */}
-            <div className="space-y-2">
-              <label htmlFor="cardLimit" className="text-sm font-medium">
-                Anzahl der Karten
-              </label>
-              <input
-                type="number"
-                id="cardLimit"
-                value={cardLimit}
-                onChange={(e) => setCardLimit(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Alle Karten"
-                aria-describedby="cardLimit-description"
-              />
-              <p className="text-xs text-muted-foreground" id="cardLimit-description">
-                Standard: alle verfügbaren Karten der Lektion
-              </p>
-            </div>
-
-              {/* Checkbox: Bereits bestandene Karten einschließen */}
-              <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                  id="includeLearnedInDialog"
-                  checked={includeLearnedInDialog}
-                    onChange={(e) => setIncludeLearnedInDialog(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
-                />
-                <label
-                  htmlFor="includeLearnedInDialog"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Bereits bestandene Karten einschließen
-                </label>
-              </div>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button 
-              variant="outline" 
-              onPointerDown={() => {
-                const active = document.activeElement;
-                if (active instanceof HTMLInputElement) {
-                  active.blur();
-                }
-              }}
-              onClick={() => setDialogOpen(false)}
-              className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onPointerDown={() => {
-                const active = document.activeElement;
-                if (active instanceof HTMLInputElement) {
-                  active.blur();
-                }
-              }}
-              onClick={startLessonFromDialogHook}
-              className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Test starten
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LessonTestDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        selectedLesson={selectedDialogLesson}
+        direction={direction}
+        onDirectionChange={setDirection}
+        showTransliteration={showTransliteration}
+        onShowTransliterationChange={setShowTransliteration}
+        cardLimit={cardLimit}
+        onCardLimitChange={setCardLimit}
+        includeLearnedInDialog={includeLearnedInDialog}
+        onIncludeLearnedInDialogChange={setIncludeLearnedInDialog}
+        onStart={startLessonFromDialogHook}
+      />
 
       {/* Confirm Dialog für Session-Aktionen */}
-      <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
-        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmAction === "restart" ? "Test neu starten?" : "Test beenden?"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction === "restart"
-                ? "Alle Session-Zähler werden zurückgesetzt."
-                : "Dein aktueller Fortschritt dieser Session wird beendet."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" className="h-11" onClick={() => setConfirmAction(null)}>
-              Abbrechen
-            </Button>
-            <Button
-              variant="destructive"
-              className="h-11"
-              onClick={executeConfirmAction}
-            >
-              {confirmAction === "restart" ? "Neu starten" : "Beenden"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SessionActionConfirmDialog
+        action={confirmAction}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={executeConfirmAction}
+      />
     </PageShell>
   );
 }
