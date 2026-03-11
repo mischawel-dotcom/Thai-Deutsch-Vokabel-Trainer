@@ -79,6 +79,13 @@ export default function Exam() {
     loadVocab();
   }, []);
 
+  useEffect(() => {
+    const shouldOpenNumbersExam = localStorage.getItem("openNumbersExamMode") === "true";
+    if (!shouldOpenNumbersExam) return;
+    setExamDomain("numbers");
+    localStorage.removeItem("openNumbersExamMode");
+  }, []);
+
   // Restore session after data loads
   useEffect(() => {
     if (Object.keys(vocabByLesson).length === 0 && Object.keys(numbersByLesson).length === 0) return;

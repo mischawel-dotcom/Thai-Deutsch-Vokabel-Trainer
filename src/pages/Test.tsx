@@ -344,6 +344,13 @@ export default function Test() {
     });
   }, []);
 
+  useEffect(() => {
+    const shouldOpenNumberQuickStart = localStorage.getItem("openNumberQuickStartDialog") === "true";
+    if (!shouldOpenNumberQuickStart) return;
+    setNumberQuickStartDialogOpen(true);
+    localStorage.removeItem("openNumberQuickStartDialog");
+  }, []);
+
   // Load tags source data when advanced filters are opened so tag chips appear immediately.
   useEffect(() => {
     if (!showAdvancedFilters) return;
@@ -1266,7 +1273,7 @@ export default function Test() {
                   aria-pressed={direction === "TH_DE"}
                   aria-label="Schnellstart-Richtung: Thai nach Deutsch"
                 >
-                  Thai → Deutsch
+                  Thai-Ziffern → Arabisch
                 </Button>
                 <Button
                   type="button"
@@ -1281,7 +1288,7 @@ export default function Test() {
                   aria-pressed={direction === "DE_TH"}
                   aria-label="Schnellstart-Richtung: Deutsch nach Thai"
                 >
-                  Deutsch → Thai
+                  Arabisch → Thai-Ziffern
                 </Button>
               </div>
             </div>

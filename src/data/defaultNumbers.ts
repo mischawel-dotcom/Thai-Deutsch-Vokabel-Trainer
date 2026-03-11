@@ -2,7 +2,7 @@ import type { NumberEntry } from "../db/db";
 
 const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"];
 const THAI_UNITS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
-const THAI_UNITS_TRANS = ["sun", "nueng", "song", "sam", "si", "ha", "hok", "chet", "paet", "kao"];
+const THAI_UNITS_TRANS = ["soon", "nueng", "song", "sam", "si", "ha", "hok", "chet", "paet", "kao"];
 
 const GERMAN_UNITS = [
   "null",

@@ -143,6 +143,14 @@ export default function Games() {
   }, []);
 
   useEffect(() => {
+    const shouldOpenNumbersSetup = localStorage.getItem("openNumbersGameSetup") === "true";
+    if (!shouldOpenNumbersSetup) return;
+    setMode("numbers");
+    setSetupDialogOpen(true);
+    localStorage.removeItem("openNumbersGameSetup");
+  }, [setMode, setSetupDialogOpen]);
+
+  useEffect(() => {
     let active = true;
     setLoadingPreview(true);
     setStatus("");

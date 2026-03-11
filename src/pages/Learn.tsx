@@ -216,6 +216,15 @@ export default function Learn() {
     void loadLessonMetadata();
   }, []);
 
+  useEffect(() => {
+    const shouldOpenNumbers = localStorage.getItem("openNumbersLessonDialog") === "true";
+    if (!shouldOpenNumbers) return;
+    if (sessionState.sessionActive) return;
+    if (numbersMeta.count <= 0) return;
+    openNumbersDialog();
+    localStorage.removeItem("openNumbersLessonDialog");
+  }, [numbersMeta.count, sessionState.sessionActive]);
+
   // On Learn page entry we reset any persisted in-page card session.
   // This keeps navigation deterministic: opening "Lernen" shows the overview.
   useEffect(() => {
