@@ -2,7 +2,12 @@ import { useEffect, useState, useMemo } from "react";
 import { db } from "../db/db";
 import type { NumberEntry, VocabEntry } from "../db/db";
 import { normalizeNumberAnswer } from "../features/exam/helpers";
-import { buildExamQuestions, getAvailableLessons, groupEntriesByLesson } from "../features/exam/engine";
+import {
+  buildExamQuestions,
+  buildWeightedGeneratedNumberExamEntries,
+  getAvailableLessons,
+  groupEntriesByLesson,
+} from "../features/exam/engine";
 import type { Question } from "../features/exam/types";
 import { SelectionScreen } from "../features/exam/components/SelectionScreen";
 import { DirectionScreen } from "../features/exam/components/DirectionScreen";
@@ -24,6 +29,7 @@ export default function Exam() {
   const [examDomain, setExamDomain] = useState<ExamDomain>("vocab");
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const [direction, setDirection] = useState<ExamDirection>("TH_DE");
+  const [activeGeneratedNumbersExam, setActiveGeneratedNumbersExam] = useState(false);
   const [vocabByLesson, setVocabByLesson] = useState<Record<number, VocabEntry[]>>({});
   const [numbersByLesson, setNumbersByLesson] = useState<Record<number, NumberEntry[]>>({});
   const [loading, setLoading] = useState(true);
@@ -109,11 +115,27 @@ export default function Exam() {
 
   // Handle exam completion
   useEffect(() => {
-    if (state === "result" && selectedLesson !== null && examDomain === "vocab") {
-      const percentage = Math.round((score / questions.length) * 100);
+    if (state !== "result" || questions.length === 0) return;
+
+    const percentage = Math.round((score / questions.length) * 100);
+
+    if (examDomain === "vocab" && selectedLesson !== null) {
       if (percentage >= 85) {
         completeLessonViaExam(selectedLesson, percentage);
       }
+      return;
+    }
+
+    if (examDomain === "numbers") {
+      const previousBestRaw = localStorage.getItem("numbersExamBestScore");
+      const previousBest = previousBestRaw ? Number.parseInt(previousBestRaw, 10) : 0;
+      const safePreviousBest = Number.isFinite(previousBest) ? previousBest : 0;
+      const bestScore = Math.max(safePreviousBest, percentage);
+      const passed = bestScore >= 85;
+
+      localStorage.setItem("numbersExamLastScore", String(percentage));
+      localStorage.setItem("numbersExamBestScore", String(bestScore));
+      localStorage.setItem("numbersExamPassed", passed ? "true" : "false");
     }
   }, [state, selectedLesson, examDomain, score, questions.length]);
 
@@ -146,6 +168,21 @@ export default function Exam() {
 
     setSelectedLesson(lesson);
     setDirection(examDirection);
+    setActiveGeneratedNumbersExam(false);
+    setQuestions(generatedQuestions);
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setAnswered({});
+    setState("testing");
+  }
+
+  function startGeneratedNumbersExam(examDirection: ExamDirection) {
+    const generatedEntries = buildWeightedGeneratedNumberExamEntries();
+    const generatedQuestions = buildExamQuestions(generatedEntries, "numbers", examDirection);
+
+    setSelectedLesson(null);
+    setDirection(examDirection);
+    setActiveGeneratedNumbersExam(true);
     setQuestions(generatedQuestions);
     setCurrentQuestionIndex(0);
     setScore(0);
@@ -190,6 +227,7 @@ export default function Exam() {
     clearExamSession();
     setState("selection");
     setSelectedLesson(null);
+    setActiveGeneratedNumbersExam(false);
     setQuestions([]);
     setCurrentQuestionIndex(0);
     setScore(0);
@@ -204,9 +242,18 @@ export default function Exam() {
         examDomain={examDomain}
         availableLessons={availableLessons}
         vocabByLesson={vocabByLesson}
-        numbersByLesson={numbersByLesson}
-        onDomainChange={setExamDomain}
+        onDomainChange={(domain) => {
+          setExamDomain(domain);
+          setActiveGeneratedNumbersExam(false);
+        }}
+        onStartGeneratedNumbers={() => {
+          setExamDomain("numbers");
+          setActiveGeneratedNumbersExam(true);
+          setSelectedLesson(null);
+          setState("direction");
+        }}
         onLessonSelect={(lesson) => {
+          setActiveGeneratedNumbersExam(false);
           setSelectedLesson(lesson);
           setState("direction");
         }}
@@ -215,12 +262,21 @@ export default function Exam() {
   }
 
   // Direction State
-  if (state === "direction" && selectedLesson !== null) {
+  if (state === "direction" && (selectedLesson !== null || (examDomain === "numbers" && activeGeneratedNumbersExam))) {
     return (
       <DirectionScreen
         examDomain={examDomain}
         selectedLesson={selectedLesson}
-        onStart={(examDirection) => startExam(selectedLesson, examDirection)}
+        numberGeneratorMode={examDomain === "numbers" && activeGeneratedNumbersExam}
+        onStart={(examDirection) => {
+          if (examDomain === "numbers" && activeGeneratedNumbersExam) {
+            startGeneratedNumbersExam(examDirection);
+            return;
+          }
+          if (selectedLesson !== null) {
+            startExam(selectedLesson, examDirection);
+          }
+        }}
         onBack={() => {
           setState("selection");
           setSelectedLesson(null);
@@ -264,11 +320,16 @@ export default function Exam() {
   if (state === "result") {
     return (
       <ResultScreen
+        examDomain={examDomain}
         score={score}
         totalQuestions={questions.length}
         onReset={resetExam}
         onRepeat={() => {
           resetExam();
+          if (examDomain === "numbers" && activeGeneratedNumbersExam) {
+            startGeneratedNumbersExam(direction);
+            return;
+          }
           startExam(selectedLesson || 1, direction);
         }}
       />

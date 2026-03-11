@@ -15,6 +15,10 @@ export function useHomeDashboardData() {
   const [total, setTotal] = useState<number>(0);
   const [dailyLimit, setDailyLimit] = useState<number>(initialDailyLimit);
   const [learnedToday, setLearnedToday] = useState<number>(0);
+  const [numbersTotal, setNumbersTotal] = useState<number>(0);
+  const [numbersMasteredFive, setNumbersMasteredFive] = useState<number>(0);
+  const [numbersExamPassed, setNumbersExamPassed] = useState<boolean>(false);
+  const [numbersExamBestScore, setNumbersExamBestScore] = useState<number | null>(null);
   const [lessons, setLessons] = useState<number[]>([]);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
   const { streakStats, refreshStreakStats } = useLearningStreakStats();
@@ -39,6 +43,27 @@ export function useHomeDashboardData() {
     const dueToday = Math.min(realDueCount, remainingDailyBudget);
     setDueCount(dueToday);
     setTotal(vocab);
+
+    const numberEntries = await db.numbersVocab.toArray();
+    const numberIds = numberEntries
+      .map((entry) => entry.id)
+      .filter((id): id is number => typeof id === "number");
+    setNumbersTotal(numberIds.length);
+    if (numberIds.length > 0) {
+      const numberProgress = await db.numbersProgress.bulkGet(numberIds);
+      const masteredFive = numberProgress.filter(
+        (progressItem) => progressItem && progressItem.repetitions >= 5
+      ).length;
+      setNumbersMasteredFive(masteredFive);
+    } else {
+      setNumbersMasteredFive(0);
+    }
+
+    const examPassed = localStorage.getItem("numbersExamPassed") === "true";
+    const bestScoreRaw = localStorage.getItem("numbersExamBestScore");
+    const bestScore = bestScoreRaw ? Number.parseInt(bestScoreRaw, 10) : NaN;
+    setNumbersExamPassed(examPassed);
+    setNumbersExamBestScore(Number.isFinite(bestScore) ? bestScore : null);
 
     await refreshStreakStats(now);
   }
@@ -116,6 +141,10 @@ export function useHomeDashboardData() {
     learnedToday,
     lessons,
     lessonProgress,
+    numbersTotal,
+    numbersMasteredFive,
+    numbersExamPassed,
+    numbersExamBestScore,
     streakStats,
     progress,
     dailyGoalReached,

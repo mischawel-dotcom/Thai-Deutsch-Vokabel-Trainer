@@ -1,5 +1,5 @@
 export const MIN_GENERATED_NUMBER = 0;
-export const MAX_GENERATED_NUMBER = 1_000_000;
+export const MAX_GENERATED_NUMBER = 9_999_999;
 
 const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"] as const;
 const THAI_UNITS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"] as const;
@@ -135,13 +135,19 @@ function thaiTranslitBelowMillion(value: number): string {
 export function thaiWordForNumber(value: number): string {
   assertSupportedInteger(value);
   if (value < 1_000_000) return thaiBelowMillion(value);
-  return "หนึ่งล้าน";
+  const millions = Math.floor(value / 1_000_000);
+  const rest = value % 1_000_000;
+  const millionPrefix = millions === 1 ? "หนึ่งล้าน" : `${thaiBelowMillion(millions)}ล้าน`;
+  return rest === 0 ? millionPrefix : `${millionPrefix}${thaiBelowMillion(rest)}`;
 }
 
 export function thaiTransliterationForNumber(value: number): string {
   assertSupportedInteger(value);
   if (value < 1_000_000) return thaiTranslitBelowMillion(value);
-  return "nüng-lan";
+  const millions = Math.floor(value / 1_000_000);
+  const rest = value % 1_000_000;
+  const millionPrefix = millions === 1 ? "nüng-lan" : `${thaiTranslitBelowMillion(millions)}-lan`;
+  return rest === 0 ? millionPrefix : `${millionPrefix}-${thaiTranslitBelowMillion(rest)}`;
 }
 
 function germanBelowThousand(value: number): string {
@@ -170,7 +176,11 @@ export function germanWordForNumber(value: number): string {
     const thousandPrefix = thousands === 1 ? "eintausend" : `${germanBelowThousand(thousands)}tausend`;
     return rest === 0 ? thousandPrefix : `${thousandPrefix}${germanBelowThousand(rest)}`;
   }
-  return "eine Million";
+  const millions = Math.floor(value / 1_000_000);
+  const rest = value % 1_000_000;
+  const millionPrefix = millions === 1 ? "eine Million" : `${GERMAN_UNITS[millions]} Millionen`;
+  if (rest === 0) return millionPrefix;
+  return `${millionPrefix} ${germanWordForNumber(rest)}`;
 }
 
 export function generateNumber(value: number): GeneratedNumber {

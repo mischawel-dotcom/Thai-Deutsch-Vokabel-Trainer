@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { NumberEntry, VocabEntry } from "@/db/db";
+import type { VocabEntry } from "@/db/db";
 import type { ExamDomain } from "@/lib/sessionTypes";
 import PageShell from "@/components/PageShell";
 
@@ -9,8 +9,8 @@ type SelectionScreenProps = {
   examDomain: ExamDomain;
   availableLessons: number[];
   vocabByLesson: Record<number, VocabEntry[]>;
-  numbersByLesson: Record<number, NumberEntry[]>;
   onDomainChange: (domain: ExamDomain) => void;
+  onStartGeneratedNumbers: () => void;
   onLessonSelect: (lesson: number) => void;
 };
 
@@ -19,8 +19,8 @@ export function SelectionScreen({
   examDomain,
   availableLessons,
   vocabByLesson,
-  numbersByLesson,
   onDomainChange,
+  onStartGeneratedNumbers,
   onLessonSelect,
 }: SelectionScreenProps) {
   if (loading) {
@@ -55,12 +55,23 @@ export function SelectionScreen({
           </Button>
         </div>
 
+        {examDomain === "numbers" && (
+          <Card className="p-4 space-y-3 border-indigo-200/70 bg-indigo-50/40 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+            <h3 className="text-sm font-semibold">Generator-Zahlenexamen (100 Fragen)</h3>
+            <p className="text-xs text-muted-foreground">
+              Fester Mix: 60% aus 0-100, 20% aus 101-1.000, 15% aus 1.001-100.000, 5% aus
+              100.001-9.999.999.
+            </p>
+            <Button className="w-full h-11" onClick={onStartGeneratedNumbers}>
+              Zahlenexamen starten
+            </Button>
+          </Card>
+        )}
+
+        {examDomain !== "numbers" && (
         <div className="grid gap-3">
           {availableLessons.map((lesson) => {
-            const cardCount =
-              examDomain === "numbers"
-                ? (numbersByLesson[lesson]?.length ?? 0)
-                : (vocabByLesson[lesson]?.length ?? 0);
+            const cardCount = vocabByLesson[lesson]?.length ?? 0;
             return (
               <Button
                 key={lesson}
@@ -69,24 +80,21 @@ export function SelectionScreen({
                 variant="outline"
               >
                 <div className="text-left">
-                  <div className="font-semibold">
-                    {examDomain === "numbers" ? `Zahlenlektion ${lesson}` : `Lektion ${lesson}`}
-                  </div>
+                  <div className="font-semibold">{`Lektion ${lesson}`}</div>
                   <div className="text-xs text-muted-foreground">
-                    {cardCount} {examDomain === "numbers" ? "Zahlenkarten" : "Vokabeln"}
+                    {cardCount} Vokabeln
                   </div>
                 </div>
               </Button>
             );
           })}
         </div>
+        )}
 
-        {availableLessons.length === 0 && (
+        {availableLessons.length === 0 && examDomain !== "numbers" && (
           <Card className="p-4">
             <p className="text-sm text-muted-foreground">
-              {examDomain === "numbers"
-                ? "Keine Zahlenlektionen verfügbar."
-                : "Keine Lektionen verfügbar. Bitte importiere zuerst Vokabeln."}
+              Keine Lektionen verfügbar. Bitte importiere zuerst Vokabeln.
             </p>
           </Card>
         )}
