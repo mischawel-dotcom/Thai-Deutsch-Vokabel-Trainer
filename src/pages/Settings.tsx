@@ -595,6 +595,9 @@ export default function Settings() {
 
         {/* Help Button */}
         <Card className="p-4 space-y-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <p className="text-xs text-blue-800 dark:text-blue-200">
+            Hinweis: Das Zahlenmodul ist getrennt vom normalen Vokabelmodul. Fortschritt, Tests, Examen und Spiele fuer Zahlen laufen separat.
+          </p>
           <Button 
             onClick={() => setShowHelpDialog(true)}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -632,6 +635,7 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">📚 Learn (Lernen)</h3>
               <ul className="space-y-2 text-sm">
                 <li>Lektion wählen, Session konfigurieren und Karten Schritt für Schritt lernen</li>
+                <li><strong>Zahlenlektion (🔢):</strong> Eigener Lernbereich fuer Zahlen (0-100), getrennt von normalen Vokabeln</li>
                 <li><strong>Markiere als gelernt/ungelernt:</strong> Setzt den Lernstatus der aktuellen Karte</li>
                 <li>Audio für Thai/Deutsch und Beispielsätze direkt auf der Karte</li>
               </ul>
@@ -644,6 +648,7 @@ export default function Settings() {
                 <li><strong>Lernrichtung:</strong> Wird automatisch aus deinen Einstellungen übernommen</li>
                 <li><strong>Fällige Karten testen:</strong> Standardmäßig nur SRS-fällige gelernte Karten, optional alle gelernten</li>
                 <li><strong>Lektions-Tests:</strong> Direktstart pro Lektion mit optionalem Kartenlimit</li>
+                <li><strong>Zahlentest (🔢):</strong> Testet nur Zahlenkarten aus dem Zahlenpool</li>
                 <li><strong>Bewertung:</strong> Karte umdrehen, dann Falsch/Richtig tippen (5x richtig = Karte erledigt)</li>
                 <li><strong>Filter:</strong> Optional nach Lektion, Tags, nur gelernt und nur fällig</li>
               </ul>
@@ -653,9 +658,10 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-lg mb-3">🎮 Spiele</h3>
               <ul className="space-y-2 text-sm">
-                <li><strong>Modi:</strong> Blitzrunde, 4er-Quiz und Hör-Spiel</li>
+                <li><strong>Modi:</strong> Blitzrunde, 4er-Quiz, Hör-Spiel und Zahlenspiel</li>
                 <li><strong>Setup-Dialog:</strong> Modus antippen, dann Richtung, Fragenanzahl/Zeitlimit und Lektion wählen</li>
                 <li><strong>Fragenlogik:</strong> Verfügbare Karten kommen zuerst einmal dran, Wiederholungen danach in zufälliger Reihenfolge</li>
+                <li><strong>Zahlenspiel (🔢):</strong> Verwendet nur Zahlenkarten (Thai-Ziffern ⇄ Arabische Ziffern)</li>
                 <li><strong>Gamification:</strong> XP, Level, Tagesaufgabe und Badges werden pro Runde aktualisiert</li>
               </ul>
             </div>
@@ -665,8 +671,19 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">📊 Exam (Prüfung)</h3>
               <ul className="space-y-2 text-sm">
                 <li>Formale Prüfung mit Bestehensgrenze (85% richtig = bestanden)</li>
+                <li><strong>Zahlenexamen (🔢):</strong> Eigener Examen-Modus nur fuer Zahlen, getrennt vom Vokabel-Examen</li>
                 <li>Pro Frage eine Auswahlantwort, danach Auswertung mit Punkten und Ergebnis</li>
                 <li>Nutze das für realistische Lernzielkontrolle pro Lektion</li>
+              </ul>
+            </div>
+
+            {/* Numbers Separation Section */}
+            <div>
+              <h3 className="font-bold text-lg mb-3">🔢 Zahlenmodul (wichtig)</h3>
+              <ul className="space-y-2 text-sm">
+                <li>Zahlen und normale Vokabeln sind technisch und didaktisch getrennt.</li>
+                <li>Gelernt-Status, SRS-Faelligkeit und Ergebnisse werden pro Modul separat gespeichert.</li>
+                <li>Eine gelernte Zahl taucht nicht im normalen Vokabeltest auf (und umgekehrt).</li>
               </ul>
             </div>
 
