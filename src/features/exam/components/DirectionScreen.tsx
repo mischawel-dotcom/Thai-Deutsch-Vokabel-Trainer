@@ -4,7 +4,8 @@ import type { ExamDomain, ExamDirection } from "@/lib/sessionTypes";
 
 type DirectionScreenProps = {
   examDomain: ExamDomain;
-  selectedLesson: number;
+  selectedLesson: number | null;
+  numberGeneratorMode?: boolean;
   onStart: (direction: ExamDirection) => void;
   onBack: () => void;
 };
@@ -12,17 +13,19 @@ type DirectionScreenProps = {
 export function DirectionScreen({
   examDomain,
   selectedLesson,
+  numberGeneratorMode = false,
   onStart,
   onBack,
 }: DirectionScreenProps) {
+  const title =
+    examDomain === "numbers"
+      ? numberGeneratorMode
+        ? "Zahlenexamen - Generator"
+        : `Zahlenexamen - Lektion ${selectedLesson ?? ""}`
+      : `Examen - Lektion ${selectedLesson ?? ""}`;
+
   return (
-    <PageShell
-      title={
-        examDomain === "numbers"
-          ? `Zahlenexamen - Lektion ${selectedLesson}`
-          : `Examen - Lektion ${selectedLesson}`
-      }
-    >
+    <PageShell title={title}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">Wähle die Richtung für deinen Test:</p>
 

@@ -20,6 +20,10 @@ export default function Home({ onNavigate }: HomeProps) {
     learnedToday,
     lessons,
     lessonProgress,
+    numbersTotal,
+    numbersMasteredFive,
+    numbersExamPassed,
+    numbersExamBestScore,
     streakStats,
     progress,
     dailyGoalReached,
@@ -31,7 +35,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">216</div>
+      <div className="text-3xl font-bold text-red-600">224</div>
       
       {/* Welcome Header */}
       <div>
@@ -49,6 +53,10 @@ export default function Home({ onNavigate }: HomeProps) {
         progress={progress}
         total={total}
         streak={streakStats.streak}
+        numbersTotal={numbersTotal}
+        numbersMasteredFive={numbersMasteredFive}
+        numbersExamPassed={numbersExamPassed}
+        numbersExamBestScore={numbersExamBestScore}
         onNavigate={onNavigate}
         onOpenStreak={() => setStreakDialogOpen(true)}
       />
