@@ -1,13 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { db, type VocabEntry } from "../db/db";
+import { db } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
-import { shuffle } from "../lib/shuffle";
 import {
-  useGamesSetup,
-  type BlitzDurationOption,
-  type GameDirection,
-  type GameMode,
+  useGamesSetup, type BlitzDurationOption, type GameMode,
 } from "../hooks/useGamesSetup";
+import AudioGamePanel from "../features/games/components/AudioGamePanel";
+import BlitzGamePanel from "../features/games/components/BlitzGamePanel";
+import NumberGamePanel from "../features/games/components/NumberGamePanel";
+import QuizGamePanel from "../features/games/components/QuizGamePanel";
+import {
+  buildQuestionOrder,
+  createQuestion,
+  getValidBaseEntries,
+  MODE_CARDS,
+  getModeConfig,
+  toGameEntries,
+  BADGE_LABELS,
+  DEFAULT_GAME_STATS,
+  getDailyChallenge,
+  getDailyChallengeProgress,
+  getLevel,
+  getTodayKey,
+  loadGameStats,
+  saveGameStats,
+  getGamePoolSource,
+  type GameStats,
+  type AnswerFeedback,
+  type GameEntry,
+  type GameQuestion,
+} from "../features/games";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,15 +40,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type VocabWithId = VocabEntry & { id: number };
-
-type GameQuestion = {
-  entryId: number;
-  prompt: string;
-  correctAnswer: string;
-  options: string[];
-};
 
 type GameResult = {
   mode: GameMode;
@@ -42,233 +54,6 @@ type GameResult = {
   dailyChallengeCompletedNow: boolean;
   dailyChallengeTitle: string;
 };
-
-type AnswerFeedback = {
-  selected: string;
-  correct: string;
-  isCorrect: boolean;
-};
-
-type DailyChallengeMetric = "games" | "correctAnswers" | "bestScore";
-
-type DailyChallenge = {
-  id: string;
-  title: string;
-  description: string;
-  metric: DailyChallengeMetric;
-  target: number;
-};
-
-type GameModeCard = {
-  id: GameMode;
-  title: string;
-  subtitle: string;
-};
-
-const MODE_CARDS: GameModeCard[] = [
-  {
-    id: "blitz",
-    title: "Blitzrunde",
-    subtitle: "Zeitlimit wählen und so viele Treffer wie möglich",
-  },
-  {
-    id: "quiz",
-    title: "4er-Quiz",
-    subtitle: "Fragenanzahl wählen und die richtige Übersetzung tippen",
-  },
-  {
-    id: "audio",
-    title: "Hör-Spiel",
-    subtitle: "Audio hören und Übersetzung wählen",
-  },
-];
-
-type GameStats = {
-  totalXp: number;
-  totalGames: number;
-  totalCorrect: number;
-  bestScore: number;
-  badges: string[];
-  daily: {
-    date: string;
-    games: number;
-    correctAnswers: number;
-    bestScore: number;
-    challengeCompleted: boolean;
-  };
-};
-
-const GAME_STATS_KEY = "gamesStats";
-
-const BADGE_LABELS: Record<string, string> = {
-  first_game: "Erstes Spiel",
-  score_100: "100+ Punkte",
-  audio_pro: "Audio-Profi",
-  daily_3: "Tages-Triplet (3 Spiele)",
-};
-
-const DEFAULT_GAME_STATS: GameStats = {
-  totalXp: 0,
-  totalGames: 0,
-  totalCorrect: 0,
-  bestScore: 0,
-  badges: [],
-  daily: {
-    date: "",
-    games: 0,
-    correctAnswers: 0,
-    bestScore: 0,
-    challengeCompleted: false,
-  },
-};
-
-function getTodayKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function getDailyChallenge(dateKey: string): DailyChallenge {
-  const [, monthStr = "1", dayStr = "1"] = dateKey.split("-");
-  const month = Number(monthStr) || 1;
-  const day = Number(dayStr) || 1;
-  const seed = (month * 31 + day) % 3;
-
-  if (seed === 0) {
-    return {
-      id: "daily_games_2",
-      title: "Tagesaufgabe: 2 Spiele",
-      description: "Spiele heute 2 beliebige Runden.",
-      metric: "games",
-      target: 2,
-    };
-  }
-  if (seed === 1) {
-    return {
-      id: "daily_correct_15",
-      title: "Tagesaufgabe: 15 richtige",
-      description: "Erreiche heute insgesamt 15 richtige Antworten.",
-      metric: "correctAnswers",
-      target: 15,
-    };
-  }
-  return {
-    id: "daily_score_80",
-    title: "Tagesaufgabe: 80 Punkte",
-    description: "Schaffe in einer Runde mindestens 80 Punkte.",
-    metric: "bestScore",
-    target: 80,
-  };
-}
-
-function getDailyChallengeProgress(challenge: DailyChallenge, daily: GameStats["daily"]): number {
-  if (challenge.metric === "games") return daily.games;
-  if (challenge.metric === "correctAnswers") return daily.correctAnswers;
-  return daily.bestScore;
-}
-
-function loadGameStats(): GameStats {
-  try {
-    const raw = localStorage.getItem(GAME_STATS_KEY);
-    if (!raw) return DEFAULT_GAME_STATS;
-    const parsed = JSON.parse(raw) as Partial<GameStats>;
-    return {
-      totalXp: Number(parsed.totalXp) || 0,
-      totalGames: Number(parsed.totalGames) || 0,
-      totalCorrect: Number(parsed.totalCorrect) || 0,
-      bestScore: Number(parsed.bestScore) || 0,
-      badges: Array.isArray(parsed.badges) ? parsed.badges.filter((b): b is string => typeof b === "string") : [],
-      daily: {
-        date: parsed.daily?.date ?? "",
-        games: Number(parsed.daily?.games) || 0,
-        correctAnswers: Number(parsed.daily?.correctAnswers) || 0,
-        bestScore: Number(parsed.daily?.bestScore) || 0,
-        challengeCompleted: Boolean(parsed.daily?.challengeCompleted),
-      },
-    };
-  } catch {
-    return DEFAULT_GAME_STATS;
-  }
-}
-
-function getLevel(totalXp: number): number {
-  return Math.floor(Math.max(0, totalXp) / 100) + 1;
-}
-
-function asVocabWithId(entries: VocabEntry[]): VocabWithId[] {
-  return entries.filter((entry): entry is VocabWithId => typeof entry.id === "number");
-}
-
-function getValidBaseEntries(pool: VocabWithId[], direction: GameDirection): VocabWithId[] {
-  return pool.filter((baseEntry) => {
-    const correct = direction === "TH_DE" ? baseEntry.german : baseEntry.thai;
-    const distractors = new Set(
-      pool
-        .filter((entry) => entry.id !== baseEntry.id)
-        .map((entry) => (direction === "TH_DE" ? entry.german : entry.thai))
-        .filter((value) => value && value !== correct)
-    );
-    return distractors.size >= 3;
-  });
-}
-
-function buildQuestionOrder(baseIds: number[], targetCount: number): number[] {
-  if (baseIds.length === 0 || targetCount <= 0) return [];
-
-  const order: number[] = [];
-  let previousId: number | undefined;
-  while (order.length < targetCount) {
-    let cycle = shuffle(baseIds);
-    if (previousId !== undefined && cycle.length > 1 && cycle[0] === previousId) {
-      cycle = [...cycle.slice(1), cycle[0]];
-    }
-    for (const id of cycle) {
-      if (order.length >= targetCount) break;
-      order.push(id);
-      previousId = id;
-    }
-  }
-  return order;
-}
-
-function createQuestion(
-  pool: VocabWithId[],
-  direction: GameDirection,
-  preferredEntryId?: number
-): GameQuestion | null {
-  const validBases = getValidBaseEntries(pool, direction);
-  if (validBases.length === 0) return null;
-
-  const base =
-    preferredEntryId != null
-      ? validBases.find((entry) => entry.id === preferredEntryId) ?? null
-      : validBases[Math.floor(Math.random() * validBases.length)];
-  if (!base) return null;
-
-  const correctAnswer = direction === "TH_DE" ? base.german : base.thai;
-  const prompt = direction === "TH_DE" ? base.thai : base.german;
-
-  const answerCandidates = Array.from(
-    new Set(
-      pool
-        .filter((entry) => entry.id !== base.id)
-        .map((entry) => (direction === "TH_DE" ? entry.german : entry.thai))
-        .filter((value) => value && value !== correctAnswer)
-    )
-  );
-
-  if (answerCandidates.length < 3) return null;
-
-  const options = shuffle([correctAnswer, ...shuffle(answerCandidates).slice(0, 3)]);
-  return {
-    entryId: base.id,
-    prompt,
-    correctAnswer,
-    options,
-  };
-}
 
 export default function Games() {
   const {
@@ -288,6 +73,7 @@ export default function Games() {
     setBlitzDurationSec,
     setQuizQuestionCount,
     setAudioQuestionCount,
+    setNumberQuestionCount,
   } = useGamesSetup();
   const [endGameDialogOpen, setEndGameDialogOpen] = useState(false);
   const [lessons, setLessons] = useState<number[]>([]);
@@ -296,7 +82,7 @@ export default function Games() {
   const [previewCount, setPreviewCount] = useState<number>(0);
   const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
-  const [pool, setPool] = useState<VocabWithId[]>([]);
+  const [pool, setPool] = useState<GameEntry[]>([]);
   const [question, setQuestion] = useState<GameQuestion | null>(null);
   const [score, setScore] = useState<number>(0);
   const [answered, setAnswered] = useState<number>(0);
@@ -311,12 +97,16 @@ export default function Games() {
   const [result, setResult] = useState<GameResult | null>(null);
   const [gameStats, setGameStats] = useState<GameStats>(DEFAULT_GAME_STATS);
   const feedbackTimeoutRef = useRef<number | null>(null);
+  const modeConfig = useMemo(() => getModeConfig(mode), [mode]);
+  const source = useMemo(() => getGamePoolSource(mode), [mode]);
 
   const totalQuestions =
-    mode === "quiz" || mode === "audio" ? questionOrder.length : Number.POSITIVE_INFINITY;
+    mode === "quiz" || mode === "audio" || mode === "numbers" ? questionOrder.length : Number.POSITIVE_INFINITY;
 
-  const loadFilteredPool = useCallback(async (): Promise<VocabWithId[]> => {
-    const allEntries = asVocabWithId(await db.vocab.toArray());
+  const loadFilteredPool = useCallback(async (): Promise<GameEntry[]> => {
+    const allEntries = source === "numbers"
+      ? toGameEntries("numbers", await db.numbersVocab.toArray())
+      : toGameEntries("vocab", await db.vocab.toArray());
 
     let filtered = allEntries;
     if (selectedLesson !== undefined) {
@@ -328,12 +118,14 @@ export default function Games() {
     }
 
     return filtered;
-  }, [onlyLearned, selectedLesson]);
+  }, [onlyLearned, selectedLesson, source]);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      const lessonKeys = await db.vocab.orderBy("lesson").uniqueKeys();
+      const lessonKeys = source === "numbers"
+        ? await db.numbersVocab.orderBy("lesson").uniqueKeys()
+        : await db.vocab.orderBy("lesson").uniqueKeys();
       const uniqueLessons = lessonKeys
         .map((lesson) => Number(lesson))
         .filter((lesson) => Number.isFinite(lesson) && lesson > 0)
@@ -344,7 +136,7 @@ export default function Games() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [source]);
 
   useEffect(() => {
     setGameStats(loadGameStats());
@@ -416,7 +208,7 @@ export default function Games() {
         maybeAddBadge("audio_pro", modeToSave === "audio" && finalCorrect >= 8);
         maybeAddBadge("daily_3", next.daily.games >= 3);
 
-        localStorage.setItem(GAME_STATS_KEY, JSON.stringify(next));
+        saveGameStats(next);
         levelAfter = getLevel(next.totalXp);
         return next;
       });
@@ -499,7 +291,9 @@ export default function Games() {
 
     if (filtered.length < 4) {
       setStatus(
-        "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
+        mode === "numbers"
+          ? "Zu wenige Zahlenkarten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
+          : "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
       );
       setShowFilterRelaxAction(onlyLearned);
       return false;
@@ -604,7 +398,7 @@ export default function Games() {
         feedbackTimeoutRef.current = null;
         setAnswerFeedback(null);
 
-        if (mode === "quiz" || mode === "audio") {
+        if (mode === "quiz" || mode === "audio" || mode === "numbers") {
           const nextQuestionIndex = questionIndex + 1;
           const nextCursor = orderCursor + 1;
           setQuestionIndex(nextQuestionIndex);
@@ -679,7 +473,7 @@ export default function Games() {
   }, [direction, gameRunning, mode, question]);
 
   const progressText = useMemo(() => {
-    if (!gameRunning || (mode !== "quiz" && mode !== "audio")) return null;
+    if (!gameRunning || (mode !== "quiz" && mode !== "audio" && mode !== "numbers")) return null;
     return `Frage ${Math.min(questionIndex + 1, totalQuestions)} / ${totalQuestions}`;
   }, [gameRunning, mode, questionIndex, totalQuestions]);
 
@@ -698,18 +492,11 @@ export default function Games() {
     () => getDailyChallengeProgress(dailyChallenge, todayDaily),
     [dailyChallenge, todayDaily]
   );
-  const modeLabel = useMemo(
-    () => (mode === "blitz" ? "Blitzrunde" : mode === "quiz" ? "4er-Quiz" : "Hör-Spiel"),
-    [mode]
-  );
+  const modeLabel = modeConfig.resultLabel;
   const resultModeLabel = useMemo(
     () =>
       result
-        ? result.mode === "blitz"
-          ? "Blitzrunde"
-          : result.mode === "quiz"
-            ? "4er-Quiz"
-            : "Hör-Spiel"
+        ? getModeConfig(result.mode).resultLabel
         : null,
     [result]
   );
@@ -717,7 +504,7 @@ export default function Games() {
   const pageDescription =
     gameRunning || result
       ? " "
-      : "Blitzrunde, 4er-Quiz und Hör-Spiel als spielerische Wiederholung deiner Karten.";
+      : "Blitzrunde, 4er-Quiz, Hör-Spiel und Zahlenspiel als spielerische Wiederholung deiner Karten.";
   return (
     <PageShell
       title={pageTitle}
@@ -776,7 +563,9 @@ export default function Games() {
                   ? `Blitzrunde (${blitzDurationSec}s)`
                   : mode === "quiz"
                     ? `4er-Quiz (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`
-                    : `Hör-Spiel (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`}
+                    : mode === "audio"
+                      ? `Hör-Spiel (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`
+                      : `${modeConfig.resultLabel} (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`}
               </b>
             </p>
           </div>
@@ -823,7 +612,7 @@ export default function Games() {
                   }`}
                   onClick={() => setDirection("TH_DE")}
                 >
-                  Thai → Deutsch
+                  {modeConfig.directionThDeLabel}
                 </Button>
                 <Button
                   size="sm"
@@ -835,7 +624,7 @@ export default function Games() {
                   }`}
                   onClick={() => setDirection("DE_TH")}
                 >
-                  Deutsch → Thai
+                  {modeConfig.directionDeThLabel}
                 </Button>
               </div>
             </div>
@@ -892,6 +681,7 @@ export default function Games() {
                       onClick={() => {
                         if (mode === "quiz") setQuizQuestionCount(count);
                         if (mode === "audio") setAudioQuestionCount(count);
+                        if (mode === "numbers") setNumberQuestionCount(count);
                       }}
                     >
                       {count}
@@ -909,6 +699,7 @@ export default function Games() {
                       setOnlyLearned(true);
                       if (mode === "quiz") setQuizQuestionCount("ALL");
                       if (mode === "audio") setAudioQuestionCount("ALL");
+                      if (mode === "numbers") setNumberQuestionCount("ALL");
                     }}
                   >
                     Alle gelernten Karten
@@ -922,7 +713,7 @@ export default function Games() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="gameLessonSelect">
-                Lektion
+                {source === "numbers" ? "Zahlenlektion" : "Lektion"}
               </label>
               <select
                 id="gameLessonSelect"
@@ -932,17 +723,17 @@ export default function Games() {
                   setSelectedLesson(e.target.value ? Number(e.target.value) : undefined)
                 }
               >
-                <option value="">Alle Lektionen</option>
+                <option value="">{source === "numbers" ? "Alle Zahlenlektionen" : "Alle Lektionen"}</option>
                 {lessons.map((lesson) => (
                   <option key={lesson} value={lesson}>
-                    Lektion {lesson}
+                    {source === "numbers" ? `Zahlenlektion ${lesson}` : `Lektion ${lesson}`}
                   </option>
                 ))}
               </select>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} Karten verfügbar`}
+              {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} ${source === "numbers" ? "Zahlenkarten" : "Karten"} verfügbar`}
             </p>
             {status ? <div className="text-sm text-red-600">{status}</div> : null}
 
@@ -1007,49 +798,36 @@ export default function Games() {
             {progressText ? <span>{progressText}</span> : null}
           </div>
 
-          <div className="rounded-md border p-4">
-            {mode === "audio" ? (
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Höre zu und wähle die richtige Übersetzung:
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => void playQuestionAudio()}
-                  disabled={isSpeaking}
-                >
-                  {isSpeaking ? "Spielt..." : "🔊 Audio abspielen"}
-                </Button>
-              </div>
-            ) : (
-              <>
-                <p className="text-xs text-muted-foreground mb-2">Übersetze:</p>
-                <p className="text-2xl font-semibold">{question.prompt}</p>
-              </>
-            )}
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {question.options.map((option) => (
-              <Button
-                key={option}
-                variant="outline"
-                onClick={() => answerQuestion(option)}
-                disabled={Boolean(answerFeedback)}
-                className={
-                  answerFeedback
-                    ? option === answerFeedback.correct
-                      ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-300"
-                      : option === answerFeedback.selected
-                        ? "border-red-500 bg-red-500/10 text-red-700 dark:text-red-300"
-                        : ""
-                    : ""
-                }
-              >
-                {option}
-              </Button>
-            ))}
-          </div>
+          {mode === "blitz" ? (
+            <BlitzGamePanel
+              question={question}
+              answerFeedback={answerFeedback}
+              onAnswer={answerQuestion}
+            />
+          ) : null}
+          {mode === "quiz" ? (
+            <QuizGamePanel
+              question={question}
+              answerFeedback={answerFeedback}
+              onAnswer={answerQuestion}
+            />
+          ) : null}
+          {mode === "audio" ? (
+            <AudioGamePanel
+              question={question}
+              answerFeedback={answerFeedback}
+              isSpeaking={isSpeaking}
+              onPlayAudio={() => void playQuestionAudio()}
+              onAnswer={answerQuestion}
+            />
+          ) : null}
+          {mode === "numbers" ? (
+            <NumberGamePanel
+              question={question}
+              answerFeedback={answerFeedback}
+              onAnswer={answerQuestion}
+            />
+          ) : null}
 
           {answerFeedback ? (
             <div
@@ -1076,11 +854,7 @@ export default function Games() {
               <div>
                 <h3 className="text-lg font-semibold">Ergebnis</h3>
                 <p className="text-sm text-muted-foreground">
-                  {result.mode === "blitz"
-                    ? "Blitzrunde"
-                    : result.mode === "quiz"
-                      ? "4er-Quiz"
-                      : "Hör-Spiel"}{" "}
+                  {getModeConfig(result.mode).resultLabel}{" "}
                   abgeschlossen
                 </p>
               </div>

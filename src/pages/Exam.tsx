@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { db } from "../db/db";
-import type { VocabEntry } from "../db/db";
+import type { NumberEntry, VocabEntry } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
 import { completeLessonViaExam } from "../lib/lessonProgress";
 import { shuffle } from "../lib/shuffle";
 import {
+  type ExamDomain,
   isExamSessionData,
   type ExamDirection,
   type ExamQuestionData,
@@ -33,11 +34,27 @@ interface Question {
   questionText: string; // Das Wort, das abgefragt wird
 }
 
+function getSpeakableText(text: string): string {
+  return text.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeNumberAnswer(text: string, direction: ExamDirection): string {
+  const trimmed = text.trim();
+  if (direction === "TH_DE") {
+    const arabic = trimmed.match(/\d+/)?.[0];
+    return arabic ?? trimmed;
+  }
+  const thaiDigits = trimmed.match(/[๐-๙]+/)?.[0];
+  return thaiDigits ?? trimmed;
+}
+
 export default function Exam() {
   const [state, setState] = useState<ExamState>("selection");
+  const [examDomain, setExamDomain] = useState<ExamDomain>("vocab");
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const [direction, setDirection] = useState<ExamDirection>("TH_DE");
   const [vocabByLesson, setVocabByLesson] = useState<Record<number, VocabEntry[]>>({});
+  const [numbersByLesson, setNumbersByLesson] = useState<Record<number, NumberEntry[]>>({});
   const [loading, setLoading] = useState(true);
 
   // Exam State
@@ -62,17 +79,26 @@ export default function Exam() {
     loadVocab();
   }, []);
 
-  // Restore session after vocabByLesson loads
+  // Restore session after data loads
   useEffect(() => {
-    if (Object.keys(vocabByLesson).length === 0) return;
+    if (Object.keys(vocabByLesson).length === 0 && Object.keys(numbersByLesson).length === 0) return;
     const session = restoredExamSession;
     if (!session) return;
 
     const restoredQuestions = session.questions as Question[];
     if (session.state === "testing" && restoredQuestions.length > 0) {
+      setExamDomain(session.domain ?? "vocab");
       setSelectedLesson(session.selectedLesson);
       setDirection(session.direction);
-      setQuestions(restoredQuestions);
+      const normalizedQuestions =
+        (session.domain ?? "vocab") === "numbers"
+          ? restoredQuestions.map((q) => ({
+              ...q,
+              correctAnswer: normalizeNumberAnswer(q.correctAnswer, session.direction),
+              options: q.options.map((opt) => normalizeNumberAnswer(opt, session.direction)),
+            }))
+          : restoredQuestions;
+      setQuestions(normalizedQuestions);
       setCurrentQuestionIndex(session.currentQuestionIndex);
       setScore(session.score);
       setAnswered(session.answered);
@@ -80,7 +106,7 @@ export default function Exam() {
     } else {
       clearExamSession();
     }
-  }, [vocabByLesson, restoredExamSession, clearExamSession]);
+  }, [vocabByLesson, numbersByLesson, restoredExamSession, clearExamSession]);
 
   // Save session on every change
   useEffect(() => {
@@ -90,6 +116,7 @@ export default function Exam() {
       const sessionData = {
         state,
         selectedLesson,
+        domain: examDomain,
         direction,
         questions: questions as ExamQuestionData[],
         currentQuestionIndex,
@@ -100,21 +127,22 @@ export default function Exam() {
     } else {
       clearExamSession();
     }
-  }, [examSessionHydrated, state, selectedLesson, direction, questions, currentQuestionIndex, score, answered, saveExamSession, clearExamSession]);
+  }, [examSessionHydrated, state, selectedLesson, examDomain, direction, questions, currentQuestionIndex, score, answered, saveExamSession, clearExamSession]);
 
   // Handle exam completion
   useEffect(() => {
-    if (state === "result" && selectedLesson !== null) {
+    if (state === "result" && selectedLesson !== null && examDomain === "vocab") {
       const percentage = Math.round((score / questions.length) * 100);
       if (percentage >= 85) {
         completeLessonViaExam(selectedLesson, percentage);
       }
     }
-  }, [state, selectedLesson, score, questions.length]);
+  }, [state, selectedLesson, examDomain, score, questions.length]);
 
   async function loadVocab() {
     try {
       const allVocab = await db.vocab.toArray();
+      const allNumbers = await db.numbersVocab.toArray();
       
       // Group by lesson
       const grouped: Record<number, VocabEntry[]> = {};
@@ -125,6 +153,13 @@ export default function Exam() {
       });
 
       setVocabByLesson(grouped);
+      const groupedNumbers: Record<number, NumberEntry[]> = {};
+      allNumbers.forEach((n) => {
+        const lesson = n.lesson || 0;
+        if (!groupedNumbers[lesson]) groupedNumbers[lesson] = [];
+        groupedNumbers[lesson].push(n);
+      });
+      setNumbersByLesson(groupedNumbers);
     } catch (err) {
       console.error("Error loading vocab:", err);
     } finally {
@@ -133,33 +168,75 @@ export default function Exam() {
   }
 
   const availableLessons = useMemo(() => {
-    return Object.keys(vocabByLesson)
+    return Object.keys(examDomain === "numbers" ? numbersByLesson : vocabByLesson)
       .map(Number)
-      .filter((l) => l > 0 && vocabByLesson[l].length > 0)
+      .filter((l) =>
+        l > 0 &&
+        (examDomain === "numbers"
+          ? (numbersByLesson[l]?.length ?? 0) > 0
+          : (vocabByLesson[l]?.length ?? 0) > 0)
+      )
       .sort((a, b) => a - b);
-  }, [vocabByLesson]);
+  }, [examDomain, numbersByLesson, vocabByLesson]);
+
+  function toExamLabels(entry: VocabEntry | NumberEntry, domain: ExamDomain): {
+    thai: string;
+    german: string;
+  } {
+    if (domain === "numbers") {
+      const numberEntry = entry as NumberEntry;
+      return {
+        thai: `${numberEntry.thaiWord} (${numberEntry.thaiDigit})`,
+        german: `${numberEntry.german} (${numberEntry.arabic})`,
+      };
+    }
+    const vocabEntry = entry as VocabEntry;
+    return {
+      thai: vocabEntry.thai,
+      german: vocabEntry.german,
+    };
+  }
+
+  function toExamAnswerLabel(
+    entry: VocabEntry | NumberEntry,
+    domain: ExamDomain,
+    examDirection: ExamDirection
+  ): string {
+    if (domain === "numbers") {
+      const numberEntry = entry as NumberEntry;
+      return examDirection === "TH_DE" ? String(numberEntry.arabic) : numberEntry.thaiDigit;
+    }
+    const vocabEntry = entry as VocabEntry;
+    return examDirection === "TH_DE" ? vocabEntry.german : vocabEntry.thai;
+  }
 
   function startExam(lesson: number, examDirection: ExamDirection) {
-    const vocabForLesson = vocabByLesson[lesson];
+    const vocabForLesson =
+      examDomain === "numbers"
+        ? numbersByLesson[lesson]
+        : vocabByLesson[lesson];
     if (!vocabForLesson || vocabForLesson.length === 0) return;
 
     // Generate questions
     const generatedQuestions: Question[] = vocabForLesson.map((entry) => {
+      const labels = toExamLabels(entry, examDomain);
       // Get correct answer and wrong answers based on direction
       const isThaiToDeutsch = examDirection === "TH_DE";
-      const correctAnswer = isThaiToDeutsch ? entry.german : entry.thai;
+      const correctAnswer = toExamAnswerLabel(entry, examDomain, examDirection);
       
       // Get wrong answers
-      const otherVocab = vocabForLesson.filter((v) => v.id !== entry.id);
+      const otherVocab = vocabForLesson.filter((v) => v.id !== entry.id) as Array<VocabEntry | NumberEntry>;
       const uniqueAnswers = Array.from(
         new Map(
-          otherVocab.map((v) => [isThaiToDeutsch ? v.german : v.thai, v])
+          otherVocab.map((v) => {
+            return [toExamAnswerLabel(v, examDomain, examDirection), v];
+          })
         ).values()
       );
 
       const wrongAnswers = shuffle(uniqueAnswers)
         .slice(0, 3)
-        .map((v) => isThaiToDeutsch ? v.german : v.thai);
+        .map((v) => toExamAnswerLabel(v, examDomain, examDirection));
 
       const allOptions = [correctAnswer, ...wrongAnswers];
       const uniqueOptions = Array.from(new Set(allOptions));
@@ -167,11 +244,11 @@ export default function Exam() {
 
       return {
         entryId: entry.id || 0,
-        thai: entry.thai,
-        german: entry.german,
+        thai: labels.thai,
+        german: labels.german,
         correctAnswer: correctAnswer,
         options: shuffledOptions,
-        questionText: isThaiToDeutsch ? entry.thai : entry.german,
+        questionText: isThaiToDeutsch ? labels.thai : labels.german,
       };
     });
 
@@ -241,12 +318,32 @@ export default function Exam() {
       <PageShell title="Examen">
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Wähle eine Lektion und starte deinen Vokabeltest.
+            Wähle zuerst den Prüfungsmodus und dann eine Lektion.
           </p>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              variant={examDomain === "vocab" ? "default" : "secondary"}
+              className={`h-11 ${examDomain === "vocab" ? "ring-2 ring-primary/30" : ""}`}
+              onClick={() => setExamDomain("vocab")}
+            >
+              📚 Vokabel-Examen
+            </Button>
+            <Button
+              variant={examDomain === "numbers" ? "default" : "secondary"}
+              className={`h-11 ${examDomain === "numbers" ? "ring-2 ring-primary/30" : ""}`}
+              onClick={() => setExamDomain("numbers")}
+            >
+              🔢 Zahlenexamen
+            </Button>
+          </div>
 
           <div className="grid gap-3">
             {availableLessons.map((lesson) => {
-              const vocabCount = vocabByLesson[lesson].length;
+              const vocabCount =
+                examDomain === "numbers"
+                  ? (numbersByLesson[lesson]?.length ?? 0)
+                  : (vocabByLesson[lesson]?.length ?? 0);
               return (
             <Button
               key={lesson}
@@ -258,9 +355,11 @@ export default function Exam() {
               variant="outline"
             >
               <div className="text-left">
-                <div className="font-semibold">Lektion {lesson}</div>
+                <div className="font-semibold">
+                  {examDomain === "numbers" ? `Zahlenlektion ${lesson}` : `Lektion ${lesson}`}
+                </div>
                 <div className="text-xs text-muted-foreground">
-                  {vocabCount} Vokabeln
+                  {vocabCount} {examDomain === "numbers" ? "Zahlenkarten" : "Vokabeln"}
                 </div>
               </div>
             </Button>
@@ -271,7 +370,9 @@ export default function Exam() {
           {availableLessons.length === 0 && (
             <Card className="p-4">
               <p className="text-sm text-muted-foreground">
-                Keine Lektionen verfügbar. Bitte importiere zuerst Vokabeln.
+                {examDomain === "numbers"
+                  ? "Keine Zahlenlektionen verfügbar."
+                  : "Keine Lektionen verfügbar. Bitte importiere zuerst Vokabeln."}
               </p>
             </Card>
           )}
@@ -283,7 +384,7 @@ export default function Exam() {
   // Direction State
   if (state === "direction" && selectedLesson !== null) {
     return (
-      <PageShell title={`Examen - Lektion ${selectedLesson}`}>
+      <PageShell title={examDomain === "numbers" ? `Zahlenexamen - Lektion ${selectedLesson}` : `Examen - Lektion ${selectedLesson}`}>
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Wähle die Richtung für deinen Test:
@@ -300,7 +401,9 @@ export default function Exam() {
               <div className="text-left">
                 <div className="font-semibold">Thai → Deutsch</div>
                 <div className="text-xs text-muted-foreground">
-                  Sehe Thai-Wort, wähle deutsche Übersetzung
+                  {examDomain === "numbers"
+                    ? "Sehe Thai-Zahl, wähle deutsche Zahl"
+                    : "Sehe Thai-Wort, wähle deutsche Übersetzung"}
                 </div>
               </div>
             </Button>
@@ -315,7 +418,9 @@ export default function Exam() {
               <div className="text-left">
                 <div className="font-semibold">Deutsch → Thai</div>
                 <div className="text-xs text-muted-foreground">
-                  Sehe deutsches Wort, wähle Thai-Übersetzung
+                  {examDomain === "numbers"
+                    ? "Sehe deutsche Zahl, wähle Thai-Zahl"
+                    : "Sehe deutsches Wort, wähle Thai-Übersetzung"}
                 </div>
               </div>
             </Button>
@@ -385,7 +490,9 @@ export default function Exam() {
                 <div className="text-3xl sm:text-4xl font-semibold leading-snug text-primary">{question.questionText}</div>
                 <Button
                   onClick={() => {
-                    const textToSpeak = direction === "TH_DE" ? question.thai : question.german;
+                    const textToSpeak = getSpeakableText(
+                      direction === "TH_DE" ? question.thai : question.german
+                    );
                     const lang = direction === "TH_DE" ? "th-TH" : "de-DE";
                     void speak(textToSpeak, lang);
                   }}
@@ -408,7 +515,9 @@ export default function Exam() {
                   const isSelected = userAnswer === option;
                   const isCorrect = option === question.correctAnswer;
 
-                  let buttonClassName = "h-11 justify-start px-3 text-sm";
+                  const alignmentClass =
+                    examDomain === "numbers" ? "justify-center text-center" : "justify-start px-3 text-left";
+                  let buttonClassName = `h-11 text-sm ${alignmentClass}`;
                   if (isAnswered) {
                     if (isCorrect) {
                       buttonClassName += " bg-green-100 hover:bg-green-100 dark:bg-green-900 dark:hover:bg-green-900 text-foreground";

@@ -3,6 +3,7 @@ import type { VocabEntry } from "../db/db";
 export type LearnDirection = "TH_DE" | "DE_TH";
 export type ExamDirection = "TH_DE" | "DE_TH";
 export type ExamState = "selection" | "direction" | "testing" | "result";
+export type ExamDomain = "vocab" | "numbers";
 
 export type LearnSessionData = {
   sessionActive: boolean;
@@ -38,6 +39,7 @@ export type ExamQuestionData = {
 export type ExamSessionData = {
   state: ExamState;
   selectedLesson: number | null;
+  domain?: ExamDomain;
   direction: ExamDirection;
   questions: ExamQuestionData[];
   currentQuestionIndex: number;
@@ -63,6 +65,10 @@ function isDirection(value: unknown): value is LearnDirection {
 
 function isExamState(value: unknown): value is ExamState {
   return value === "selection" || value === "direction" || value === "testing" || value === "result";
+}
+
+function isExamDomain(value: unknown): value is ExamDomain {
+  return value === "vocab" || value === "numbers";
 }
 
 function isVocabEntry(value: unknown): value is VocabEntry {
@@ -139,6 +145,7 @@ export function isExamSessionData(value: unknown): value is ExamSessionData {
   return (
     isExamState(value.state) &&
     (typeof value.selectedLesson === "number" || value.selectedLesson === null) &&
+    (value.domain === undefined || isExamDomain(value.domain)) &&
     isDirection(value.direction) &&
     Array.isArray(value.questions) &&
     value.questions.every(isExamQuestionData) &&
