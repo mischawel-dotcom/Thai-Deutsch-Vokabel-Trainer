@@ -68,6 +68,11 @@ export default function Test() {
     if (saved === "false") return false;
     return true;
   });
+  const [showNumberTransliteration, setShowNumberTransliteration] = useState<boolean>(() => {
+    const saved = localStorage.getItem("showTransliterationInNumberTest");
+    if (saved === "true") return true;
+    return false;
+  });
 
   // Dialog für Lektion-Auswahl
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
@@ -158,6 +163,12 @@ export default function Test() {
   useEffect(() => {
     localStorage.setItem("showTransliterationInTest", showTransliteration ? "true" : "false");
   }, [showTransliteration]);
+  useEffect(() => {
+    localStorage.setItem(
+      "showTransliterationInNumberTest",
+      showNumberTransliteration ? "true" : "false"
+    );
+  }, [showNumberTransliteration]);
 
   useEffect(() => {
     localStorage.setItem("numberTestGeneratorMode", numberGeneratorMode ? "true" : "false");
@@ -226,6 +237,9 @@ export default function Test() {
     return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
   };
   const isNumberSessionCard = current?.sourceType === "numbers" || current?.sourceType === "numbers_generated";
+  const showCurrentCardTransliteration = isNumberSessionCard
+    ? showNumberTransliteration
+    : showTransliteration;
 
   const remainingUniqueCount = useMemo(() => {
     const unique = new Set(queue);
@@ -1153,7 +1167,7 @@ export default function Test() {
                     {frontText}
                   </div>
 
-                  {!isNumberSessionCard && showTransliteration && direction === "TH_DE" && current.transliteration ? (
+                  {showCurrentCardTransliteration && direction === "TH_DE" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -1201,7 +1215,7 @@ export default function Test() {
 
                   <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug">{backText}</div>
 
-                  {!isNumberSessionCard && showTransliteration && direction === "DE_TH" && current.transliteration ? (
+                  {showCurrentCardTransliteration && direction === "DE_TH" && current.transliteration ? (
                     <div className="text-center">
                       <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
                     </div>
@@ -1491,6 +1505,17 @@ export default function Test() {
                 </Button>
               </div>
             </div>
+
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={showNumberTransliteration}
+                onChange={(e) => setShowNumberTransliteration(e.target.checked)}
+                aria-label="Lautschrift im Zahlentest anzeigen"
+              />
+              Lautschrift anzeigen
+            </label>
 
             <label className="inline-flex items-center gap-2 text-sm">
               <input

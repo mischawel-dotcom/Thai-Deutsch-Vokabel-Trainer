@@ -3,7 +3,7 @@ export const MAX_GENERATED_NUMBER = 1_000_000;
 
 const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"] as const;
 const THAI_UNITS = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"] as const;
-const THAI_UNITS_TRANS = ["soon", "nueng", "song", "sam", "si", "ha", "hok", "chet", "paet", "kao"] as const;
+const THAI_UNITS_TRANS = ["suun", "nüng", "song", "sam", "sii", "haa", "hok", "chet", "päät", "gao"] as const;
 
 const GERMAN_UNITS = ["null", "eins", "zwei", "drei", "vier", "fuenf", "sechs", "sieben", "acht", "neun"] as const;
 const GERMAN_TEENS: Record<number, string> = {
@@ -96,7 +96,7 @@ function thaiTranslitBelowMillion(value: number): string {
   if (value < 10) return THAI_UNITS_TRANS[value];
 
   const placeValues = [100_000, 10_000, 1_000, 100, 10, 1] as const;
-  const placeWords = ["saen", "muen", "phan", "roi", "sip", ""] as const;
+  const placeWords = ["sään", "müün", "pan", "roi", "sip", ""] as const;
   const parts: string[] = [];
   let rest = value;
 
@@ -110,7 +110,7 @@ function thaiTranslitBelowMillion(value: number): string {
       if (digit === 1) {
         parts.push("sip");
       } else if (digit === 2) {
-        parts.push("yi-sip");
+        parts.push("ji-sip");
       } else {
         parts.push(`${THAI_UNITS_TRANS[digit]}-sip`);
       }
@@ -141,7 +141,7 @@ export function thaiWordForNumber(value: number): string {
 export function thaiTransliterationForNumber(value: number): string {
   assertSupportedInteger(value);
   if (value < 1_000_000) return thaiTranslitBelowMillion(value);
-  return "nueng-lan";
+  return "nüng-lan";
 }
 
 function germanBelowThousand(value: number): string {
