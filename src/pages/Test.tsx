@@ -28,16 +28,10 @@ import {
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { QuickStartDialog } from "../features/test/components/QuickStartDialog";
 import { NumberQuickStartDialog } from "../features/test/components/NumberQuickStartDialog";
+import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
+import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
 
 export default function Test() {
   // ===== State =====
@@ -1277,162 +1271,27 @@ export default function Test() {
       />
 
       {/* Dialog für Lektion-Auswahl */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          className="max-w-sm max-h-[85dvh] overflow-y-auto"
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Lektion {selectedDialogLesson} testen</DialogTitle>
-            <DialogDescription>
-              Konfiguriere deine Test-Session
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Richtung */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Richtung</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "TH_DE" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "TH_DE"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("TH_DE")}
-                  aria-pressed={direction === "TH_DE"}
-                  aria-label="Richtung im Testdialog: Thai nach Deutsch"
-                >
-                  Thai → Deutsch
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={direction === "DE_TH" ? "default" : "secondary"}
-                  className={`min-h-[44px] transition-all ${
-                    direction === "DE_TH"
-                      ? "shadow-sm ring-2 ring-primary/30"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                  onClick={() => setDirection("DE_TH")}
-                  aria-pressed={direction === "DE_TH"}
-                  aria-label="Richtung im Testdialog: Deutsch nach Thai"
-                >
-                  Deutsch → Thai
-                </Button>
-              </div>
-            </div>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={showTransliteration}
-                onChange={(e) => setShowTransliteration(e.target.checked)}
-                aria-label="Lautschrift im Lektionstest anzeigen"
-              />
-              Lautschrift anzeigen
-            </label>
-
-            {/* Anzahl der Karten */}
-            <div className="space-y-2">
-              <label htmlFor="cardLimit" className="text-sm font-medium">
-                Anzahl der Karten
-              </label>
-              <input
-                type="number"
-                id="cardLimit"
-                value={cardLimit}
-                onChange={(e) => setCardLimit(e.target.value)}
-                min="1"
-                className="w-full px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="Alle Karten"
-                aria-describedby="cardLimit-description"
-              />
-              <p className="text-xs text-muted-foreground" id="cardLimit-description">
-                Standard: alle verfügbaren Karten der Lektion
-              </p>
-            </div>
-
-              {/* Checkbox: Bereits bestandene Karten einschließen */}
-              <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                  id="includeLearnedInDialog"
-                  checked={includeLearnedInDialog}
-                    onChange={(e) => setIncludeLearnedInDialog(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
-                />
-                <label
-                  htmlFor="includeLearnedInDialog"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Bereits bestandene Karten einschließen
-                </label>
-              </div>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button 
-              variant="outline" 
-              onPointerDown={() => {
-                const active = document.activeElement;
-                if (active instanceof HTMLInputElement) {
-                  active.blur();
-                }
-              }}
-              onClick={() => setDialogOpen(false)}
-              className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onPointerDown={() => {
-                const active = document.activeElement;
-                if (active instanceof HTMLInputElement) {
-                  active.blur();
-                }
-              }}
-              onClick={startLessonFromDialogHook}
-              className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Test starten
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LessonTestDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        selectedLesson={selectedDialogLesson}
+        direction={direction}
+        onDirectionChange={setDirection}
+        showTransliteration={showTransliteration}
+        onShowTransliterationChange={setShowTransliteration}
+        cardLimit={cardLimit}
+        onCardLimitChange={setCardLimit}
+        includeLearnedInDialog={includeLearnedInDialog}
+        onIncludeLearnedInDialogChange={setIncludeLearnedInDialog}
+        onStart={startLessonFromDialogHook}
+      />
 
       {/* Confirm Dialog für Session-Aktionen */}
-      <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
-        <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmAction === "restart" ? "Test neu starten?" : "Test beenden?"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmAction === "restart"
-                ? "Alle Session-Zähler werden zurückgesetzt."
-                : "Dein aktueller Fortschritt dieser Session wird beendet."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button variant="outline" className="h-11" onClick={() => setConfirmAction(null)}>
-              Abbrechen
-            </Button>
-            <Button
-              variant="destructive"
-              className="h-11"
-              onClick={executeConfirmAction}
-            >
-              {confirmAction === "restart" ? "Neu starten" : "Beenden"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SessionActionConfirmDialog
+        action={confirmAction}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={executeConfirmAction}
+      />
     </PageShell>
   );
 }
