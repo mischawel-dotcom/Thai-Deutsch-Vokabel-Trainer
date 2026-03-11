@@ -195,9 +195,11 @@ export default function Test() {
   const completedCount = useMemo(() => doneIds.size, [doneIds]);
 
   // ===== Data loading =====
-  async function loadAllVocab() {
+  async function loadAllVocab(silent: boolean = false) {
     setError("");
-    setStatus("Lade alle Vokabeln …");
+    if (!silent) {
+      setStatus("Lade alle Vokabeln …");
+    }
     try {
       const vocab = await db.vocab.toArray();
       const ids = vocab
@@ -207,11 +209,15 @@ export default function Test() {
 
       setAllVocab(vocab);
 
-      setStatus(vocab.length ? `Geladen: ${vocab.length} Einträge` : "Keine Einträge vorhanden.");
+      if (!silent) {
+        setStatus(vocab.length ? `Geladen: ${vocab.length} Einträge` : "Keine Einträge vorhanden.");
+      }
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? String(e));
-      setStatus("");
+      if (!silent) {
+        setStatus("");
+      }
     }
   }
 
@@ -282,6 +288,13 @@ export default function Test() {
       }
     });
   }, []);
+
+  // Load tags source data when advanced filters are opened so tag chips appear immediately.
+  useEffect(() => {
+    if (!showAdvancedFilters) return;
+    if (allVocab.length > 0) return;
+    void loadAllVocab(true);
+  }, [showAdvancedFilters, allVocab.length]);
 
   // Focus Management: Fokussiere Flip-Button wenn Session startet oder neue Karte kommt
   useEffect(() => {
@@ -636,7 +649,12 @@ export default function Test() {
                 <Button
                   type="button"
                   size="sm"
-                  variant={direction === "TH_DE" ? "secondary" : "outline"}
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                   onClick={() => setDirection("TH_DE")}
                   title="Thai → Deutsch"
                   aria-pressed={direction === "TH_DE"}
@@ -647,7 +665,12 @@ export default function Test() {
                 <Button
                   type="button"
                   size="sm"
-                  variant={direction === "DE_TH" ? "secondary" : "outline"}
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                   onClick={() => setDirection("DE_TH")}
                   title="Deutsch → Thai"
                   aria-pressed={direction === "DE_TH"}
@@ -665,9 +688,13 @@ export default function Test() {
                 <Button
                   type="button"
                   size="sm"
-                  variant={selectedLesson === undefined ? "secondary" : "outline"}
+                  variant={selectedLesson === undefined ? "default" : "secondary"}
                   onClick={() => setSelectedLesson(undefined)}
-                  className="h-8"
+                  className={`h-8 min-h-[36px] transition-all ${
+                    selectedLesson === undefined
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                   aria-pressed={selectedLesson === undefined}
                   aria-label="Alle Lektionen wählen"
                 >
@@ -678,9 +705,13 @@ export default function Test() {
                     key={lesson}
                     type="button"
                     size="sm"
-                    variant={selectedLesson === lesson ? "secondary" : "outline"}
+                    variant={selectedLesson === lesson ? "default" : "secondary"}
                     onClick={() => setSelectedLesson(lesson)}
-                    className="h-8"
+                    className={`h-8 min-h-[36px] transition-all ${
+                      selectedLesson === lesson
+                        ? "shadow-sm ring-2 ring-primary/30"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
                     title={`Lektion ${lesson}`}
                     aria-pressed={selectedLesson === lesson}
                     aria-label={`Lektion ${lesson} auswählen, ${count} Karten`}
@@ -706,9 +737,13 @@ export default function Test() {
                         key={tag}
                         type="button"
                         size="sm"
-                        variant={selected ? "secondary" : "outline"}
+                        variant={selected ? "default" : "secondary"}
                         onClick={() => toggleTag(tag)}
-                        className="h-8 rounded-full px-3"
+                        className={`h-8 rounded-full px-3 transition-all ${
+                          selected
+                            ? "shadow-sm ring-2 ring-primary/30"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}
                         title="Klicken zum Filtern"
                         aria-pressed={selected}
                         aria-label={`Tag ${tag} ${selected ? 'abwählen' : 'auswählen'}, ${count} Karten`}
