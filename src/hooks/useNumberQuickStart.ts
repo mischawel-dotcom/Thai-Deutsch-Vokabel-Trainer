@@ -8,6 +8,11 @@ import {
   mapNumberEntryToTestCard,
   normalizeNumberGeneratorRange,
 } from "../features/test/numbers";
+import {
+  buildQuickStartSessionPayload,
+  filterDueLearnedIds,
+  normalizeOptionalLimit,
+} from "./quickStartShared";
 
 interface UseNumberQuickStartProps {
   dispatchSession: SessionDispatch;
@@ -37,10 +42,7 @@ export function useNumberQuickStart({
   const startNumberQuickStart = useCallback(
     async (options: NumberQuickStartOptions) => {
       const includeAllLearned = options.includeAllLearned;
-      const numberLimit =
-        typeof options.limit === "number" && Number.isFinite(options.limit) && options.limit > 0
-          ? Math.floor(options.limit)
-          : undefined;
+      const numberLimit = normalizeOptionalLimit(options.limit);
 
       if (options.generatorMode) {
         const range = normalizeNumberGeneratorRange(options.generatorFrom, options.generatorTo);
@@ -49,21 +51,11 @@ export function useNumberQuickStart({
           .map((v) => v.id)
           .filter((id): id is number => typeof id === "number");
         const cardsToUse = numberLimit ? shuffle(ids).slice(0, numberLimit) : shuffle(ids);
-        const shuffledRound = shuffle(cardsToUse);
 
         setAllNumbers(generatedCards);
         dispatchSession({
           type: "set",
-          payload: {
-            sessionActive: true,
-            queue: cardsToUse,
-            currentRound: shuffledRound,
-            roundIndex: 0,
-            currentId: shuffledRound[0] ?? null,
-            flipped: false,
-            streaks: new Map(cardsToUse.map((id) => [id, 0])),
-            doneIds: new Set(),
-          },
+          payload: buildQuickStartSessionPayload(cardsToUse),
         });
         setStatus(
           `Generator-Zahlentest gestartet: ${cardsToUse.length} Karten (${range.fromValue}-${range.toValue})`
@@ -85,11 +77,7 @@ export function useNumberQuickStart({
 
       let ids = learnedIds;
       if (!includeAllLearned) {
-        const dueProgress = await db.numbersProgress.where("dueAt").belowOrEqual(Date.now()).toArray();
-        const dueIds = new Set(
-          dueProgress.map((p) => p.entryId).filter((id): id is number => typeof id === "number")
-        );
-        ids = learnedIds.filter((id) => dueIds.has(id));
+        ids = await filterDueLearnedIds(learnedIds, "numbersProgress");
       }
 
       if (ids.length === 0) {
@@ -102,19 +90,9 @@ export function useNumberQuickStart({
       }
 
       const cardsToUse = numberLimit ? shuffle(ids).slice(0, numberLimit) : shuffle(ids);
-      const shuffledRound = shuffle(cardsToUse);
       dispatchSession({
         type: "set",
-        payload: {
-          sessionActive: true,
-          queue: cardsToUse,
-          currentRound: shuffledRound,
-          roundIndex: 0,
-          currentId: shuffledRound[0] ?? null,
-          flipped: false,
-          streaks: new Map(cardsToUse.map((id) => [id, 0])),
-          doneIds: new Set(),
-        },
+        payload: buildQuickStartSessionPayload(cardsToUse),
       });
       const modeLabel = includeAllLearned ? "gelernte Zahlen" : "fällige gelernte Zahlen";
       setStatus(`Zahlentest gestartet: ${cardsToUse.length} ${modeLabel}`);

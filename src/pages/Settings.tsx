@@ -596,7 +596,7 @@ export default function Settings() {
         {/* Help Button */}
         <Card className="p-4 space-y-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <p className="text-xs text-blue-800 dark:text-blue-200">
-            Hinweis: Das Zahlenmodul ist getrennt vom normalen Vokabelmodul. Fortschritt, Tests, Examen und Spiele fuer Zahlen laufen separat.
+            Hinweis: Das Zahlenmodul ist getrennt vom normalen Vokabelmodul. SRS-Fortschritt (DB-Karten) und Generator-Modi werden getrennt behandelt.
           </p>
           <Button 
             onClick={() => setShowHelpDialog(true)}
@@ -635,7 +635,7 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">📚 Learn (Lernen)</h3>
               <ul className="space-y-2 text-sm">
                 <li>Lektion wählen, Session konfigurieren und Karten Schritt für Schritt lernen</li>
-                <li><strong>Zahlenlektion (🔢):</strong> Eigener Lernbereich fuer Zahlen (0-100), getrennt von normalen Vokabeln</li>
+                <li><strong>Zahlenlektion (🔢):</strong> Eigener Lernbereich mit DB-Zahlenkarten (inkl. SRS-Fortschritt), getrennt von normalen Vokabeln</li>
                 <li><strong>Markiere als gelernt/ungelernt:</strong> Setzt den Lernstatus der aktuellen Karte</li>
                 <li>Audio für Thai/Deutsch und Beispielsätze direkt auf der Karte</li>
               </ul>
@@ -647,8 +647,8 @@ export default function Settings() {
               <ul className="space-y-2 text-sm">
                 <li><strong>Lernrichtung:</strong> Wird automatisch aus deinen Einstellungen übernommen</li>
                 <li><strong>Fällige Karten testen:</strong> Standardmäßig nur SRS-fällige gelernte Karten, optional alle gelernten</li>
-                <li><strong>Lektions-Tests:</strong> Direktstart pro Lektion mit optionalem Kartenlimit</li>
-                <li><strong>Zahlentest (🔢):</strong> Testet nur Zahlenkarten aus dem Zahlenpool</li>
+                <li><strong>Lektions-Tests:</strong> Direktstart pro Lektion mit optionalem Kartenlimit (DB/SRS-basiert)</li>
+                <li><strong>Zahlentest (🔢):</strong> Wahl zwischen SRS-Mode (DB-Zahlen) und Generator-Mode (von-bis Bereich)</li>
                 <li><strong>Bewertung:</strong> Karte umdrehen, dann Falsch/Richtig tippen (5x richtig = Karte erledigt)</li>
                 <li><strong>Filter:</strong> Optional nach Lektion, Tags, nur gelernt und nur fällig</li>
               </ul>
@@ -671,7 +671,7 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">📊 Exam (Prüfung)</h3>
               <ul className="space-y-2 text-sm">
                 <li>Formale Prüfung mit Bestehensgrenze (85% richtig = bestanden)</li>
-                <li><strong>Zahlenexamen (🔢):</strong> Eigener Examen-Modus nur fuer Zahlen, getrennt vom Vokabel-Examen</li>
+                <li><strong>Zahlenexamen (🔢):</strong> Läuft als Generator-Examen mit 100 Fragen (gewichtete Bereiche) und eigener Bestehensanzeige</li>
                 <li>Pro Frage eine Auswahlantwort, danach Auswertung mit Punkten und Ergebnis</li>
                 <li>Nutze das für realistische Lernzielkontrolle pro Lektion</li>
               </ul>
@@ -682,7 +682,8 @@ export default function Settings() {
               <h3 className="font-bold text-lg mb-3">🔢 Zahlenmodul (wichtig)</h3>
               <ul className="space-y-2 text-sm">
                 <li>Zahlen und normale Vokabeln sind technisch und didaktisch getrennt.</li>
-                <li>Gelernt-Status, SRS-Faelligkeit und Ergebnisse werden pro Modul separat gespeichert.</li>
+                <li>SRS-Faelligkeit und Lernstatus gelten nur fuer DB-Karten; Generator-Modi schreiben keinen SRS-Fortschritt.</li>
+                <li>Gelernt-Status und Ergebnisse werden pro Modul separat gespeichert.</li>
                 <li>Eine gelernte Zahl taucht nicht im normalen Vokabeltest auf (und umgekehrt).</li>
               </ul>
             </div>

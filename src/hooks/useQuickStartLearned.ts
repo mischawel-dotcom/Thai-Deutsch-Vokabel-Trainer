@@ -4,6 +4,11 @@ import { ensureProgressForEntries } from "../db/srs";
 import type { VocabEntry } from "../db/db";
 import { shuffle } from "../lib/shuffle";
 import type { SessionDispatch } from "./useSessionState";
+import {
+  buildQuickStartSessionPayload,
+  filterDueLearnedIds,
+  normalizeOptionalLimit,
+} from "./quickStartShared";
 
 interface UseQuickStartLearnedProps {
   dispatchSession: SessionDispatch;
@@ -30,10 +35,7 @@ export function useQuickStartLearned({
       // Lade alle Vokabeln direkt aus der DB
       const vocab = await db.vocab.toArray();
       const includeAllLearned = options?.includeAllLearned ?? false;
-      const limit =
-        typeof options?.limit === "number" && Number.isFinite(options.limit) && options.limit > 0
-          ? Math.floor(options.limit)
-          : undefined;
+      const limit = normalizeOptionalLimit(options?.limit);
 
       // Ensure progress fuer alle
       const idsToEnsure = vocab
@@ -49,13 +51,7 @@ export function useQuickStartLearned({
       // Standard: nur faellige gelernte Karten (dueAt <= now)
       let ids = learnedIds;
       if (!includeAllLearned) {
-        const dueProgress = await db.progress.where("dueAt").belowOrEqual(Date.now()).toArray();
-        const dueIds = new Set(
-          dueProgress
-            .map((p) => p.entryId)
-            .filter((id): id is number => typeof id === "number")
-        );
-        ids = learnedIds.filter((id) => dueIds.has(id));
+        ids = await filterDueLearnedIds(learnedIds, "progress");
       }
 
       if (ids.length === 0) {
@@ -72,20 +68,10 @@ export function useQuickStartLearned({
 
       const shuffledPool = shuffle(ids);
       const cardsToUse = limit ? shuffledPool.slice(0, limit) : shuffledPool;
-      const shuffledRound = shuffle(cardsToUse);
 
       dispatchSession({
         type: "set",
-        payload: {
-          sessionActive: true,
-          queue: cardsToUse,
-          currentRound: shuffledRound,
-          roundIndex: 0,
-          currentId: shuffledRound[0] ?? null,
-          flipped: false,
-          streaks: new Map(cardsToUse.map((id) => [id, 0])),
-          doneIds: new Set(),
-        },
+        payload: buildQuickStartSessionPayload(cardsToUse),
       });
 
       const modeLabel = includeAllLearned ? "gelernte Karten" : "faellige gelernte Karten";
