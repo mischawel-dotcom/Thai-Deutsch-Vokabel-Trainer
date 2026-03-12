@@ -10,15 +10,24 @@ export function normalizeOptionalLimit(limit: number | undefined): number | unde
   return Math.floor(limit);
 }
 
-export async function filterDueLearnedIds(
+export async function filterDueOrUnfinishedLearnedIds(
   learnedIds: number[],
   progressTable: ProgressTableName
 ): Promise<number[]> {
-  const dueProgress = await db.table(progressTable).where("dueAt").belowOrEqual(Date.now()).toArray();
-  const dueIds = new Set(
-    dueProgress.map((p) => p.entryId).filter((id): id is number => typeof id === "number")
+  const progressRows = await db.table(progressTable).toArray();
+  const eligibleIds = new Set(
+    progressRows
+      .filter((row) => {
+        const entryId = row.entryId;
+        if (typeof entryId !== "number") return false;
+        const dueAt = typeof row.dueAt === "number" ? row.dueAt : Number.POSITIVE_INFINITY;
+        const repetitions = typeof row.repetitions === "number" ? row.repetitions : 0;
+        return dueAt <= Date.now() || repetitions < 5;
+      })
+      .map((row) => row.entryId)
+      .filter((id): id is number => typeof id === "number")
   );
-  return learnedIds.filter((id) => dueIds.has(id));
+  return learnedIds.filter((id) => eligibleIds.has(id));
 }
 
 export function buildQuickStartSessionPayload(ids: number[]) {

@@ -5,12 +5,16 @@ import { getLessonStatus } from "../metrics";
 type LessonProgressSectionProps = {
   lessons: number[];
   lessonProgress: Record<number, number>;
+  lessonTotalCounts: Record<number, number>;
+  lessonTestPassedCounts: Record<number, number>;
   onLessonClick: (lesson: number, requiresExam: boolean) => void;
 };
 
 export function LessonProgressSection({
   lessons,
   lessonProgress,
+  lessonTotalCounts,
+  lessonTestPassedCounts,
   onLessonClick,
 }: LessonProgressSectionProps) {
   return (
@@ -24,6 +28,8 @@ export function LessonProgressSection({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {lessons.map((lesson) => {
             const progress = lessonProgress[lesson] ?? 0;
+            const totalCards = lessonTotalCounts[lesson] ?? 0;
+            const passedInTest = lessonTestPassedCounts[lesson] ?? 0;
             const status = getLessonStatus(progress, getLessonExamScore(lesson));
 
             return (
@@ -44,6 +50,9 @@ export function LessonProgressSection({
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">{status.statusText}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {passedInTest}/{totalCards} Karten im Test bestanden
+                </p>
                 {status.requiresExam && (
                   <p className="text-xs text-amber-700 dark:text-amber-200 mt-2 font-semibold">
                     👉 Klicken zum Examen starten

@@ -20,6 +20,8 @@ export default function Home({ onNavigate }: HomeProps) {
     learnedToday,
     lessons,
     lessonProgress,
+    lessonTotalCounts,
+    lessonTestPassedCounts,
     numbersTotal,
     numbersMasteredFive,
     numbersExamPassed,
@@ -35,7 +37,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">224</div>
+      <div className="text-3xl font-bold text-red-600">227</div>
       
       {/* Welcome Header */}
       <div>
@@ -72,6 +74,8 @@ export default function Home({ onNavigate }: HomeProps) {
       <LessonProgressSection
         lessons={lessons}
         lessonProgress={lessonProgress}
+        lessonTotalCounts={lessonTotalCounts}
+        lessonTestPassedCounts={lessonTestPassedCounts}
         onLessonClick={handleLessonClick}
       />
 

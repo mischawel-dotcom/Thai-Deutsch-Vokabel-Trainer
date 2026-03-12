@@ -6,7 +6,7 @@ import { shuffle } from "../lib/shuffle";
 import type { SessionDispatch } from "./useSessionState";
 import {
   buildQuickStartSessionPayload,
-  filterDueLearnedIds,
+  filterDueOrUnfinishedLearnedIds,
   normalizeOptionalLimit,
 } from "./quickStartShared";
 
@@ -51,14 +51,14 @@ export function useQuickStartLearned({
       // Standard: nur faellige gelernte Karten (dueAt <= now)
       let ids = learnedIds;
       if (!includeAllLearned) {
-        ids = await filterDueLearnedIds(learnedIds, "progress");
+        ids = await filterDueOrUnfinishedLearnedIds(learnedIds, "progress");
       }
 
       if (ids.length === 0) {
         setStatus(
           includeAllLearned
             ? "Keine gelernten Karten verfuegbar. Lerne zuerst Karten auf der Seite 'Lernen'."
-            : "Keine faelligen gelernten Karten verfuegbar. Lerne zuerst Karten auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Karten'."
+            : "Keine passenden gelernten Karten verfuegbar (faellig oder <5x richtig). Lerne zuerst Karten auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Karten'."
         );
         return;
       }
@@ -74,7 +74,9 @@ export function useQuickStartLearned({
         payload: buildQuickStartSessionPayload(cardsToUse),
       });
 
-      const modeLabel = includeAllLearned ? "gelernte Karten" : "faellige gelernte Karten";
+      const modeLabel = includeAllLearned
+        ? "gelernte Karten"
+        : "faellige oder noch nicht 5x richtige Karten";
       setStatus(`Session gestartet: ${cardsToUse.length} ${modeLabel}`);
     },
     [dispatchSession, setAllVocab, setStatus]

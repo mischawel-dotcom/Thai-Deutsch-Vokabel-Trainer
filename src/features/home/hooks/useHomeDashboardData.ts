@@ -21,6 +21,8 @@ export function useHomeDashboardData() {
   const [numbersExamBestScore, setNumbersExamBestScore] = useState<number | null>(null);
   const [lessons, setLessons] = useState<number[]>([]);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
+  const [lessonTotalCounts, setLessonTotalCounts] = useState<Record<number, number>>({});
+  const [lessonTestPassedCounts, setLessonTestPassedCounts] = useState<Record<number, number>>({});
   const { streakStats, refreshStreakStats } = useLearningStreakStats();
 
   async function refreshDashboardStats() {
@@ -31,10 +33,12 @@ export function useHomeDashboardData() {
     setDailyLimit(validLimit);
 
     const todayStart = new Date().setHours(0, 0, 0, 0);
+    // "Heutiges Lernziel" soll nur Karten zaehlen, die wirklich abgeschlossen sind (>=5 richtige Wiederholungen),
+    // nicht bereits nach dem ersten richtigen Treffer.
     const masteredToday = await db.progress
       .where("lastReviewed")
       .above(todayStart)
-      .and((p) => p.dueAt > now && p.lastGrade === 2)
+      .and((p) => p.dueAt > now && p.lastGrade === 2 && p.repetitions >= 5)
       .count();
     setLearnedToday(masteredToday);
 
@@ -69,15 +73,22 @@ export function useHomeDashboardData() {
   }
 
   async function refreshLessonProgress() {
-    const lessonKeys = await db.vocab.orderBy("lesson").uniqueKeys();
-    const dynamicLessons = lessonKeys
-      .map((l) => Number(l))
-      .filter((l) => Number.isFinite(l) && l > 0)
-      .sort((a, b) => a - b);
+    const allVocab = await db.vocab.toArray();
+    const groupedIdsByLesson: Record<number, number[]> = {};
+    for (const entry of allVocab) {
+      const lesson = entry.lesson ?? 0;
+      const id = entry.id;
+      if (!Number.isFinite(lesson) || lesson <= 0 || typeof id !== "number") continue;
+      if (!groupedIdsByLesson[lesson]) groupedIdsByLesson[lesson] = [];
+      groupedIdsByLesson[lesson].push(id);
+    }
+    const dynamicLessons = Object.keys(groupedIdsByLesson).map(Number).sort((a, b) => a - b);
 
     setLessons(dynamicLessons);
     if (dynamicLessons.length === 0) {
       setLessonProgress({});
+      setLessonTotalCounts({});
+      setLessonTestPassedCounts({});
       return;
     }
 
@@ -85,6 +96,23 @@ export function useHomeDashboardData() {
       dynamicLessons.map(async (lesson) => [lesson, await getLessonProgress(lesson)] as const)
     );
     setLessonProgress(Object.fromEntries(progressEntries) as Record<number, number>);
+
+    const totalCountsByLesson: Record<number, number> = {};
+    const testPassedByLesson: Record<number, number> = {};
+    for (const lesson of dynamicLessons) {
+      const ids = groupedIdsByLesson[lesson] ?? [];
+      totalCountsByLesson[lesson] = ids.length;
+      if (ids.length === 0) {
+        testPassedByLesson[lesson] = 0;
+        continue;
+      }
+      const progressRows = await db.progress.bulkGet(ids);
+      testPassedByLesson[lesson] = progressRows.filter(
+        (row) => row && typeof row.repetitions === "number" && row.repetitions >= 5
+      ).length;
+    }
+    setLessonTotalCounts(totalCountsByLesson);
+    setLessonTestPassedCounts(testPassedByLesson);
   }
 
   useEffect(() => {
@@ -141,6 +169,8 @@ export function useHomeDashboardData() {
     learnedToday,
     lessons,
     lessonProgress,
+    lessonTotalCounts,
+    lessonTestPassedCounts,
     numbersTotal,
     numbersMasteredFive,
     numbersExamPassed,
