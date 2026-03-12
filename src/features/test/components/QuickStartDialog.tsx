@@ -122,8 +122,8 @@ export function QuickStartDialog({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Standard ist SRS-orientiert (nur fällige gelernte Karten). Für Voll-Review optional
-            "Alle gelernten Karten" aktivieren.
+            Standard zeigt fällige oder noch nicht 5x richtig beantwortete gelernte Karten. Für
+            Voll-Review optional "Alle gelernten Karten" aktivieren.
           </p>
         </div>
 

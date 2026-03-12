@@ -10,7 +10,7 @@ import {
 } from "../features/test/numbers";
 import {
   buildQuickStartSessionPayload,
-  filterDueLearnedIds,
+  filterDueOrUnfinishedLearnedIds,
   normalizeOptionalLimit,
 } from "./quickStartShared";
 
@@ -77,14 +77,14 @@ export function useNumberQuickStart({
 
       let ids = learnedIds;
       if (!includeAllLearned) {
-        ids = await filterDueLearnedIds(learnedIds, "numbersProgress");
+        ids = await filterDueOrUnfinishedLearnedIds(learnedIds, "numbersProgress");
       }
 
       if (ids.length === 0) {
         setStatus(
           includeAllLearned
             ? "Keine gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen'."
-            : "Keine fälligen gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Zahlen'."
+            : "Keine passenden gelernten Zahlen verfügbar (fällig oder <5x richtig). Lerne zuerst Zahlen auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Zahlen'."
         );
         return;
       }
@@ -94,7 +94,9 @@ export function useNumberQuickStart({
         type: "set",
         payload: buildQuickStartSessionPayload(cardsToUse),
       });
-      const modeLabel = includeAllLearned ? "gelernte Zahlen" : "fällige gelernte Zahlen";
+      const modeLabel = includeAllLearned
+        ? "gelernte Zahlen"
+        : "fällige oder noch nicht 5x richtige Zahlen";
       setStatus(`Zahlentest gestartet: ${cardsToUse.length} ${modeLabel}`);
       setDialogOpen(false);
     },
