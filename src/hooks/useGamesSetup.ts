@@ -9,6 +9,7 @@ const QUIZ_QUESTION_COUNT_KEY = "gamesQuizQuestionCount";
 const AUDIO_QUESTION_COUNT_KEY = "gamesAudioQuestionCount";
 const NUMBER_QUESTION_COUNT_KEY = "gamesNumberQuestionCount";
 const BLITZ_DURATION_KEY = "gamesBlitzDurationSec";
+const NUMBER_MAX_VALUE_KEY = "gamesNumberMaxValue";
 
 export function useGamesSetup() {
   const [mode, setMode] = useState<GameMode>("blitz");
@@ -39,6 +40,11 @@ export function useGamesSetup() {
     const parsed = Number.parseInt(localStorage.getItem(BLITZ_DURATION_KEY) ?? "", 10);
     if (parsed === 60 || parsed === 90 || parsed === 120) return parsed;
     return 60;
+  });
+  const [numberMaxValue, setNumberMaxValue] = useState<number>(() => {
+    const parsed = Number.parseInt(localStorage.getItem(NUMBER_MAX_VALUE_KEY) ?? "", 10);
+    if (!Number.isFinite(parsed)) return 1000;
+    return Math.max(100, Math.min(1_000_000, parsed));
   });
   const [selectedLesson, setSelectedLesson] = useState<number | undefined>(undefined);
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
@@ -74,6 +80,10 @@ export function useGamesSetup() {
   }, [blitzDurationSec]);
 
   useEffect(() => {
+    localStorage.setItem(NUMBER_MAX_VALUE_KEY, String(numberMaxValue));
+  }, [numberMaxValue]);
+
+  useEffect(() => {
     if (allLearnedModeActive && !onlyLearned) {
       setOnlyLearned(true);
     }
@@ -92,6 +102,8 @@ export function useGamesSetup() {
     setAudioQuestionCount,
     numberQuestionCount,
     setNumberQuestionCount,
+    numberMaxValue,
+    setNumberMaxValue,
     blitzDurationSec,
     setBlitzDurationSec,
     selectedLesson,
