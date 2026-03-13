@@ -10,7 +10,7 @@ type BlitzGamePanelProps = {
 export default function BlitzGamePanel({ question, answerFeedback, onAnswer }: BlitzGamePanelProps) {
   return (
     <>
-      <div className="rounded-md border p-4">
+      <div className="rounded-md border p-4 text-center">
         <p className="text-xs text-muted-foreground mb-2">Uebersetze:</p>
         <p className="text-2xl font-semibold">{question.prompt}</p>
       </div>
