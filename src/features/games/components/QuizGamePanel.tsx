@@ -4,15 +4,30 @@ import type { AnswerFeedback, GameQuestion } from "../types";
 type QuizGamePanelProps = {
   question: GameQuestion;
   answerFeedback: AnswerFeedback | null;
+  onPlayAudio: () => void;
   onAnswer: (option: string) => void;
 };
 
-export default function QuizGamePanel({ question, answerFeedback, onAnswer }: QuizGamePanelProps) {
+export default function QuizGamePanel({
+  question,
+  answerFeedback,
+  onPlayAudio,
+  onAnswer,
+}: QuizGamePanelProps) {
   return (
     <>
-      <div className="rounded-md border p-4">
+      <div className="rounded-md border p-4 text-center">
         <p className="text-xs text-muted-foreground mb-2">Uebersetze:</p>
         <p className="text-2xl font-semibold">{question.prompt}</p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-3"
+          onClick={onPlayAudio}
+        >
+          🔊 Vorlesen
+        </Button>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {question.options.map((option) => {

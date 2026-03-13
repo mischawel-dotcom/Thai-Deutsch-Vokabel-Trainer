@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db } from "../db/db";
 import { speak, stopSpeak } from "../features/tts";
+import { generateNumber } from "../lib/number-generator";
 import {
   useGamesSetup, type BlitzDurationOption, type GameMode,
 } from "../hooks/useGamesSetup";
@@ -74,6 +75,8 @@ export default function Games() {
     setQuizQuestionCount,
     setAudioQuestionCount,
     setNumberQuestionCount,
+    numberMaxValue,
+    setNumberMaxValue,
   } = useGamesSetup();
   const [endGameDialogOpen, setEndGameDialogOpen] = useState(false);
   const [lessons, setLessons] = useState<number[]>([]);
@@ -100,32 +103,61 @@ export default function Games() {
   const modeConfig = useMemo(() => getModeConfig(mode), [mode]);
   const source = useMemo(() => getGamePoolSource(mode), [mode]);
 
+  const generatedNumbersPool = useMemo<GameEntry[]>(() => {
+    if (mode !== "numbers") return [];
+    const maxValue = Math.min(1_000_000, Math.max(100, Math.floor(numberMaxValue)));
+    const baseUpper = Math.min(100, maxValue);
+    const targetSize = maxValue <= 5000 ? maxValue + 1 : 2000;
+    const values = new Set<number>();
+    for (let i = 0; i <= baseUpper; i += 1) {
+      values.add(i);
+    }
+    while (values.size < targetSize) {
+      values.add(Math.floor(Math.random() * (maxValue + 1)));
+    }
+    return Array.from(values)
+      .sort((a, b) => a - b)
+      .map((value) => {
+        const generated = generateNumber(value);
+        return {
+          id: 1_000_000_000 + value,
+          viewed: true,
+          thPrompt: generated.thaiDigit,
+          dePrompt: String(generated.arabic),
+          thAnswer: generated.thaiDigit,
+          deAnswer: String(generated.arabic),
+        } satisfies GameEntry;
+      });
+  }, [mode, numberMaxValue]);
+
   const totalQuestions =
     mode === "quiz" || mode === "audio" || mode === "numbers" ? questionOrder.length : Number.POSITIVE_INFINITY;
 
   const loadFilteredPool = useCallback(async (): Promise<GameEntry[]> => {
     const allEntries = source === "numbers"
-      ? toGameEntries("numbers", await db.numbersVocab.toArray())
+      ? generatedNumbersPool
       : toGameEntries("vocab", await db.vocab.toArray());
 
     let filtered = allEntries;
-    if (selectedLesson !== undefined) {
+    if (source !== "numbers" && selectedLesson !== undefined) {
       filtered = filtered.filter((entry) => entry.lesson === selectedLesson);
     }
 
-    if (onlyLearned) {
+    if (source !== "numbers" && onlyLearned) {
       filtered = filtered.filter((entry) => entry.viewed === true);
     }
 
     return filtered;
-  }, [onlyLearned, selectedLesson, source]);
+  }, [generatedNumbersPool, onlyLearned, selectedLesson, source]);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      const lessonKeys = source === "numbers"
-        ? await db.numbersVocab.orderBy("lesson").uniqueKeys()
-        : await db.vocab.orderBy("lesson").uniqueKeys();
+      if (source === "numbers") {
+        if (active) setLessons([]);
+        return;
+      }
+      const lessonKeys = await db.vocab.orderBy("lesson").uniqueKeys();
       const uniqueLessons = lessonKeys
         .map((lesson) => Number(lesson))
         .filter((lesson) => Number.isFinite(lesson) && lesson > 0)
@@ -300,10 +332,10 @@ export default function Games() {
     if (filtered.length < 4) {
       setStatus(
         mode === "numbers"
-          ? "Zu wenige Zahlenkarten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
+          ? "Zu wenige Zahlenkarten im generierten Pool (mind. 4 nötig). Erhoehe die Maximalzahl."
           : "Zu wenige Karten für ein Spiel (mind. 4 nötig). Tipp: Deaktiviere 'nur gelernt' oder erweitere die Lektionsauswahl."
       );
-      setShowFilterRelaxAction(onlyLearned);
+      setShowFilterRelaxAction(mode !== "numbers" && onlyLearned);
       return false;
     }
 
@@ -470,7 +502,7 @@ export default function Games() {
   );
 
   const playQuestionAudio = useCallback(async () => {
-    if (!question || !gameRunning || mode !== "audio") return;
+    if (!question || !gameRunning) return;
     try {
       setIsSpeaking(true);
       const lang = direction === "TH_DE" ? "th-TH" : "de-DE";
@@ -478,7 +510,7 @@ export default function Games() {
     } finally {
       setIsSpeaking(false);
     }
-  }, [direction, gameRunning, mode, question]);
+  }, [direction, gameRunning, question]);
 
   const progressText = useMemo(() => {
     if (!gameRunning || (mode !== "quiz" && mode !== "audio" && mode !== "numbers")) return null;
@@ -573,7 +605,7 @@ export default function Games() {
                     ? `4er-Quiz (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`
                     : mode === "audio"
                       ? `Hör-Spiel (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`
-                      : `${modeConfig.resultLabel} (${selectedQuestionCount === "ALL" ? "Alle gelernten Karten" : `${selectedQuestionCount} Fragen`})`}
+                      : `${modeConfig.resultLabel} (${selectedQuestionCount === "ALL" ? "Alle generierten Zahlen" : `${selectedQuestionCount} Fragen`}, 0-${numberMaxValue})`}
               </b>
             </p>
           </div>
@@ -637,19 +669,25 @@ export default function Games() {
               </div>
             </div>
 
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={onlyLearned}
-                disabled={allLearnedModeActive}
-                onChange={(e) => {
-                  if (allLearnedModeActive) return;
-                  setOnlyLearned(e.target.checked);
-                }}
-              />
-              nur gelernte Karten
-            </label>
+            {mode !== "numbers" ? (
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={onlyLearned}
+                  disabled={allLearnedModeActive}
+                  onChange={(e) => {
+                    if (allLearnedModeActive) return;
+                    setOnlyLearned(e.target.checked);
+                  }}
+                />
+                nur gelernte Karten
+              </label>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Generator-Modus: Zahlen werden dynamisch im Bereich 0 bis {numberMaxValue} erzeugt.
+              </p>
+            )}
 
             {mode === "blitz" ? (
               <div className="space-y-1">
@@ -704,44 +742,76 @@ export default function Games() {
                         : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                     onClick={() => {
-                      setOnlyLearned(true);
+                      if (mode !== "numbers") {
+                        setOnlyLearned(true);
+                      }
                       if (mode === "quiz") setQuizQuestionCount("ALL");
                       if (mode === "audio") setAudioQuestionCount("ALL");
                       if (mode === "numbers") setNumberQuestionCount("ALL");
                     }}
                   >
-                    Alle gelernten Karten
+                    {mode === "numbers" ? "Alle generierten Zahlen" : "Alle gelernten Karten"}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Alle nutzt alle aktuell verfügbaren gelernten Karten.
+                  {mode === "numbers"
+                    ? "Alle nutzt den kompletten aktuell generierten Zahlenpool."
+                    : "Alle nutzt alle aktuell verfügbaren gelernten Karten."}
                 </p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="gameLessonSelect">
-                {source === "numbers" ? "Zahlenlektion" : "Lektion"}
-              </label>
-              <select
-                id="gameLessonSelect"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={selectedLesson ?? ""}
-                onChange={(e) =>
-                  setSelectedLesson(e.target.value ? Number(e.target.value) : undefined)
-                }
-              >
-                <option value="">{source === "numbers" ? "Alle Zahlenlektionen" : "Alle Lektionen"}</option>
-                {lessons.map((lesson) => (
-                  <option key={lesson} value={lesson}>
-                    {source === "numbers" ? `Zahlenlektion ${lesson}` : `Lektion ${lesson}`}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {mode !== "numbers" ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="gameLessonSelect">
+                  Lektion
+                </label>
+                <select
+                  id="gameLessonSelect"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={selectedLesson ?? ""}
+                  onChange={(e) =>
+                    setSelectedLesson(e.target.value ? Number(e.target.value) : undefined)
+                  }
+                >
+                  <option value="">Alle Lektionen</option>
+                  {lessons.map((lesson) => (
+                    <option key={lesson} value={lesson}>
+                      {`Lektion ${lesson}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="numbersMaxValue">
+                  Maximalzahl
+                </label>
+                <input
+                  id="numbersMaxValue"
+                  type="number"
+                  min={100}
+                  max={1_000_000}
+                  value={numberMaxValue}
+                  onChange={(e) => {
+                    const parsed = Number.parseInt(e.target.value, 10);
+                    if (!Number.isFinite(parsed)) return;
+                    setNumberMaxValue(Math.max(100, Math.min(1_000_000, parsed)));
+                  }}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Bereich fuer generierte Zahlen: 0 bis {numberMaxValue}.
+                </p>
+              </div>
+            )}
 
             <p className="text-xs text-muted-foreground">
-              {loadingPreview ? "Berechne verfügbare Karten..." : `${previewCount} ${source === "numbers" ? "Zahlenkarten" : "Karten"} verfügbar`}
+              {loadingPreview
+                ? "Berechne verfügbare Karten..."
+                : mode === "numbers"
+                  ? `${previewCount} generierte Zahlenkarten verfügbar`
+                  : `${previewCount} Karten verfügbar`}
             </p>
             {status ? <div className="text-sm text-red-600">{status}</div> : null}
 
@@ -817,6 +887,7 @@ export default function Games() {
             <QuizGamePanel
               question={question}
               answerFeedback={answerFeedback}
+              onPlayAudio={() => void playQuestionAudio()}
               onAnswer={answerQuestion}
             />
           ) : null}
