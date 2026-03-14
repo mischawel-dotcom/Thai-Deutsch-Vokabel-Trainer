@@ -10,11 +10,21 @@ export default function ImportExport() {
     if (!file) return;
     try {
       setIsLoading(true);
-      const result = await importCsv(file);
+      const result = await importCsv(file, { mode: "replace" });
       if (result.added === 0 && result.duplicates > 0) {
-        setMsg(`⚠️ Keine neuen Einträge: ${result.duplicates} Duplikate gefunden`);
+        setMsg(`⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`);
+      } else if (result.replaced) {
+        setMsg(
+          `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
+            (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
+            (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
+            (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
+        );
       } else {
-        setMsg(`✅ Importiert: ${result.added} Einträge${result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : ''}`);
+        setMsg(
+          `✅ Importiert: ${result.added} Einträge` +
+            (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
+        );
       }
     } catch (err: any) {
       setMsg(`❌ Fehler: ${err?.message ?? String(err)}`);
@@ -51,6 +61,9 @@ export default function ImportExport() {
         <code>
           thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
         </code>
+      </p>
+      <p style={{ marginTop: 8, opacity: 0.8 }}>
+        Import-Modus: <strong>Ersetzen mit Fortschritts-Migration</strong> (bestehende Karten behalten ihren Lernfortschritt)
       </p>
 
       {msg && <p>{msg}</p>}
