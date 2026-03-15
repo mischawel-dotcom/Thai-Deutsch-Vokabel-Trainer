@@ -33,6 +33,7 @@ import { NumberQuickStartDialog } from "../features/test/components/NumberQuickS
 import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
 import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
 import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
+import { buildSentenceSegments } from "../features/sentences/transliteration";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Test() {
@@ -42,7 +43,8 @@ export default function Test() {
   const [allSentences, setAllSentences] = useState<TestCard[]>([]);
   const [lessonMetadata, setLessonMetadata] = useState<{lesson: number, count: number}[]>([]);
   const [lessonCache, setLessonCache] = useState<Map<number, TestCard[]>>(new Map());
-  const [testEntryView, setTestEntryView] = useState<"hub" | "vocab" | "sentences">("hub");
+  const [testEntryView, setTestEntryView] = useState<"hub" | "vocab">("hub");
+  const [sentenceModeDialogOpen, setSentenceModeDialogOpen] = useState<boolean>(false);
   const [sessionMode, setSessionMode] = useState<
     "vocab" | "numbers" | "sentences_regular" | "sentences_important" | null
   >(null);
@@ -363,6 +365,15 @@ export default function Test() {
     await ensureDefaultSentencesSeeded();
     const testPassedByLesson = await getTestPassedByLesson();
     const lessonSet = lessonFilter.length > 0 ? new Set(lessonFilter) : null;
+    const vocabEntries = await db.vocab.toArray();
+    const transliterationByThai = new Map<string, string>();
+    for (const entry of vocabEntries) {
+      const thai = (entry.thai ?? "").trim();
+      const transliteration = (entry.transliteration ?? "").trim();
+      if (!thai || !transliteration || transliterationByThai.has(thai)) continue;
+      transliterationByThai.set(thai, transliteration);
+    }
+    const knownThaiWords = Array.from(transliterationByThai.keys());
 
     const sentenceEntries = await db.sentencesVocab.toArray();
     const filteredByScope = sentenceEntries.filter((entry) =>
@@ -384,12 +395,21 @@ export default function Test() {
         if (a.rangeStart !== b.rangeStart) return a.rangeStart - b.rangeStart;
         return (a.id ?? 0) - (b.id ?? 0);
       })
-      .map((entry) => mapSentenceEntryToTestCard(entry, scope));
+      .map((entry) =>
+        mapSentenceEntryToTestCard(
+          entry,
+          scope,
+          knownThaiWords,
+          transliterationByThai
+        )
+      );
   }
 
   function mapSentenceEntryToTestCard(
     entry: SentenceEntry,
-    scope: "regular" | "important"
+    scope: "regular" | "important",
+    knownThaiWords: string[],
+    transliterationByThai: Map<string, string>
   ): TestCard {
     return {
       id: entry.id,
@@ -398,6 +418,11 @@ export default function Test() {
       lesson: entry.lesson,
       tags: entry.tags,
       viewed: entry.viewed,
+      sentenceSegments: buildSentenceSegments(
+        entry.thai,
+        knownThaiWords,
+        transliterationByThai
+      ),
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
       sourceType: scope === "important" ? "sentences_important" : "sentences",
@@ -421,7 +446,7 @@ export default function Test() {
       );
       
       setLessonMetadata(metadata.sort((a, b) => a.lesson - b.lesson));
-      setStatus(`${metadata.length} Lektionen verfügbar`);
+      setStatus("");
       return metadata;
     } catch (e: any) {
       console.error(e);
@@ -758,6 +783,10 @@ export default function Test() {
     await startSentenceTestSession("important", [6], true);
   }
 
+  function openSentenceModeDialog() {
+    setSentenceModeDialogOpen(true);
+  }
+
   async function startSentenceTestSession(
     scope: "regular" | "important",
     selectedLessons: number[],
@@ -883,115 +912,98 @@ export default function Test() {
 
   // ===== Render =====
   return (
-    <PageShell
-      title="Tests"
-      description="Teste Vokabeln, Zahlen und Sätze. Vokabel/Zahlen laufen mit 5×-Logik, Satztests werden pro Karte einmal bewertet."
-    >
+    <PageShell title="Tests">
       {/* Status / Fehler */}
-      <div className="space-y-2" role="status" aria-live="polite">
-        {status ? (
-          <p
-            className={
-              statusIsWarning
-                ? "rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-                : "text-sm text-muted-foreground"
-            }
-          >
-            {status}
-          </p>
-        ) : null}
-        {error ? (
-          <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap" role="alert">
-            {error}
-          </pre>
-        ) : null}
-      </div>
-
-      {/* QUICK-START BUTTONS */}
-      {!sessionActive ? (
-        <div className="space-y-3">
-          <div className="text-sm font-semibold text-muted-foreground">🧪 Testbereich wählen:</div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button
-              onClick={() => setTestEntryView("vocab")}
-              variant={testEntryView === "vocab" ? "default" : "outline"}
-              className="h-16 flex-col items-start justify-center gap-1 text-left"
+      {status || error ? (
+        <div className="space-y-2" role="status" aria-live="polite">
+          {status ? (
+            <p
+              className={
+                statusIsWarning
+                  ? "rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                  : "text-sm text-muted-foreground"
+              }
             >
-              <span className="text-base font-semibold">📚 Vokabeln & Zahlen testen</span>
-              <span className="text-xs opacity-80">Standardtests + Zahlentest</span>
-            </Button>
-            <Button
-              onClick={() => setTestEntryView("sentences")}
-              variant={testEntryView === "sentences" ? "default" : "outline"}
-              className="h-16 flex-col items-start justify-center gap-1 text-left"
-            >
-              <span className="text-base font-semibold">💬 Sätze testen</span>
-              <span className="text-xs opacity-80">L1-L5 + wichtige Sätze</span>
-            </Button>
-          </div>
-
-          {testEntryView === "vocab" ? (
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                onClick={() => setQuickStartDialogOpen(true)}
-                size="lg"
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-                title="Teste standardmäßig fällige gelernte Karten"
-                aria-label="Schnellstart: Teste fällige gelernte Karten"
-              >
-                📖 Fällige Karten testen
-              </Button>
-              <Button
-                onClick={() => setNumberQuickStartDialogOpen(true)}
-                size="lg"
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
-                title="Teste standardmäßig fällige gelernte Zahlen"
-                aria-label="Schnellstart: Zahlentest"
-              >
-                🔢 Zahlentest
-              </Button>
-
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-                {allLessons.length > 0 ? (
-                  allLessons.map(({ lesson, count }) => (
-                    <Button
-                      key={lesson}
-                      onClick={() => openLessonDialog(lesson)}
-                      variant="secondary"
-                      className="h-10 text-sm font-medium"
-                      title={`Lektion ${lesson} testen (${count} Karten)`}
-                      aria-label={`Lektion ${lesson} starten, ${count} Karten verfügbar`}
-                    >
-                      L{lesson} <span className="text-xs opacity-75">({count})</span>
-                    </Button>
-                  ))
-                ) : null}
-              </div>
-            </div>
+              {status}
+            </p>
           ) : null}
-
-          {testEntryView === "sentences" ? (
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                onClick={() => void openSentenceTestDialog()}
-                size="lg"
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800"
-                title="Satztest L1-L5 mit Filter starten"
-              >
-                💬 Satztest (L1-L5)
-              </Button>
-              <Button
-                onClick={() => void startSentenceImportantTestDirect()}
-                size="lg"
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
-                title="Wichtige Sätze direkt testen"
-              >
-                🧭 Wichtige Sätze testen
-              </Button>
-            </div>
+          {error ? (
+            <pre className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm whitespace-pre-wrap" role="alert">
+              {error}
+            </pre>
           ) : null}
         </div>
+      ) : null}
+
+      {/* Test-Einstieg */}
+      {!sessionActive && testEntryView === "hub" ? (
+        <Card className="p-4 space-y-3">
+          <div className="text-sm font-semibold text-muted-foreground">🧪 Testbereich wählen</div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Button
+              onClick={() => setTestEntryView("vocab")}
+              variant="outline"
+              className="h-24 flex-col items-start justify-center gap-1 text-left"
+            >
+              <span className="text-base font-semibold">📚 Teste Vokabeln</span>
+              <span className="text-xs opacity-80">Eigener Vokabel-Testbereich</span>
+            </Button>
+            <Button
+              onClick={() => setNumberQuickStartDialogOpen(true)}
+              variant="outline"
+              className="h-24 flex-col items-start justify-center gap-1 text-left"
+            >
+              <span className="text-base font-semibold">🔢 Teste Zahlen</span>
+              <span className="text-xs opacity-80">Dialog: Zahlentest</span>
+            </Button>
+            <Button
+              onClick={openSentenceModeDialog}
+              variant="outline"
+              className="h-24 flex-col items-start justify-center gap-1 text-left"
+            >
+              <span className="text-base font-semibold">💬 Teste Sätze</span>
+              <span className="text-xs opacity-80">Satztest oder wichtige Sätze</span>
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {!sessionActive && testEntryView === "vocab" ? (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-muted-foreground">📚 Vokabeltests</div>
+            <Button variant="ghost" size="sm" onClick={() => setTestEntryView("hub")}>
+              Zurück
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <Button
+              onClick={() => setQuickStartDialogOpen(true)}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+              title="Teste standardmäßig fällige gelernte Karten"
+              aria-label="Schnellstart: Teste fällige gelernte Karten"
+            >
+              📖 Fällige Karten testen
+            </Button>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+              {allLessons.length > 0 ? (
+                allLessons.map(({ lesson, count }) => (
+                  <Button
+                    key={lesson}
+                    onClick={() => openLessonDialog(lesson)}
+                    variant="secondary"
+                    className="h-10 text-sm font-medium"
+                    title={`Lektion ${lesson} testen (${count} Karten)`}
+                    aria-label={`Lektion ${lesson} starten, ${count} Karten verfügbar`}
+                  >
+                    L{lesson} <span className="text-xs opacity-75">({count})</span>
+                  </Button>
+                ))
+              ) : null}
+            </div>
+          </div>
+        </Card>
       ) : null}
 
       {/* Filter / Controls */}
@@ -1241,9 +1253,9 @@ export default function Test() {
       {!sessionActive ? (
         <div className="space-y-2">
           <p className="text-center text-sm text-muted-foreground">
-            {testEntryView === "sentences"
-              ? "Wähle einen Satztest. Der Test für L1-L5 hat einen Konfigurationsdialog, wichtige Sätze starten direkt."
-              : "Wähle einen Vokabel-/Zahlentest. Richtung und Optionen konfigurierst du im jeweiligen Startdialog."}
+            {testEntryView === "vocab"
+              ? "Wähle einen Vokabeltest. Richtung und Optionen konfigurierst du im jeweiligen Startdialog."
+              : "Wähle oben einen Testbereich: Vokabeln, Zahlen oder Sätze."}
           </p>
           {testEntryView === "vocab" ? (
             <div className="flex flex-col items-center gap-2">
@@ -1384,10 +1396,31 @@ export default function Test() {
                     {frontText}
                   </div>
 
-                  {showCurrentCardTransliteration && direction === "TH_DE" && current.transliteration ? (
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
-                    </div>
+                  {showCurrentCardTransliteration && direction === "TH_DE" ? (
+                    current.sourceType === "sentences" ||
+                    current.sourceType === "sentences_important" ? (
+                      current.sentenceSegments && current.sentenceSegments.length > 0 ? (
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {current.sentenceSegments.map((segment, idx) => (
+                            <div
+                              key={`${current.id ?? "sentence"}-front-segment-${idx}-${segment.thai}`}
+                              className="rounded-md border bg-muted/20 px-2 py-1 text-center"
+                            >
+                              <div className="text-xs leading-tight text-muted-foreground">
+                                {segment.thai}
+                              </div>
+                              <div className="text-xs italic leading-tight">
+                                {segment.transliteration ?? "?"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null
+                    ) : current.transliteration ? (
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                      </div>
+                    ) : null
                   ) : null}
 
                   <div className="flex flex-wrap justify-center gap-2 pt-2">
@@ -1432,10 +1465,31 @@ export default function Test() {
 
                   <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug">{backText}</div>
 
-                  {showCurrentCardTransliteration && direction === "DE_TH" && current.transliteration ? (
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
-                    </div>
+                  {showCurrentCardTransliteration && direction === "DE_TH" ? (
+                    current.sourceType === "sentences" ||
+                    current.sourceType === "sentences_important" ? (
+                      current.sentenceSegments && current.sentenceSegments.length > 0 ? (
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {current.sentenceSegments.map((segment, idx) => (
+                            <div
+                              key={`${current.id ?? "sentence"}-back-segment-${idx}-${segment.thai}`}
+                              className="rounded-md border bg-muted/20 px-2 py-1 text-center"
+                            >
+                              <div className="text-xs leading-tight text-muted-foreground">
+                                {segment.thai}
+                              </div>
+                              <div className="text-xs italic leading-tight">
+                                {segment.transliteration ?? "?"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null
+                    ) : current.transliteration ? (
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                      </div>
+                    ) : null
                   ) : null}
 
                   <div className="flex flex-wrap justify-center gap-2 pt-2">
@@ -1621,12 +1675,64 @@ export default function Test() {
         }}
       />
 
+      <Dialog open={sentenceModeDialogOpen} onOpenChange={setSentenceModeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>💬 Sätze testen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showTransliteration}
+                onChange={(event) => setShowTransliteration(event.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              Lautschrift unter Thai-Satz anzeigen
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+            <Button
+              onClick={() => {
+                setSentenceModeDialogOpen(false);
+                void openSentenceTestDialog();
+              }}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800"
+              title="Satztest L1-L5 mit Filter starten"
+            >
+              💬 Satztest
+            </Button>
+            <Button
+              onClick={() => {
+                setSentenceModeDialogOpen(false);
+                void startSentenceImportantTestDirect();
+              }}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
+              title="Wichtige Sätze direkt testen"
+            >
+              🧭 Wichtige Sätze testen
+            </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={sentenceDialogOpen} onOpenChange={setSentenceDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>💬 Satztest konfigurieren</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showTransliteration}
+                onChange={(event) => setShowTransliteration(event.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              Lautschrift unter Thai-Satz anzeigen
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

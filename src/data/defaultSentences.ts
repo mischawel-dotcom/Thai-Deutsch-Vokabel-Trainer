@@ -782,7 +782,7 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
     unlockThresholdTestPassed: 0,
     sentences: [
       {
-        thai: "ฉันจองไว้แล้ว",
+        thai: "ฉันจองแล้ว",
         german: "Ich habe eine Reservierung.",
         sourceThaiWord: "จอง",
       },
