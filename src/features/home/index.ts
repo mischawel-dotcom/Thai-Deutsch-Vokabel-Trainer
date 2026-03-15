@@ -13,6 +13,7 @@ export { DashboardStatsGrid } from "./components/DashboardStatsGrid";
 export { StreakDialog } from "./components/StreakDialog";
 export { LessonProgressSection } from "./components/LessonProgressSection";
 export { NumbersQuickAccessCard } from "./components/NumbersQuickAccessCard";
+export { SentencesQuickAccessCard } from "./components/SentencesQuickAccessCard";
 export { QuickActionsSection } from "./components/QuickActionsSection";
 export { MotivationCard } from "./components/MotivationCard";
 

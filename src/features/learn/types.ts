@@ -1,4 +1,5 @@
 import type { VocabEntry } from "../../db/db";
+import type { SentenceSegment } from "../sentences/transliteration";
 
 export type LearnInfoRow = {
   arabic: string;
@@ -8,8 +9,9 @@ export type LearnInfoRow = {
 };
 
 export type LearnCard = VocabEntry & {
-  sourceType?: "vocab" | "numbers" | "numbers_info";
+  sourceType?: "vocab" | "numbers" | "numbers_info" | "sentences";
   infoRows?: LearnInfoRow[];
   infoNotes?: string[];
+  sentenceSegments?: SentenceSegment[];
 };
 

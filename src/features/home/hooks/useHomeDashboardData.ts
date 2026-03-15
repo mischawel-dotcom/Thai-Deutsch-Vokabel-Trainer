@@ -3,6 +3,7 @@ import { db } from "@/db/db";
 import { ensureProgressForEntries } from "@/db/srs";
 import { getLessonProgress, migrateProgressFromDb } from "@/lib/lessonProgress";
 import { useLearningStreakStats } from "@/hooks/useLearningStreakStats";
+import { ensureDefaultSentencesSeeded } from "@/features/sentences/defaults";
 import {
   getDailyGoalProgress,
   getInitialDailyLimit,
@@ -19,6 +20,14 @@ export function useHomeDashboardData() {
   const [numbersMasteredFive, setNumbersMasteredFive] = useState<number>(0);
   const [numbersExamPassed, setNumbersExamPassed] = useState<boolean>(false);
   const [numbersExamBestScore, setNumbersExamBestScore] = useState<number | null>(null);
+  const [sentenceTotal, setSentenceTotal] = useState<number>(0);
+  const [sentenceUnlocked, setSentenceUnlocked] = useState<number>(0);
+  const [sentenceUnlockedLearned, setSentenceUnlockedLearned] = useState<number>(0);
+  const [sentenceBlockTotal, setSentenceBlockTotal] = useState<number>(0);
+  const [sentenceBlockUnlocked, setSentenceBlockUnlocked] = useState<number>(0);
+  const [sentenceNextBlockLabel, setSentenceNextBlockLabel] = useState<string | null>(null);
+  const [sentenceNextBlockCurrentPassed, setSentenceNextBlockCurrentPassed] = useState<number>(0);
+  const [sentenceNextBlockThreshold, setSentenceNextBlockThreshold] = useState<number>(0);
   const [lessons, setLessons] = useState<number[]>([]);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
   const [lessonTotalCounts, setLessonTotalCounts] = useState<Record<number, number>>({});
@@ -113,6 +122,72 @@ export function useHomeDashboardData() {
     }
     setLessonTotalCounts(totalCountsByLesson);
     setLessonTestPassedCounts(testPassedByLesson);
+
+    await ensureDefaultSentencesSeeded();
+    const sentenceEntries = await db.sentencesVocab.toArray();
+    setSentenceTotal(sentenceEntries.length);
+    if (sentenceEntries.length === 0) {
+      setSentenceUnlocked(0);
+      setSentenceUnlockedLearned(0);
+      setSentenceBlockTotal(0);
+      setSentenceBlockUnlocked(0);
+      return;
+    }
+
+    const toBlockKey = (entry: {
+      lesson?: number;
+      rangeStart?: number;
+      rangeEnd?: number;
+    }) => `${entry.lesson ?? 0}-${entry.rangeStart ?? 0}-${entry.rangeEnd ?? 0}`;
+
+    const allBlockKeys = new Set(sentenceEntries.map(toBlockKey));
+    setSentenceBlockTotal(allBlockKeys.size);
+
+    const unlockedEntries = sentenceEntries.filter(
+      (entry) =>
+        (testPassedByLesson[entry.lesson] ?? 0) >= entry.unlockThresholdTestPassed
+    );
+    setSentenceUnlocked(unlockedEntries.length);
+    setSentenceUnlockedLearned(unlockedEntries.filter((entry) => entry.viewed).length);
+    setSentenceBlockUnlocked(new Set(unlockedEntries.map(toBlockKey)).size);
+
+    type SentenceBlockMeta = {
+      lesson: number;
+      rangeStart: number;
+      rangeEnd: number;
+      unlockThresholdTestPassed: number;
+    };
+    const blocksByKey = new Map<string, SentenceBlockMeta>();
+    for (const entry of sentenceEntries) {
+      const key = toBlockKey(entry);
+      if (!blocksByKey.has(key)) {
+        blocksByKey.set(key, {
+          lesson: entry.lesson,
+          rangeStart: entry.rangeStart,
+          rangeEnd: entry.rangeEnd,
+          unlockThresholdTestPassed: entry.unlockThresholdTestPassed,
+        });
+      }
+    }
+    const sortedBlocks = Array.from(blocksByKey.values()).sort((a, b) => {
+      if (a.lesson !== b.lesson) return a.lesson - b.lesson;
+      if (a.rangeEnd !== b.rangeEnd) return a.rangeEnd - b.rangeEnd;
+      return a.rangeStart - b.rangeStart;
+    });
+    const nextLockedBlock = sortedBlocks.find(
+      (block) => (testPassedByLesson[block.lesson] ?? 0) < block.unlockThresholdTestPassed
+    );
+    if (nextLockedBlock) {
+      setSentenceNextBlockLabel(
+        `L${nextLockedBlock.lesson} ${nextLockedBlock.rangeStart}-${nextLockedBlock.rangeEnd}`
+      );
+      setSentenceNextBlockCurrentPassed(testPassedByLesson[nextLockedBlock.lesson] ?? 0);
+      setSentenceNextBlockThreshold(nextLockedBlock.unlockThresholdTestPassed);
+    } else {
+      setSentenceNextBlockLabel(null);
+      setSentenceNextBlockCurrentPassed(0);
+      setSentenceNextBlockThreshold(0);
+    }
   }
 
   useEffect(() => {
@@ -175,6 +250,14 @@ export function useHomeDashboardData() {
     numbersMasteredFive,
     numbersExamPassed,
     numbersExamBestScore,
+    sentenceTotal,
+    sentenceUnlocked,
+    sentenceUnlockedLearned,
+    sentenceBlockTotal,
+    sentenceBlockUnlocked,
+    sentenceNextBlockLabel,
+    sentenceNextBlockCurrentPassed,
+    sentenceNextBlockThreshold,
     streakStats,
     progress,
     dailyGoalReached,
