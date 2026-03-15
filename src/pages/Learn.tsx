@@ -117,6 +117,7 @@ export default function Learn() {
   });
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [learnEntryView, setLearnEntryView] = useState<"hub" | "vocab" | "numbers">("hub");
 
   // Dialog-State
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
@@ -270,6 +271,7 @@ export default function Learn() {
     if (!shouldOpenNumbers) return;
     if (sessionState.sessionActive) return;
     if (numbersMeta.count <= 0) return;
+    setLearnEntryView("numbers");
     openNumbersDialog();
     localStorage.removeItem("openNumbersLessonDialog");
   }, [numbersMeta.count, sessionState.sessionActive]);
@@ -729,6 +731,11 @@ export default function Learn() {
   const current = sessionState.lessonCards[sessionState.currentIndex];
   const selectedLessonMeta = allLessons.find((l) => l.lesson === selectedLesson);
   const selectedLessonLearnedCount = selectedLessonMeta?.learnedCount ?? 0;
+  const totalVocabCards = allLessons.reduce((sum, lessonMeta) => sum + lessonMeta.count, 0);
+  const learnedVocabCards = allLessons.reduce(
+    (sum, lessonMeta) => sum + (lessonMeta.learnedCount ?? 0),
+    0
+  );
   const thaiLang = "th-TH";
   const germanLang = "de-DE";
   const getSpeakableText = (
@@ -740,10 +747,7 @@ export default function Learn() {
   };
 
   return (
-    <PageShell
-      title="Lernen"
-      description="Lerne Vokabeln Schritt für Schritt. Wähle eine Lektion und gehe linear durch die Karten."
-    >
+    <PageShell title="Lernen">
       {/* Status / Fehler */}
       <div className="space-y-2">
         {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
@@ -756,16 +760,61 @@ export default function Learn() {
 
       {/* Lektion-Auswahl (nur wenn keine Session läuft) */}
       {!sessionState.sessionActive ? (
-        <Card className="p-4">
-          <div className="space-y-3">
-            <div className="text-sm font-semibold text-muted-foreground">📚 Lektion auswählen:</div>
+        <Card className="p-4 space-y-3">
+          {learnEntryView === "hub" ? (
+            <>
+              <div className="text-sm font-semibold text-muted-foreground">Lernbereich wählen</div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Button
+                  onClick={() => setLearnEntryView("vocab")}
+                  variant="outline"
+                  className="h-24 flex-col items-start justify-center gap-1 text-left"
+                >
+                  <span className="text-base font-semibold">📚 Vokabeln lernen</span>
+                  <span className="text-xs text-muted-foreground">
+                    Lektionen 1-5 ({learnedVocabCards}/{totalVocabCards} gelernt)
+                  </span>
+                </Button>
+                <Button
+                  onClick={() => setLearnEntryView("numbers")}
+                  variant="outline"
+                  className="h-24 flex-col items-start justify-center gap-1 text-left"
+                >
+                  <span className="text-base font-semibold">🔢 Zahlen lernen</span>
+                  <span className="text-xs text-muted-foreground">
+                    Grundlagen + Lektion ({numbersMeta.learnedCount}/{numbersMeta.count})
+                  </span>
+                </Button>
+                <Button
+                  onClick={() => void openSentenceDialog()}
+                  variant="outline"
+                  className="h-24 flex-col items-start justify-center gap-1 text-left"
+                  disabled={sentencesMeta.unlockedCount <= 0}
+                >
+                  <span className="text-base font-semibold">💬 Sätze lernen</span>
+                  <span className="text-xs text-muted-foreground">
+                    Freigeschaltet ({sentencesMeta.unlockedLearnedCount}/{sentencesMeta.unlockedCount})
+                  </span>
+                </Button>
+              </div>
+            </>
+          ) : null}
 
-            <div className="flex flex-wrap gap-2">
-              {allLessons.length === 0 && numbersMeta.count === 0 ? (
-                <div className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</div>
-              ) : (
-                <>
-                  {allLessons.map(({ lesson, count, learnedCount = 0 }) => (
+          {learnEntryView === "vocab" ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-muted-foreground">
+                  📚 Vokabeln lernen - Lektion auswählen
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setLearnEntryView("hub")}>
+                  Zurück
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {allLessons.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</div>
+                ) : (
+                  allLessons.map(({ lesson, count, learnedCount = 0 }) => (
                     <Button
                       key={lesson}
                       onClick={() => openLessonDialog(lesson)}
@@ -777,45 +826,45 @@ export default function Learn() {
                         ({learnedCount}/{count})
                       </span>
                     </Button>
-                  ))}
-                  {numbersMeta.count > 0 ? (
-                    <>
-                      <Button
-                        onClick={startNumbersBasicsSession}
-                        className="h-12 px-6 text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70"
-                        title="Grundlagen Thai-Zahlen als Infokarten starten"
-                      >
-                        📘 Grundlagen Thai-Zahlen
-                      </Button>
-                      <Button
-                        onClick={openNumbersDialog}
-                        className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
-                        title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
-                      >
-                        🔢 Zahlenlektion{" "}
-                        <span className="text-xs opacity-90 ml-2">
-                          ({numbersMeta.learnedCount}/{numbersMeta.count})
-                        </span>
-                      </Button>
-                    </>
-                  ) : null}
-                  {sentencesMeta.count > 0 ? (
-                    <Button
-                      onClick={() => void openSentenceDialog()}
-                      className="h-12 px-6 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
-                      title={`Satzlernen starten (${sentencesMeta.unlockedLearnedCount}/${sentencesMeta.unlockedCount} gelernt)`}
-                      disabled={sentencesMeta.unlockedCount <= 0}
-                    >
-                      💬 Satzlernen{" "}
-                      <span className="text-xs opacity-90 ml-2">
-                        ({sentencesMeta.unlockedLearnedCount}/{sentencesMeta.unlockedCount})
-                      </span>
-                    </Button>
-                  ) : null}
-                </>
-              )}
-            </div>
-          </div>
+                  ))
+                )}
+              </div>
+            </>
+          ) : null}
+
+          {learnEntryView === "numbers" ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-muted-foreground">🔢 Zahlen lernen</div>
+                <Button variant="ghost" size="sm" onClick={() => setLearnEntryView("hub")}>
+                  Zurück
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={startNumbersBasicsSession}
+                  className="h-12 px-6 text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70"
+                  title="Grundlagen Thai-Zahlen als Infokarten starten"
+                >
+                  📘 Grundlagen Thai-Zahlen
+                </Button>
+                <Button
+                  onClick={openNumbersDialog}
+                  className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+                  title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
+                >
+                  🔢 Zahlenlektion{" "}
+                  <span className="text-xs opacity-90 ml-2">
+                    ({numbersMeta.learnedCount}/{numbersMeta.count})
+                  </span>
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {allLessons.length === 0 && numbersMeta.count === 0 && sentencesMeta.count === 0 ? (
+            <div className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</div>
+          ) : null}
         </Card>
       ) : null}
 
