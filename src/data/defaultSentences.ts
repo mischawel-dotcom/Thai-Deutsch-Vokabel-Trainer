@@ -716,8 +716,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
     unlockThresholdTestPassed: 0,
     sentences: [
       {
-        thai: "สวัสดี ฉันชื่อ...",
-        german: "Hallo, ich heiße...",
+        thai: "สวัสดี ฉันชื่อคิม",
+        german: "Hallo, ich heiße Kim.",
         sourceThaiWord: "สวัสดี",
       },
       {
@@ -759,8 +759,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "สถานีรถไฟ",
       },
       {
-        thai: "ฉันต้องการตั๋วไป...",
-        german: "Ich möchte ein Ticket nach...",
+        thai: "ฉันต้องการตั๋วไปกรุงเทพฯ",
+        german: "Ich möchte ein Ticket nach Bangkok.",
         sourceThaiWord: "ตั๋ว",
       },
       {
