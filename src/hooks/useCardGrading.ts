@@ -5,7 +5,12 @@ import { recalculateLearningProgress } from "../lib/lessonProgress";
 import type { VocabEntry } from "../db/db";
 import type { SessionDispatch } from "./useSessionState";
 
-type CardSourceType = "vocab" | "numbers" | "numbers_generated";
+type CardSourceType =
+  | "vocab"
+  | "numbers"
+  | "numbers_generated"
+  | "sentences"
+  | "sentences_important";
 type GradingCard = VocabEntry & { sourceType?: CardSourceType };
 
 interface UseCardGradingProps {
@@ -49,7 +54,14 @@ export function useCardGrading({
           ? "numbers"
           : current?.sourceType === "numbers_generated"
             ? "numbers_generated"
+            : current?.sourceType === "sentences"
+              ? "sentences"
+              : current?.sourceType === "sentences_important"
+                ? "sentences_important"
             : "vocab";
+      const isSentenceSource =
+        sourceType === "sentences" || sourceType === "sentences_important";
+
       if (sourceType === "numbers") {
         await gradeNumberCard(currentId, isRight ? 2 : 0);
       } else if (sourceType === "vocab") {
@@ -64,6 +76,17 @@ export function useCardGrading({
         } catch {
           // ignore unsupported vibration failures
         }
+      }
+
+      if (isSentenceSource) {
+        // Satztests laufen pro Karte genau einmal (kein 5x-Loop).
+        // Korrekte Antworten markieren wir als "gesehen".
+        dispatchSession({ type: "addDone", id: currentId });
+        if (isRight) {
+          await db.sentencesVocab.update(currentId, { viewed: true });
+        }
+        goNext(currentId);
+        return;
       }
 
       if (!isRight) {

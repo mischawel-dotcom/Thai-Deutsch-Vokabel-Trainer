@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../db/db";
-import type { VocabEntry } from "../db/db";
+import type { SentenceEntry, VocabEntry } from "../db/db";
 import { ensureProgressForEntries, ensureProgressForNumberEntries } from "../db/srs";
 import { useAudioFeedback } from "../hooks/useAudioFeedback";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
@@ -32,13 +32,20 @@ import { QuickStartDialog } from "../features/test/components/QuickStartDialog";
 import { NumberQuickStartDialog } from "../features/test/components/NumberQuickStartDialog";
 import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
 import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
+import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Test() {
   // ===== State =====
   const [allVocab, setAllVocab] = useState<TestCard[]>([]);
   const [allNumbers, setAllNumbers] = useState<TestCard[]>([]);
+  const [allSentences, setAllSentences] = useState<TestCard[]>([]);
   const [lessonMetadata, setLessonMetadata] = useState<{lesson: number, count: number}[]>([]);
   const [lessonCache, setLessonCache] = useState<Map<number, TestCard[]>>(new Map());
+  const [testEntryView, setTestEntryView] = useState<"hub" | "vocab" | "sentences">("hub");
+  const [sessionMode, setSessionMode] = useState<
+    "vocab" | "numbers" | "sentences_regular" | "sentences_important" | null
+  >(null);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
@@ -81,6 +88,21 @@ export default function Test() {
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
   const [numberQuickStartDialogOpen, setNumberQuickStartDialogOpen] = useState<boolean>(false);
+  const [sentenceDialogOpen, setSentenceDialogOpen] = useState<boolean>(false);
+  const [sentenceIncludeViewed, setSentenceIncludeViewed] = useState<boolean>(false);
+  const [sentenceCardLimit, setSentenceCardLimit] = useState<string>("");
+  const [sentenceLessonOptions, setSentenceLessonOptions] = useState<
+    Array<{
+      lesson: number;
+      unlockedCount: number;
+      unlockedUnviewedCount: number;
+      totalCount: number;
+      enabled: boolean;
+    }>
+  >([]);
+  const [sentenceSelectedLessons, setSentenceSelectedLessons] = useState<Record<number, boolean>>(
+    {}
+  );
   const [numberQuickStartIncludeAllLearned, setNumberQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [numberQuickStartLimit, setNumberQuickStartLimit] = useState<string>("");
   const [numberGeneratorMode, setNumberGeneratorMode] = useState<boolean>(() => {
@@ -201,10 +223,14 @@ export default function Test() {
 
   const current = useMemo(() => {
     if (!currentId) return null;
+    if (sessionMode === "numbers") {
+      return allNumbers.find((v) => v.id === currentId) ?? null;
+    }
+    if (sessionMode === "sentences_regular" || sessionMode === "sentences_important") {
+      return allSentences.find((v) => v.id === currentId) ?? null;
+    }
     // Suche erst in allVocab, dann im Cache
     let found = allVocab.find((v) => v.id === currentId);
-    if (found) return found;
-    found = allNumbers.find((v) => v.id === currentId);
     if (found) return found;
     
     // Durchsuche Cache
@@ -214,7 +240,7 @@ export default function Test() {
     }
     
     return null;
-  }, [allVocab, allNumbers, lessonCache, currentId]);
+  }, [allVocab, allNumbers, allSentences, lessonCache, currentId, sessionMode]);
 
   // Front/Back abhängig von Richtung
   const frontText = useMemo(() => {
@@ -303,6 +329,81 @@ export default function Test() {
     }
   }
 
+  async function getTestPassedByLesson(): Promise<Record<number, number>> {
+    const groupedIdsByLesson: Record<number, number[]> = {};
+    const vocabEntries = await db.vocab.toArray();
+    for (const vocabEntry of vocabEntries) {
+      const lesson = vocabEntry.lesson ?? 0;
+      const id = vocabEntry.id;
+      if (!Number.isFinite(lesson) || lesson <= 0 || typeof id !== "number") continue;
+      if (!groupedIdsByLesson[lesson]) groupedIdsByLesson[lesson] = [];
+      groupedIdsByLesson[lesson].push(id);
+    }
+
+    const testPassedByLesson: Record<number, number> = {};
+    for (const [lessonKey, ids] of Object.entries(groupedIdsByLesson)) {
+      const lesson = Number(lessonKey);
+      if (!Number.isFinite(lesson) || ids.length === 0) {
+        testPassedByLesson[lesson] = 0;
+        continue;
+      }
+      const progressRows = await db.progress.bulkGet(ids);
+      testPassedByLesson[lesson] = progressRows.filter(
+        (row) => row && typeof row.repetitions === "number" && row.repetitions >= 5
+      ).length;
+    }
+    return testPassedByLesson;
+  }
+
+  async function loadSentenceCardsForTest(
+    scope: "regular" | "important",
+    lessonFilter: number[] = [],
+    includeViewedCards = false
+  ): Promise<TestCard[]> {
+    await ensureDefaultSentencesSeeded();
+    const testPassedByLesson = await getTestPassedByLesson();
+    const lessonSet = lessonFilter.length > 0 ? new Set(lessonFilter) : null;
+
+    const sentenceEntries = await db.sentencesVocab.toArray();
+    const filteredByScope = sentenceEntries.filter((entry) =>
+      scope === "important" ? entry.lesson === 6 : entry.lesson >= 1 && entry.lesson <= 5
+    );
+    const unlocked = filteredByScope.filter(
+      (entry) => (testPassedByLesson[entry.lesson] ?? 0) >= entry.unlockThresholdTestPassed
+    );
+    const byLesson = lessonSet
+      ? unlocked.filter((entry) => lessonSet.has(entry.lesson))
+      : unlocked;
+    const byViewed = includeViewedCards
+      ? byLesson
+      : byLesson.filter((entry) => !entry.viewed);
+
+    return byViewed
+      .sort((a, b) => {
+        if (a.lesson !== b.lesson) return a.lesson - b.lesson;
+        if (a.rangeStart !== b.rangeStart) return a.rangeStart - b.rangeStart;
+        return (a.id ?? 0) - (b.id ?? 0);
+      })
+      .map((entry) => mapSentenceEntryToTestCard(entry, scope));
+  }
+
+  function mapSentenceEntryToTestCard(
+    entry: SentenceEntry,
+    scope: "regular" | "important"
+  ): TestCard {
+    return {
+      id: entry.id,
+      thai: entry.thai,
+      german: entry.german,
+      lesson: entry.lesson,
+      tags: entry.tags,
+      viewed: entry.viewed,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      sourceType: scope === "important" ? "sentences_important" : "sentences",
+    };
+  }
+
   async function loadLessonMetadata() {
     setError("");
     setStatus("Lade Lektionen …");
@@ -362,6 +463,7 @@ export default function Test() {
         const lesson = parseInt(selectedLesson, 10);
         if (!isNaN(lesson) && [1, 2, 3, 4, 5].includes(lesson)) {
           setSelectedLesson(lesson);
+          setSessionMode("vocab");
           setTimeout(() => {
             startSessionWithFiltersHook(lesson, false);
           }, 0);
@@ -548,6 +650,7 @@ export default function Test() {
   }
 
   function startQuickStartSession() {
+    setSessionMode("vocab");
     const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
     const quickLimit =
       Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
@@ -559,6 +662,7 @@ export default function Test() {
   }
 
   async function startNumberQuickStartSession() {
+    setSessionMode("numbers");
     const parsedLimit = numberQuickStartLimit.trim() ? Number.parseInt(numberQuickStartLimit, 10) : NaN;
     const numberLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
     await startNumberQuickStart({
@@ -570,9 +674,151 @@ export default function Test() {
     });
   }
 
+  async function openSentenceTestDialog() {
+    try {
+      const testPassedByLesson = await getTestPassedByLesson();
+      await ensureDefaultSentencesSeeded();
+      const sentenceEntries = (await db.sentencesVocab.toArray()).filter(
+        (entry) => entry.lesson >= 1 && entry.lesson <= 5
+      );
+      const grouped = new Map<
+        number,
+        { totalCount: number; unlockedCount: number; unlockedUnviewedCount: number }
+      >();
+      for (const entry of sentenceEntries) {
+        const lesson = entry.lesson;
+        const currentStats = grouped.get(lesson) ?? {
+          totalCount: 0,
+          unlockedCount: 0,
+          unlockedUnviewedCount: 0,
+        };
+        currentStats.totalCount += 1;
+        if ((testPassedByLesson[lesson] ?? 0) >= entry.unlockThresholdTestPassed) {
+          currentStats.unlockedCount += 1;
+          if (!entry.viewed) {
+            currentStats.unlockedUnviewedCount += 1;
+          }
+        }
+        grouped.set(lesson, currentStats);
+      }
+
+      const options = Array.from(grouped.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([lesson, stats]) => ({
+          lesson,
+          totalCount: stats.totalCount,
+          unlockedCount: stats.unlockedCount,
+          unlockedUnviewedCount: stats.unlockedUnviewedCount,
+          enabled: stats.unlockedCount > 0,
+        }));
+
+      const defaultSelection: Record<number, boolean> = {};
+      for (const option of options) {
+        defaultSelection[option.lesson] = option.enabled;
+      }
+
+      setSentenceLessonOptions(options);
+      setSentenceSelectedLessons(defaultSelection);
+      setSentenceIncludeViewed(false);
+      setSentenceCardLimit("");
+      setSentenceDialogOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? "Fehler beim Öffnen der Satztest-Auswahl.");
+    }
+  }
+
+  async function startSentenceRegularTestFromDialog() {
+    const selectedLessons = sentenceLessonOptions
+      .filter((option) => option.enabled && sentenceSelectedLessons[option.lesson])
+      .map((option) => option.lesson);
+    if (selectedLessons.length === 0) {
+      setStatus("Bitte mindestens eine freigeschaltete Satz-Lektion wählen.");
+      return;
+    }
+
+    const parsedLimit = sentenceCardLimit.trim()
+      ? Number.parseInt(sentenceCardLimit, 10)
+      : NaN;
+    let limit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+    if (
+      typeof limit === "number" &&
+      sentenceDialogMaxCount > 0 &&
+      limit > sentenceDialogMaxCount
+    ) {
+      limit = sentenceDialogMaxCount;
+    }
+
+    await startSentenceTestSession("regular", selectedLessons, sentenceIncludeViewed, limit);
+    setSentenceDialogOpen(false);
+  }
+
+  async function startSentenceImportantTestDirect() {
+    await startSentenceTestSession("important", [6], true);
+  }
+
+  async function startSentenceTestSession(
+    scope: "regular" | "important",
+    selectedLessons: number[],
+    includeViewedCards: boolean,
+    limit?: number
+  ) {
+    let cards = await loadSentenceCardsForTest(scope, selectedLessons, includeViewedCards);
+    if (cards.length === 0) {
+      setStatus(
+        scope === "important"
+          ? "Keine wichtigen Sätze verfügbar."
+          : "Keine freigeschalteten Satzkarten für die Auswahl."
+      );
+      return;
+    }
+    if (typeof limit === "number" && limit > 0 && limit < cards.length) {
+      cards = [...cards].sort(() => Math.random() - 0.5).slice(0, limit);
+    }
+
+    const ids = cards
+      .map((v) => v.id)
+      .filter((id): id is number => typeof id === "number");
+    const shuffled = [...ids].sort(() => Math.random() - 0.5);
+
+    setAllSentences(cards);
+    setSessionMode(scope === "important" ? "sentences_important" : "sentences_regular");
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: true,
+        queue: ids,
+        currentRound: shuffled,
+        roundIndex: 0,
+        currentId: shuffled[0] ?? null,
+        flipped: false,
+        streaks: new Map(ids.map((id) => [id, 0])),
+        doneIds: new Set(),
+      },
+    });
+    setStatus(
+      scope === "important"
+        ? `Wichtige Sätze Test gestartet (${cards.length} Karte(n)).`
+        : `Satztest gestartet (${cards.length} Karte(n)).`
+    );
+  }
+
   const selectedCardsCount = useMemo(() => {
     return buildSessionIds().length;
   }, [allVocab, selectedLesson, selectedTags, onlyViewed]);
+  const sentenceDialogMaxCount = useMemo(() => {
+    const selectedOptions = sentenceLessonOptions.filter(
+      (option) => option.enabled && sentenceSelectedLessons[option.lesson]
+    );
+    if (selectedOptions.length === 0) return 0;
+    return selectedOptions.reduce((sum, option) => {
+      return (
+        sum +
+        (sentenceIncludeViewed ? option.unlockedCount : option.unlockedUnviewedCount)
+      );
+    }, 0);
+  }, [sentenceLessonOptions, sentenceSelectedLessons, sentenceIncludeViewed]);
 
   function restartSessionConfirm() {
     setConfirmAction("restart");
@@ -584,7 +830,25 @@ export default function Test() {
 
   function executeConfirmAction() {
     if (confirmAction === "restart") {
-      startSessionHook();
+      if (queue.length > 0) {
+        const shuffled = [...queue].sort(() => Math.random() - 0.5);
+        dispatchSession({
+          type: "set",
+          payload: {
+            sessionActive: true,
+            queue: [...queue],
+            currentRound: shuffled,
+            roundIndex: 0,
+            currentId: shuffled[0] ?? null,
+            flipped: false,
+            streaks: new Map(queue.map((id) => [id, 0])),
+            doneIds: new Set(),
+          },
+        });
+      } else {
+        setSessionMode("vocab");
+        startSessionHook();
+      }
       setStatus("Session neu gestartet");
       setConfirmAction(null);
       return;
@@ -599,6 +863,7 @@ export default function Test() {
           flipped: false,
         },
       });
+      setSessionMode(null);
       setStatus("Session beendet");
       setConfirmAction(null);
       return;
@@ -608,15 +873,19 @@ export default function Test() {
   // startSession ist jetzt im useSessionStart Hook
 
   const finished = sessionActive && currentId == null;
+  const isSentenceSession =
+    sessionMode === "sentences_regular" || sessionMode === "sentences_important";
   const cardStreak = current?.id ? Math.min(streaks.get(current.id) ?? 0, 5) : 0;
-  const progressPct = Math.round((cardStreak / 5) * 100);
+  const progressPct = isSentenceSession
+    ? Math.round((queue.length > 0 ? (doneIds.size / queue.length) * 100 : 0))
+    : Math.round((cardStreak / 5) * 100);
   const statusIsWarning = status.startsWith("Keine ");
 
   // ===== Render =====
   return (
     <PageShell
       title="Tests"
-      description="Teste dein Wissen! Karte umdrehen → bewerten. Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt."
+      description="Teste Vokabeln, Zahlen und Sätze. Vokabel/Zahlen laufen mit 5×-Logik, Satztests werden pro Karte einmal bewertet."
     >
       {/* Status / Fehler */}
       <div className="space-y-2" role="status" aria-live="polite">
@@ -641,51 +910,92 @@ export default function Test() {
       {/* QUICK-START BUTTONS */}
       {!sessionActive ? (
         <div className="space-y-3">
-          <div className="text-sm font-semibold text-muted-foreground">🚀 Schnellstart:</div>
-          
-          <div className="grid grid-cols-1 gap-2">
-            <Button
-              onClick={() => setQuickStartDialogOpen(true)}
-              size="lg"
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-              title="Teste standardmäßig fällige gelernte Karten"
-              aria-label="Schnellstart: Teste fällige gelernte Karten"
-            >
-              📖 Fällige Karten testen
-            </Button>
-            <Button
-              onClick={() => setNumberQuickStartDialogOpen(true)}
-              size="lg"
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
-              title="Teste standardmäßig fällige gelernte Zahlen"
-              aria-label="Schnellstart: Zahlentest"
-            >
-              🔢 Zahlentest
-            </Button>
+          <div className="text-sm font-semibold text-muted-foreground">🧪 Testbereich wählen:</div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-              {allLessons.length > 0 ? (
-                allLessons.map(({ lesson, count }) => (
-                  <Button
-                    key={lesson}
-                    onClick={() => openLessonDialog(lesson)}
-                    variant="secondary"
-                    className="h-10 text-sm font-medium"
-                    title={`Lektion ${lesson} testen (${count} Karten)`}
-                    aria-label={`Lektion ${lesson} starten, ${count} Karten verfügbar`}
-                  >
-                    L{lesson} <span className="text-xs opacity-75">({count})</span>
-                  </Button>
-                ))
-              ) : null}
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              onClick={() => setTestEntryView("vocab")}
+              variant={testEntryView === "vocab" ? "default" : "outline"}
+              className="h-16 flex-col items-start justify-center gap-1 text-left"
+            >
+              <span className="text-base font-semibold">📚 Vokabeln & Zahlen testen</span>
+              <span className="text-xs opacity-80">Standardtests + Zahlentest</span>
+            </Button>
+            <Button
+              onClick={() => setTestEntryView("sentences")}
+              variant={testEntryView === "sentences" ? "default" : "outline"}
+              className="h-16 flex-col items-start justify-center gap-1 text-left"
+            >
+              <span className="text-base font-semibold">💬 Sätze testen</span>
+              <span className="text-xs opacity-80">L1-L5 + wichtige Sätze</span>
+            </Button>
           </div>
 
+          {testEntryView === "vocab" ? (
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                onClick={() => setQuickStartDialogOpen(true)}
+                size="lg"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                title="Teste standardmäßig fällige gelernte Karten"
+                aria-label="Schnellstart: Teste fällige gelernte Karten"
+              >
+                📖 Fällige Karten testen
+              </Button>
+              <Button
+                onClick={() => setNumberQuickStartDialogOpen(true)}
+                size="lg"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800"
+                title="Teste standardmäßig fällige gelernte Zahlen"
+                aria-label="Schnellstart: Zahlentest"
+              >
+                🔢 Zahlentest
+              </Button>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+                {allLessons.length > 0 ? (
+                  allLessons.map(({ lesson, count }) => (
+                    <Button
+                      key={lesson}
+                      onClick={() => openLessonDialog(lesson)}
+                      variant="secondary"
+                      className="h-10 text-sm font-medium"
+                      title={`Lektion ${lesson} testen (${count} Karten)`}
+                      aria-label={`Lektion ${lesson} starten, ${count} Karten verfügbar`}
+                    >
+                      L{lesson} <span className="text-xs opacity-75">({count})</span>
+                    </Button>
+                  ))
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {testEntryView === "sentences" ? (
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                onClick={() => void openSentenceTestDialog()}
+                size="lg"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800"
+                title="Satztest L1-L5 mit Filter starten"
+              >
+                💬 Satztest (L1-L5)
+              </Button>
+              <Button
+                onClick={() => void startSentenceImportantTestDirect()}
+                size="lg"
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
+                title="Wichtige Sätze direkt testen"
+              >
+                🧭 Wichtige Sätze testen
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       {/* Filter / Controls */}
-      {!sessionActive && showAdvancedFilters ? (
+      {!sessionActive && testEntryView === "vocab" && showAdvancedFilters ? (
         <Card className="p-4" id="advanced-filters" role="region" aria-label="Erweiterte Filter-Optionen">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
@@ -890,7 +1200,10 @@ export default function Test() {
 
             <div className="pt-4 border-t">
               <Button 
-                onClick={startSessionHook}
+                onClick={() => {
+                  setSessionMode("vocab");
+                  startSessionHook();
+                }}
                 size="lg"
                 className="w-full h-14 text-lg font-semibold"
               >
@@ -910,7 +1223,13 @@ export default function Test() {
         <Card className="p-6 text-center">
           <div className="text-2xl font-semibold">🎉 Fertig!</div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Alle ausgewählten Karten wurden mindestens <b>5× hintereinander</b> richtig beantwortet.
+            {isSentenceSession ? (
+              <>Du hast alle Satzkarten in diesem Durchlauf beantwortet.</>
+            ) : (
+              <>
+                Alle ausgewählten Karten wurden mindestens <b>5× hintereinander</b> richtig beantwortet.
+              </>
+            )}
           </p>
           <div className="mt-4">
             <Button onClick={restartSessionConfirm}>Noch einmal (Session neu starten)</Button>
@@ -922,10 +1241,12 @@ export default function Test() {
       {!sessionActive ? (
         <div className="space-y-2">
           <p className="text-center text-sm text-muted-foreground">
-            Wähle <b>Fällige Karten testen</b> oder eine <b>Lektion</b>. Richtung und Optionen
-            konfigurierst du im jeweiligen Startdialog.
+            {testEntryView === "sentences"
+              ? "Wähle einen Satztest. Der Test für L1-L5 hat einen Konfigurationsdialog, wichtige Sätze starten direkt."
+              : "Wähle einen Vokabel-/Zahlentest. Richtung und Optionen konfigurierst du im jeweiligen Startdialog."}
           </p>
-          <div className="flex flex-col items-center gap-2">
+          {testEntryView === "vocab" ? (
+            <div className="flex flex-col items-center gap-2">
             <Button
               type="button"
               variant={showAdvancedFilters ? "secondary" : "outline"}
@@ -946,7 +1267,8 @@ export default function Test() {
               Erweiterte Filter sind optional für einen individuellen Testlauf (Tags, Lektionen,
               fällige/gelernte Karten, Kartenanzahl).
             </p>
-          </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -999,10 +1321,18 @@ export default function Test() {
               Erledigt: <b className="text-foreground">{completedCount}</b>
             </span>
             <span
-              aria-label={`Diese Karte: ${cardStreak} von 5 richtig`}
+              aria-label={
+                isSentenceSession
+                  ? "Diese Karte wird einmal bewertet"
+                  : `Diese Karte: ${cardStreak} von 5 richtig`
+              }
               className="rounded-full bg-muted/70 px-2 py-1"
             >
-              Diese Karte: <b className="text-foreground">{cardStreak}/5</b>
+              {isSentenceSession ? (
+                <>Diese Karte: <b className="text-foreground">1x bewerten</b></>
+              ) : (
+                <>Diese Karte: <b className="text-foreground">{cardStreak}/5</b></>
+              )}
             </span>
           </div>
 
@@ -1022,7 +1352,9 @@ export default function Test() {
             <div className="w-full space-y-4">
               <div className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed">
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
-                Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt.
+                {isSentenceSession
+                  ? " Jede Satzkarte wird in diesem Durchlauf genau einmal bewertet."
+                  : " Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt."}
               </div>
               {lastAnswer ? (
                 <div className="flex justify-center" aria-live="polite">
@@ -1283,8 +1615,80 @@ export default function Test() {
         onCardLimitChange={setCardLimit}
         includeLearnedInDialog={includeLearnedInDialog}
         onIncludeLearnedInDialogChange={setIncludeLearnedInDialog}
-        onStart={startLessonFromDialogHook}
+        onStart={() => {
+          setSessionMode("vocab");
+          startLessonFromDialogHook();
+        }}
       />
+
+      <Dialog open={sentenceDialogOpen} onOpenChange={setSentenceDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>💬 Satztest konfigurieren</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={sentenceIncludeViewed}
+                onChange={(event) => setSentenceIncludeViewed(event.target.checked)}
+                className="h-4 w-4 accent-primary"
+              />
+              Bereits gelernte Sätze einblenden
+            </label>
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Lektionen</div>
+              <div className="flex flex-wrap gap-2">
+                {sentenceLessonOptions.map((option) => (
+                  <label
+                    key={`sentence-test-lesson-${option.lesson}`}
+                    className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                      option.enabled ? "" : "opacity-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean(sentenceSelectedLessons[option.lesson])}
+                      onChange={(event) =>
+                        setSentenceSelectedLessons((prev) => ({
+                          ...prev,
+                          [option.lesson]: event.target.checked,
+                        }))
+                      }
+                      disabled={!option.enabled}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span>
+                      Lektion {option.lesson} ({option.unlockedCount}/{option.totalCount})
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="sentenceCardLimit">
+                Anzahl Sätze (optional)
+              </label>
+              <input
+                id="sentenceCardLimit"
+                type="number"
+                value={sentenceCardLimit}
+                onChange={(event) => setSentenceCardLimit(event.target.value)}
+                placeholder="Alle"
+                min="1"
+                max={sentenceDialogMaxCount > 0 ? sentenceDialogMaxCount : undefined}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximal: {sentenceDialogMaxCount} Satz/Saetze mit aktueller Auswahl
+              </p>
+            </div>
+            <Button className="w-full" onClick={() => void startSentenceRegularTestFromDialog()}>
+              Satztest starten
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Dialog für Session-Aktionen */}
       <SessionActionConfirmDialog
