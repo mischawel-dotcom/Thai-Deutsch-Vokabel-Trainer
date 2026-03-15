@@ -117,7 +117,9 @@ export default function Learn() {
   });
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [learnEntryView, setLearnEntryView] = useState<"hub" | "vocab" | "numbers">("hub");
+  const [learnEntryView, setLearnEntryView] = useState<
+    "hub" | "vocab" | "numbers" | "sentences"
+  >("hub");
 
   // Dialog-State
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
@@ -126,6 +128,9 @@ export default function Learn() {
   const [numbersCardLimit, setNumbersCardLimit] = useState<string>("");
   const [sentenceDialogOpen, setSentenceDialogOpen] = useState(false);
   const [sentenceIncludeViewed, setSentenceIncludeViewed] = useState(false);
+  const [sentenceDialogScope, setSentenceDialogScope] = useState<"regular" | "important">(
+    "regular"
+  );
   const [sentenceLessonOptions, setSentenceLessonOptions] = useState<
     Array<{ lesson: number; unlockedCount: number; totalCount: number; enabled: boolean }>
   >([]);
@@ -283,7 +288,8 @@ export default function Learn() {
     if (sessionState.sessionActive) return;
     if (sentencesMeta.unlockedCount <= 0) return;
 
-    void startSentenceSession();
+    setLearnEntryView("sentences");
+    void openSentenceDialog("regular");
     localStorage.removeItem("openSentenceLearnSession");
   }, [sentencesMeta.unlockedCount, sessionState.sessionActive]);
 
@@ -498,11 +504,14 @@ export default function Learn() {
       }));
   }
 
-  async function openSentenceDialog() {
+  async function openSentenceDialog(scope: "regular" | "important") {
     try {
       const testPassedByLesson = await getTestPassedByLesson();
       await ensureDefaultSentencesSeeded();
-      const sentenceEntries = await db.sentencesVocab.toArray();
+      const allSentenceEntries = await db.sentencesVocab.toArray();
+      const sentenceEntries = allSentenceEntries.filter((entry) =>
+        scope === "important" ? entry.lesson === 6 : entry.lesson >= 1 && entry.lesson <= 5
+      );
       const grouped = new Map<number, { totalCount: number; unlockedCount: number }>();
       for (const entry of sentenceEntries) {
         const lesson = entry.lesson;
@@ -531,6 +540,7 @@ export default function Learn() {
       setSentenceLessonOptions(options);
       setSentenceSelectedLessons(initialSelection);
       setSentenceIncludeViewed(false);
+      setSentenceDialogScope(scope);
       setSentenceDialogOpen(true);
     } catch (e) {
       console.error("Fehler beim Öffnen des Satz-Dialogs:", e);
@@ -786,7 +796,7 @@ export default function Learn() {
                   </span>
                 </Button>
                 <Button
-                  onClick={() => void openSentenceDialog()}
+                  onClick={() => setLearnEntryView("sentences")}
                   variant="outline"
                   className="h-24 flex-col items-start justify-center gap-1 text-left"
                   disabled={sentencesMeta.unlockedCount <= 0}
@@ -857,6 +867,37 @@ export default function Learn() {
                   <span className="text-xs opacity-90 ml-2">
                     ({numbersMeta.learnedCount}/{numbersMeta.count})
                   </span>
+                </Button>
+              </div>
+            </>
+          ) : null}
+
+          {learnEntryView === "sentences" ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-muted-foreground">💬 Sätze lernen</div>
+                <Button variant="ghost" size="sm" onClick={() => setLearnEntryView("hub")}>
+                  Zurück
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => void openSentenceDialog("regular")}
+                  className="h-12 px-6 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+                  title={`Satzlernen starten (${sentencesMeta.unlockedLearnedCount}/${sentencesMeta.unlockedCount} gelernt)`}
+                  disabled={sentencesMeta.unlockedCount <= 0}
+                >
+                  💬 Sätze lernen{" "}
+                  <span className="text-xs opacity-90 ml-2">
+                    ({sentencesMeta.unlockedLearnedCount}/{sentencesMeta.unlockedCount})
+                  </span>
+                </Button>
+                <Button
+                  onClick={() => void startSentenceSession([6], true)}
+                  className="h-12 px-6 text-base font-medium bg-cyan-600 hover:bg-cyan-700 text-white"
+                  title="Wichtige Sätze lernen"
+                >
+                  🧭 Wichtige Sätze lernen
                 </Button>
               </div>
             </>
@@ -1212,10 +1253,15 @@ export default function Learn() {
       <Dialog open={sentenceDialogOpen} onOpenChange={setSentenceDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>💬 Satzlernen konfigurieren</DialogTitle>
+            <DialogTitle>
+              {sentenceDialogScope === "important"
+                ? "🧭 Wichtige Sätze konfigurieren"
+                : "💬 Satzlernen konfigurieren"}
+            </DialogTitle>
             <DialogDescription>
-              Wähle, ob du mit allen freigeschalteten Sätzen oder nur mit einer Lektion starten
-              möchtest.
+              {sentenceDialogScope === "important"
+                ? "Wähle die wichtigen Satzlektionen und starte die Session."
+                : "Wähle Lektionen für das normale Satzlernen und starte die Session."}
             </DialogDescription>
           </DialogHeader>
 

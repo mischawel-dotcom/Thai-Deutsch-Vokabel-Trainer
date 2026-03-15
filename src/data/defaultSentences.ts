@@ -709,5 +709,170 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
       },
     ],
   },
+  {
+    lesson: 6,
+    rangeStart: 1,
+    rangeEnd: 5,
+    unlockThresholdTestPassed: 0,
+    sentences: [
+      {
+        thai: "สวัสดี ฉันชื่อ...",
+        german: "Hallo, ich heiße...",
+        sourceThaiWord: "สวัสดี",
+      },
+      {
+        thai: "ฉันมาจากเยอรมนี",
+        german: "Ich komme aus Deutschland.",
+        sourceThaiWord: "ฉัน",
+      },
+      {
+        thai: "ยินดีที่ได้รู้จัก",
+        german: "Freut mich, dich kennenzulernen.",
+        sourceThaiWord: "ยินดีต้อนรับ",
+      },
+      {
+        thai: "ฉันพูดภาษาไทยได้นิดหน่อย",
+        german: "Ich spreche ein bisschen Thai.",
+        sourceThaiWord: "ภาษาไทย",
+      },
+      {
+        thai: "คุณพูดภาษาอังกฤษได้ไหม",
+        german: "Sprechen Sie Englisch?",
+        sourceThaiWord: "ภาษาอังกฤษ",
+      },
+    ],
+  },
+  {
+    lesson: 6,
+    rangeStart: 6,
+    rangeEnd: 10,
+    unlockThresholdTestPassed: 0,
+    sentences: [
+      {
+        thai: "ห้องน้ำอยู่ที่ไหน",
+        german: "Wo ist die Toilette?",
+        sourceThaiWord: "ห้องน้ำ",
+      },
+      {
+        thai: "ฉันจะไปสถานีรถไฟได้อย่างไร",
+        german: "Wie komme ich zum Bahnhof?",
+        sourceThaiWord: "สถานีรถไฟ",
+      },
+      {
+        thai: "ฉันต้องการตั๋วไป...",
+        german: "Ich möchte ein Ticket nach...",
+        sourceThaiWord: "ตั๋ว",
+      },
+      {
+        thai: "ป้ายรถเมล์ที่ใกล้ที่สุดอยู่ที่ไหน",
+        german: "Wo ist die nächste Bushaltestelle?",
+        sourceThaiWord: "ป้ายรถเมล์",
+      },
+      {
+        thai: "กรุณาขับช้าๆ",
+        german: "Bitte fahren Sie langsam.",
+        sourceThaiWord: "กรุณา",
+      },
+    ],
+  },
+  {
+    lesson: 6,
+    rangeStart: 11,
+    rangeEnd: 15,
+    unlockThresholdTestPassed: 0,
+    sentences: [
+      {
+        thai: "ฉันจองไว้แล้ว",
+        german: "Ich habe eine Reservierung.",
+        sourceThaiWord: "จอง",
+      },
+      {
+        thai: "ฉันต้องการห้องเดี่ยว",
+        german: "Ich hätte gern ein Einzelzimmer.",
+        sourceThaiWord: "ห้องเดี่ยว",
+      },
+      {
+        thai: "รวมอาหารเช้าหรือไม่",
+        german: "Ist Frühstück inklusive?",
+        sourceThaiWord: "อาหารเช้า",
+      },
+      {
+        thai: "ขอใบเสร็จด้วย",
+        german: "Die Rechnung bitte.",
+        sourceThaiWord: "ใบเสร็จ",
+      },
+      {
+        thai: "ไม่เผ็ดนะ",
+        german: "Nicht scharf, bitte.",
+        sourceThaiWord: "ไม่เผ็ด",
+      },
+    ],
+  },
+  {
+    lesson: 6,
+    rangeStart: 16,
+    rangeEnd: 20,
+    unlockThresholdTestPassed: 0,
+    sentences: [
+      {
+        thai: "ช่วยฉันหน่อยได้ไหม",
+        german: "Helfen Sie mir bitte.",
+        sourceThaiWord: "ช่วย",
+      },
+      {
+        thai: "ฉันปวดท้อง",
+        german: "Ich habe Bauchschmerzen.",
+        sourceThaiWord: "ปวดท้อง",
+      },
+      {
+        thai: "ฉันต้องการพบหมอ",
+        german: "Ich brauche einen Arzt.",
+        sourceThaiWord: "หมอ",
+      },
+      {
+        thai: "ร้านขายยาที่ใกล้ที่สุดอยู่ที่ไหน",
+        german: "Wo ist die nächste Apotheke?",
+        sourceThaiWord: "ร้านขายยา",
+      },
+      {
+        thai: "กรุณาเรียกตำรวจให้หน่อย",
+        german: "Rufen Sie bitte die Polizei.",
+        sourceThaiWord: "ตำรวจ",
+      },
+    ],
+  },
+  {
+    lesson: 6,
+    rangeStart: 21,
+    rangeEnd: 25,
+    unlockThresholdTestPassed: 0,
+    sentences: [
+      {
+        thai: "อันนี้ราคาเท่าไหร่",
+        german: "Wie viel kostet das?",
+        sourceThaiWord: "ราคาเท่าไหร่",
+      },
+      {
+        thai: "อันนี้แพงเกินไป",
+        german: "Das ist zu teuer.",
+        sourceThaiWord: "แพง",
+      },
+      {
+        thai: "มีเงินทอนไหม",
+        german: "Haben Sie Wechselgeld?",
+        sourceThaiWord: "เงิน",
+      },
+      {
+        thai: "ช่วยพูดอีกครั้งได้ไหม",
+        german: "Können Sie das bitte wiederholen?",
+        sourceThaiWord: "อีกครั้ง",
+      },
+      {
+        thai: "ขอบคุณมากสำหรับความช่วยเหลือ",
+        german: "Vielen Dank für Ihre Hilfe.",
+        sourceThaiWord: "ขอบคุณมาก",
+      },
+    ],
+  },
 ];
 
