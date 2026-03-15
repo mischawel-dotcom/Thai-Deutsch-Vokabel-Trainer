@@ -237,6 +237,7 @@ export default function Settings() {
         updatedAt: now,
       }));
       await db.vocab.bulkAdd(entries);
+      localStorage.removeItem("vocabDataSource");
       
       setMsg("✅ Datenbank zurückgesetzt. Nur Standard-Vokabeln enthalten.");
       setTimeout(() => setMsg(""), 3000);

@@ -16,6 +16,8 @@ type CsvRow = {
 };
 
 type ImportMode = "append" | "replace";
+const VOCAB_DATA_SOURCE_KEY = "vocabDataSource";
+const CUSTOM_CSV_SOURCE = "custom_csv";
 
 type ImportCsvOptions = {
   mode?: ImportMode;
@@ -155,6 +157,12 @@ export async function importCsv(file: File, options: ImportCsvOptions = {}): Pro
       await ensureProgressForEntries(Array.from(idsToEnsureProgress));
     });
 
+    try {
+      localStorage.setItem(VOCAB_DATA_SOURCE_KEY, CUSTOM_CSV_SOURCE);
+    } catch {
+      // ignore storage errors
+    }
+
     return {
       added: addedCount,
       duplicates: duplicatesInFile,
@@ -184,6 +192,12 @@ export async function importCsv(file: File, options: ImportCsvOptions = {}): Pro
     .map((id) => Number(id))
     .filter((id): id is number => Number.isFinite(id) && id > 0);
   await ensureProgressForEntries(normalizedIds);
+
+  try {
+    localStorage.setItem(VOCAB_DATA_SOURCE_KEY, CUSTOM_CSV_SOURCE);
+  } catch {
+    // ignore storage errors
+  }
 
   const duplicates = Math.max(0, (parsed.data ?? []).length - entriesToAdd.length);
   return { 
