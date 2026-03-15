@@ -30,7 +30,12 @@ export function LessonProgressSection({
             const progress = lessonProgress[lesson] ?? 0;
             const totalCards = lessonTotalCounts[lesson] ?? 0;
             const passedInTest = lessonTestPassedCounts[lesson] ?? 0;
-            const status = getLessonStatus(progress, getLessonExamScore(lesson));
+            const status = getLessonStatus(
+              progress,
+              getLessonExamScore(lesson),
+              passedInTest,
+              totalCards
+            );
 
             return (
               <button

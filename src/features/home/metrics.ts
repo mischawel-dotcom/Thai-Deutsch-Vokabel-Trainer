@@ -35,9 +35,15 @@ export function getStreakFooterText(
   return `Noch ${Math.max(0, dailyLimit - learnedToday)} Karte(n) bis zum heutigen Lernziel.`;
 }
 
-export function getLessonStatus(progress: number, examScore: number | null) {
+export function getLessonStatus(
+  progress: number,
+  examScore: number | null,
+  passedInTest: number,
+  totalCards: number
+) {
   const examPassed = examScore !== null && examScore >= 85;
-  const requiresExam = progress === 100 && !examPassed;
+  const readyForExam = totalCards > 0 && passedInTest >= totalCards;
+  const requiresExam = readyForExam && !examPassed;
 
   if (examPassed) {
     return {

@@ -149,11 +149,21 @@ export default function Settings() {
     if (!file) return;
     try {
       setIsLoading(true);
-      const result = await importCsv(file);
+      const result = await importCsv(file, { mode: "replace" });
       if (result.added === 0 && result.duplicates > 0) {
-        setMsg(`⚠️ Keine neuen Einträge: ${result.duplicates} Duplikate gefunden`);
+        setMsg(`⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`);
+      } else if (result.replaced) {
+        setMsg(
+          `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
+            (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
+            (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
+            (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
+        );
       } else {
-        setMsg(`✅ Importiert: ${result.added} Einträge${result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : ''}`);
+        setMsg(
+          `✅ Importiert: ${result.added} Einträge` +
+            (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
+        );
       }
     } catch (err: any) {
       setMsg(`❌ Fehler: ${err?.message ?? String(err)}`);
@@ -177,6 +187,12 @@ export default function Settings() {
     } catch (err: any) {
       setMsg(`❌ Export-Fehler: ${err?.message ?? String(err)}`);
     }
+  }
+
+  function downloadLatestCsv() {
+    const latestCsvUrl =
+      "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv";
+    window.open(latestCsvUrl, "_blank", "noopener,noreferrer");
   }
 
 
@@ -221,6 +237,7 @@ export default function Settings() {
         updatedAt: now,
       }));
       await db.vocab.bulkAdd(entries);
+      localStorage.removeItem("vocabDataSource");
       
       setMsg("✅ Datenbank zurückgesetzt. Nur Standard-Vokabeln enthalten.");
       setTimeout(() => setMsg(""), 3000);
@@ -437,6 +454,16 @@ export default function Settings() {
                 className="w-full"
               >
                 📥 Export herunterladen
+              </Button>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium block mb-2">Aktuelle CSV herunterladen</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Lädt die neueste veröffentlichte CSV direkt von GitHub. Nützlich für PWA-Installationen auf dem Handy.
+              </p>
+              <Button onClick={downloadLatestCsv} variant="outline" className="w-full">
+                🌐 Aktuelle CSV herunterladen
               </Button>
             </div>
 

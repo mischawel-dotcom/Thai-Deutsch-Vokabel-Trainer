@@ -1,0 +1,1050 @@
+thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
+กิน,essen,gin,Verb,"Food,A1",1,ฉันกินข้าว,Ich esse Reis.
+ดื่ม,trinken,duem,Verb,"Food,A1",1,ฉันดื่มน้ำ,Ich trinke Wasser.
+น้ำ,Wasser,nam,Nomen,"Food,A1",1,น้ำเย็น,Kaltes Wasser.
+ข้าว,Reis,khao,Nomen,"Food,A1",1,ข้าวอร่อย,Der Reis ist lecker.
+ไป,gehen/fahren (sich begeben),paai,Verb,"Basics,A1",1,ฉันไปโรงเรียน,Ich gehe zur Schule.
+มา,kommen,maa,Verb,"Basics,A1",1,เขามาที่บ้าน,Er kommt nach Hause.
+อยู่,sein/wohnen,yuu,Verb,"Basics,A1",1,ฉันอยู่ที่นี่,Ich bin hier.
+มี,haben,mii,Verb,"Basics,A1",1,ฉันมีเวลา,Ich habe Zeit.
+ได้,können / bekommen,dai,Verb,"Grundwortschatz,A1",1,ฉันทำได้,Ich kann es machen.
+ไม่ได้,nicht können / nicht haben,mai dai,Verb,"Grundwortschatz,A1",1,ฉันไปไม่ได้,Ich kann nicht gehen.
+ไม่,nein/nicht,mai,Partikel,"Basics,A1",1,ไม่เป็นไร,Kein Problem.
+ใช่,ja,chai,Partikel,"Basics,A1",1,ใช่ครับ,Ja.
+บ้าน,Haus,baan,Nomen,"Basics,A1",1,บ้านใหญ่,Das Haus ist groß.
+รถ,Fahrzeug/Auto,rot,Nomen,"Transport,A1",1,รถใหม่,Ein neues Auto.
+คน,Mensch,khon,Nomen,"Basics,A1",1,คนเยอะ,Viele Menschen.
+วันนี้,heute,wanii,Adverb,"Time,A1",1,วันนี้ร้อน,Heute ist es heiß.
+พรุ่งนี้,morgen,phrung-nii,Adverb,"Time,A1",1,พรุ่งนี้ทำงาน,Morgen arbeite ich.
+มะรืนนี้,übermorgen,ma ruen ni,Nomen,"Zeit,A1",1,มะรืนนี้ฉันทำงาน,Übermorgen arbeite ich.
+ทำ,machen,tam,Verb,"Basics,A1",1,ฉันทำงาน,Ich arbeite.
+งาน,Arbeit,ngaan,Nomen,"Basics,A1",1,งานเยอะ,Viel Arbeit.
+เรียน,lernen,rian,Verb,"School,A1",1,ฉันเรียนภาษาไทย,Ich lerne Thai.
+ภาษา,Sprache,phaa-saa,Nomen,"School,A1",1,ภาษาไทย,Die thailändische Sprache.
+ดี,gut,dii,Adjektiv,"Basics,A1",1,ดีมาก,Sehr gut.
+ใหญ่,groß,yai,Adjektiv,"Basics,A1",1,บ้านใหญ่,Ein großes Haus.
+เล็ก,klein,lek,Adjektiv,"Basics,A1",1,ห้องเล็ก,Ein kleines Zimmer.
+ยาว,lang,yao,Adjektiv,"Adjektive,A1",1,ถนนนี้ยาว,Die Straße ist lang.
+สั้น,kurz,san,Adjektiv,"Adjektive,A1",1,ประโยคนี้สั้น,Das ist kurz.
+ดู,sehen,duu,Verb,"Basics,A1",1,ฉันดูทีวี,Ich sehe fern.
+ฟัง,hören,fang,Verb,"Basics,A1",1,ฉันฟังเพลง,Ich höre Musik.
+ซื้อ,kaufen,sue,Verb,"Shopping,A1",1,ฉันซื้อของ,Ich kaufe Reis.
+ทำงาน,arbeiten,tham-ngaan,Verb,"Work,A1",1,ฉันทำงานที่นี่,Ich arbeite hier.
+พัก,ausruhen,phak,Verb,"Basics,A1",1,ฉันพักผ่อน,Ich ruhe mich aus.
+เดิน,zu Fuß gehen,dern,Verb,"Basics,A1",1,ฉันเดินเร็ว,Ich gehe schnell.
+เงิน,Geld,ngoen,Nomen,"Basics,A1",1,มีเงิน,Geld haben.
+เวลา,Zeit,welaa,Nomen,"Basics,A1",1,ไม่มีเวลา,Keine Zeit.
+วัน,Tag,wan,Nomen,"Basics,A1",1,วันนี้เป็นวันที่ดี,Heute ist ein schöner Tag.
+อาหาร,Essen,aahaan,Nomen,"Food,A1",1,อาหารไทย,Thailändisches Essen.
+โรงเรียน,Schule,rong-rian,Nomen,"Education,A1",1,ไปโรงเรียน,Zur Schule gehen.
+เร็ว,schnell,reo,Adjektiv,"Basics,A1",1,รถเร็ว,Das Auto ist schnell.
+ช้า,langsam,chaa,Adjektiv,"Basics,A1",1,เดินช้า,Langsam gehen.
+ขาย,verkaufen,khaai,Verb,"Shopping,A1",1,เขาขายอาหาร,Er verkauft Essen.
+ราคา,Preis,raa-khaa,Nomen,"Shopping,A1",1,ราคาถูก,Der Preis ist günstig.
+แพง,teuer,paeng,Adjektiv,"Shopping,A1",1,ของแพง,Das ist teuer.
+ฉัน,ich,chan,Pronomen,"Basics,A1",1,ฉันชื่อมาเรีย,Ich heiße Maria.
+ผม,ich (maennlich),pom,Pronomen,"Basics,A1",1,ผมชื่อไมเคิล,Ich heiße Michael.
+คุณ,du/Sie,khun,Pronomen,"Basics,A1",1,คุณชื่ออะไร,Wie heißt du?
+เขา,er/sie (3.P),khao,Pronomen,"Basics,A1",1,เขาไปโรงเรียน,Er/Sie geht zur Schule.
+เรา,wir / ich (umgangssp.),rao,Pronomen,"Basics,A1",1,เราจะไปเที่ยวด้วยกัน,Wir fahren zusammen in den Urlaub.
+พวกเขา,sie (Plural),phuak khao,Pronomen,"Personen,A1",1,พวกเขาอยู่ที่นี่,Sie sind hier.
+ผู้ชาย,Mann,phu chai,Nomen,"Personen,A1",1,ผู้ชายตัวใหญ่,Der Mann ist groß.
+ผู้หญิง,Frau,phu ying,Nomen,"Personen,A1",1,ผู้หญิงสวย,Die Frau ist schön.
+เด็ก,Kind,dek,Nomen,"Personen,A1",1,เด็กกินข้าว,Das Kind isst Reis.
+ครู,Lehrer/Lehrerin,khru,Nomen,"Personen,Schule,A1",1,ครูพูดภาษาไทย,Der Lehrer spricht Thai.
+นักเรียน,Schüler/Schülerin,nak rian,Nomen,"Personen,Schule,A1",1,นักเรียนเรียนภาษาไทย,Der Schüler/Die Schülerin lernt Thai.
+พยาบาล,Krankenpfleger/in,phayaban,Nomen,"Personen,Gesundheit,A1",1,พยาบาลช่วยคน,Der Krankenpfleger/Die Krankenpflegerin hilft Menschen.
+พนักงาน,Angestellte/r,phanakngan,Nomen,"Personen,Berufe,A1",1,พนักงานทำงาน,Der Angestellte/Die Angestellte arbeitet.
+เจ้านาย,Chef/in,jao nai,Nomen,"Personen,Berufe,A1",1,เจ้านายพูดช้า,Der Chef/Die Chefin spricht langsam.
+ลูกค้า,Kunde/Kundin,luk kha,Nomen,"Personen,Alltag,A1",1,ลูกค้าซื้อข้าว,Die Kundin kauft Reis.
+นักท่องเที่ยว,Tourist/in,nak thong thiao,Nomen,"Reisen,Personen,A1",1,นักท่องเที่ยวไปเที่ยว,Der Tourist macht Urlaub.
+คนไทย,Thailänder/in,khon thai,Nomen,"Personen,Nationalitäten,A1",1,เขาเป็นคนไทย,Er/Sie ist Thailänder/in.
+คนต่างชาติ,Ausländer/in,khon tang chat,Nomen,"Personen,Nationalitäten,A1",1,เขาเป็นคนต่างชาติ,Er/Sie ist Ausländer/in.
+นามสกุล,Nachname,nam sakun,Nomen,"Personen,A1",1,นามสกุลของคุณคืออะไร,Wie ist dein Nachname?
+อาชีพ,Beruf,achip,Nomen,"Personen,Berufe,A1",1,อาชีพของคุณคืออะไร,Was ist dein Beruf?
+พวกเรา,wir,phuak-rao,Pronomen,"Basics,A1",1,พวกเราอยู่ที่นี่,Wir sind hier.
+ทุกคน,alle,thuk-khon,Pronomen,"Basics,A1",1,ทุกคนมาถึงแล้ว,Alle sind angekommen.
+ใคร,wer,khrai,Fragewort,"Basics,A1",1,ใครมาอยู่ที่นี่,Wer ist hierher gekommen?
+อะไร,was,a-rai,Fragewort,"Basics,A1",1,นี่คืออะไร,Was ist das?
+ที่ไหน,wo,thii-nai,Fragewort,"Basics,A1",1,คุณอยู่ที่ไหน,Wo bist du?
+เมื่อไหร่,wann,muea-rai,Fragewort,"Basics,A1",1,คุณจะมาเมื่อไหร่,Wann kommst du?
+ทำไม,warum,tham-mai,Fragewort,"Basics,A1",1,ทำไมคุณมาสาย,Warum bist du spät?
+ยังไง,wie (auf welche Weise),yang-ngai,Fragewort,"Basics,A1",1,จะไปยังไง,Wie soll ich hingehen?
+เท่าไหร่,wie viel / wie teuer,thao-rai,Fragewort,"Basics,A1",1,ของนี้เท่าไหร่,Wie viel kostet das?
+ครับ,"(höflich, männlich)",khrap,Partikel,"Basics,A1",1,ครับ,"(höflich, männlich)"
+ค่ะ,"(höflich, weiblich)",kha,Partikel,"Basics,A1",1,ค่ะ,"(höflich, weiblich)"
+นะ,bitte/okay? (weich),na,Partikel,"Basics,A1",1,นะ,bitte/okay? (weich)
+ไหม,Fragepartikel,mai,Partikel,"Basics,A1",1,ไหม,Fragepartikel
+แล้ว,schon/bereits,laeo,Partikel,"Basics,A1",1,ฉันทำเสร็จแล้ว,Ich bin schon fertig.
+ยัง,noch,yang,Partikel,"Basics,A1",1,เขายังไม่มาถึง,Er ist immer noch nicht da.
+กำลัง,gerade (Progressiv),kamlang,Partikel,"Basics,A1",1,ฉันกำลังเรียนภาษาไทย,Ich lerne gerade Thailändisch.
+เลย,überhaupt / sofort,loei,Partikel,"Basics,A1",1,ทำเลย,Mach es sofort!
+สิ,doch / mach mal,si,Partikel,"Grundwortschatz,A1",1,ลองอีกทีสิ,Versuch es doch noch mal.
+และ,und,lae,Konjunktion,"Basics,A1",1,ฉันชอบกาแฟและชา,Ich mag Kaffee und Tee.
+หรือ,oder,rue,Konjunktion,"Basics,A1",1,คุณต้องการกาแฟหรือน้ำชา,Möchtest du Kaffee oder Wasser?
+แต่,aber,tae,Konjunktion,"Basics,A1",1,เขาอยากไปแต่เขาไม่มีเวลา,"Er möchte gehen, aber er hat keine Zeit."
+เพราะ,weil,phro,Konjunktion,"Basics,A1",1,เธอยิ้มเพราะมีความสุข,"Sie lächelt, weil sie glücklich ist."
+ถ้า,wenn/falls,thaa,Konjunktion,"Basics,A1",1,ถ้าฝนตกเราจะอยู่บ้าน,"Wenn es regnet, bleiben wir zu Hause."
+กับ,mit,kap,Präposition,"Basics,A1",1,ฉันไปตลาดกับเพื่อน,Ich gehe mit einem Freund auf den Markt.
+ใน,in,nai,Präposition,"Grundwortschatz,A1",1,ฉันอยู่ในบ้าน,Ich bin im Haus.
+นอก,außerhalb,nok,Präposition,"Orte,Richtung,A1",1,เขารออยู่นอกบ้าน,Er wartet außerhalb des Hauses.
+บน,auf,bon,Präposition,"Orte,Richtung,A1",1,หนังสืออยู่บนโต๊ะ,Das Buch liegt auf dem Tisch.
+หน้า,vor / Vorderseite,na,Präposition,"Orte,Richtung,A1",1,ฉันยืนหน้าบ้าน,Ich stehe vor dem Haus.
+ข้าง,Seite / neben,khang,Präposition,"Orte,Richtung,A1",1,ร้านอยู่ข้างโรงเรียน,Der Laden ist neben der Schule.
+ซ้าย,links,sai,Adverb,"Orte,Richtung,A1",1,ไปทางซ้าย,Geh nach links.
+ขวา,rechts,khwa,Adverb,"Orte,Richtung,A1",1,เลี้ยวขวา,Biege rechts ab.
+ที่,Ort / Relativmarker,thi,Präposition,"Grundwortschatz,A1",1,เขาอยู่ที่โรงเรียน,Er ist in der Schule.
+โดย,durch/mit (Mittel),doi,Präposition,"Basics,A1",1,เราเดินทางโดยรถไฟ,Wir reisen mit dem Zug.
+ก่อน,vorher,gon,Adverb,"Basics,A1",1,โปรดเช็คเอกสารก่อนส่ง,"Bitte prüfe die Unterlagen, bevor du sie abschickst."
+หลัง,nachher,lang,Adverb,"Basics,A1",1,หลังประชุมเราจะไปซื้อของ,Nachher gehen wir einkaufen.
+เป็น,sein,pen,Verb,"Basics,A1",1,ฉันเป็นครู,Ich bin Lehrerin/Lehrer.
+พูด,sprechen,phuut,Verb,"Basics,A1",1,เขาพูดภาษาไทยและเยอรมัน,Er spricht Thai und Deutsch.
+สอน,unterrichten,son,Verb,"Verben,Schule,A1",1,ครูสอนภาษาไทย,Der Lehrer unterrichtet Thai.
+บอก,sagen,bok,Verb,"Basics,A1",1,แม่บอกให้ฉันกลับบ้านเร็ว,"Mama sagt mir, ich soll früh nach Hause kommen."
+ถาม,fragen,thaam,Verb,"Basics,A1",1,ฉันจะถามคุณพรุ่งนี้,Ich frage dich morgen.
+ตอบ,antworten,top,Verb,"Basics,A1",1,เขาตอบอีเมลทันที,Er antwortet sofort auf die E-Mail.
+อ่าน,lesen,aan,Verb,"Education,A1",1,ฉันอ่านหนังสือ,Ich lese ein Buch.
+เขียน,schreiben,khian,Verb,"Education,A1",1,ฉันเขียนอีเมล,Ich schreibe eine E-Mail.
+รู้,wissen/kennen,ruu,Verb,"Basics,A1",1,ฉันรู้อยู่แล้ว,Ich weiß es schon.
+เข้าใจ,verstehen,khao-jai,Verb,"Basics,A1",1,ฉันเข้าใจมัน,Ich verstehe es.
+ชอบ,mögen,chop,Verb,"Verben,Gefühle,A1",1,ฉันชอบกาแฟ,Ich mag Kaffee.
+รัก,lieben,rak,Verb,"Verben,Gefühle,A1",1,ฉันรักครอบครัว,Ich liebe meine Familie.
+รู้จัก,kennen,ru jak,Verb,"Verben,Denken,A1",1,ฉันรู้จักคุณ,Ich kenne dich.
+คิด,denken,khit,Verb,"Basics,A1",1,ฉันคิดถึงบ้าน,Ich denke an Zuhause.
+ช่วย,helfen,chuay,Verb,"Basics,A1",1,ช่วยฉันหน่อยได้ไหม,Kannst du mir bitte helfen?
+รอ,warten,raw,Verb,"Basics,A1",1,ฉันรอคุณอยู่ที่หน้าประตู,Ich warte auf dich vor der Tür.
+เริ่ม,beginnen,roem,Verb,"Basics,A1",1,ฉันเริ่มงานใหม่วันนี้,Ich habe heute mit dem neuen Job angefangen.
+จบ,enden,chop,Verb,"Basics,A1",1,ฉันจบงานแล้ว,Ich bin mit der Arbeit fertig.
+เปิด,öffnen/anmachen,poet,Verb,"Basics,A1",1,กรุณาเปิดไฟ,Bitte mach das Licht an.
+ปิด,schließen/ausmachen,pit,Verb,"Basics,A1",1,กรุณาปิดหน้าต่าง,Bitte mach das Fenster zu.
+เข้า,hineingehen,khao,Verb,"Basics,A1",1,ฉันเข้าไปในบ้าน,Ich gehe ins Haus.
+ออก,hinausgehen,ok,Verb,"Basics,A1",1,ฉันออกไปข้างนอก,Ich gehe raus.
+กลับ,zurückkehren,klap,Verb,"Basics,A1",1,ฉันกลับบ้านตอนเย็น,Ich komme abends nach Hause.
+ถึง,ankommen,thueng,Verb,"Verben,Alltag,Reisen,A1",1,ฉันถึงบ้านแล้ว,Ich bin schon zu Hause angekommen.
+นอน,schlafen,non,Verb,"Basics,A1",1,ฉันไปนอนแล้ว,Ich gehe jetzt schlafen.
+ตื่น,aufwachen,tuen,Verb,"Basics,A1",1,ฉันตื่นเช้า,Ich wache früh auf.
+นั่ง,sitzen,nang,Verb,"Basics,A1",1,โปรดนั่งตรงนี้,Bitte setz dich hier.
+ยืน,stehen,yuen,Verb,"Basics,A1",1,เขายืนหน้าประตู,Er steht vor der Tür.
+วิ่ง,laufen,wing,Verb,"Basics,A1",1,ฉันวิ่งทุกเช้า,Ich laufe jeden Morgen.
+จ่าย,bezahlen (allgemein),jaai,Verb,"Shopping,A1",1,ฉันจ่ายเงินที่แคชเชียร์,Ich bezahle an der Kasse.
+ใช้,benutzen,chai,Verb,"Basics,A1",1,ฉันใช้โทรศัพท์ทุกวัน,Ich benutze mein Handy jeden Tag.
+ให้,geben,hai,Verb,"Basics,A1",1,ฉันให้คุณของขวัญ,Ich gebe dir ein Geschenk.
+เอา,nehmen,ao,Verb,"Basics,A1",1,ฉันเอาน้ำหนึ่งแก้ว,Ich nehme ein Glas Wasser.
+รับ,empfangen/annehmen,rap,Verb,"Basics,A1",1,ฉันรับพัสดุ,Ich nehme das Paket an.
+ส่ง,senden/bringen,song,Verb,"Basics,A1",1,ฉันส่งอีเมล,Ich schicke eine E-Mail.
+โทร,anrufen,tho,Verb,"Phone,A1",1,ฉันโทรหาแม่,Ich rufe meine Mutter an.
+ถ่ายรูป,fotografieren,thaai-ruup,Verb,"Leisure,A1",1,ฉันถ่ายรูปที่สวน,Ich mache ein Foto im Park.
+อาบน้ำ,duschen / baden,ap nam,Verb,"Körper,Alltag,A1",1,ฉันอาบน้ำตอนเช้า,Ich dusche morgens.
+แต่งตัว,sich anziehen,taeng tua,Verb,"Kleidung,Alltag,A1",1,ฉันแต่งตัวไปทำงาน,Ich ziehe mich für die Arbeit an.
+ไม่ดี,schlecht,mai di,Adjektiv,"Adjektive,A1",1,วันนี้อากาศไม่ดี,Heute ist das Wetter schlecht.
+สวย,schön,suai,Adjektiv,"Adjektive,A1",1,ดอกไม้นี้สวย,Diese Blume ist schön.
+หล่อ,hübsch (männlich),lo,Adjektiv,"Adjektive,A1",1,เขาหล่อ,Er ist hübsch.
+น่ารัก,süß / lieb,na rak,Adjektiv,"Adjektive,A1",1,เด็กคนนี้น่ารัก,Dieses Kind ist süß.
+ใหม่,neu,mai,Adjektiv,"Adjektive,A1",1,นี่คือรถใหม่,Ich habe heute ein neues Auto gesehen.
+เก่า,alt,gao,Adjektiv,"Adjektive,A1",1,บ้านนี้เก่า,Dieses Haus ist alt.
+ถูก,billig / richtig,thuk,Adjektiv,"Einkaufen,Adjektive,A1",1,เสื้อตัวนี้ถูก,Dieses T-Shirt ist billig.
+ง่าย,einfach,ngai,Adjektiv,"Adjektive,A1",1,แบบฝึกนี้ง่าย,Diese Übung ist einfach.
+ยาก,schwierig,yak,Adjektiv,"Adjektive,A1",1,ภาษาไทยยาก,Thai ist schwierig.
+ว่าง,frei,wang,Adjektiv,"Zeit,Alltag,A1",1,วันนี้ฉันว่าง,Heute habe ich frei.
+ยุ่ง,beschäftigt,yung,Adjektiv,"Zeit,Alltag,A1",1,ตอนนี้ฉันยุ่ง,Jetzt bin ich beschäftigt.
+สะอาด,sauber,sa-at,Adjektiv,"Haus,Alltag,A1",1,ห้องนี้สะอาด,Dieses Zimmer ist sauber.
+สกปรก,schmutzig,sokkaprok,Adjektiv,"Haus,Alltag,A1",1,รองเท้านี้สกปรก,Diese Schuhe sind schmutzig.
+ร้อน,heiß,ron,Adjektiv,"Wetter,Adjektive,A1",1,วันนี้อากาศร้อน,Heute ist das Wetter heiß.
+เย็น,kalt / kühl,yen,Adjektiv,"Wetter,Adjektive,A1",1,น้ำเย็นมาก,Das Wasser ist sehr kühl.
+หิว,hungrig,hiu,Adjektiv,"Essen,Gefühle,A1",1,ฉันหิวแล้ว,Ich habe Hunger.
+อิ่ม,satt,im,Adjektiv,"Essen,Gefühle,A1",1,ฉันอิ่มแล้ว,Ich bin satt.
+แข็งแรง,gesund / stark,khaeng raeng,Adjektiv,"Gesundheit,A1",1,ฉันแข็งแรง,Ich bin gesund.
+มีความสุข,glücklich,mi khwam suk,Adjektiv,"Gefühle,A1",1,ฉันมีความสุข,Ich bin glücklich.
+สนุก,spaßig,sanuk,Adjektiv,"Freizeit,A1",1,เกมนี้สนุก,Dieses Spiel macht Spaß.
+กระหาย,durstig,grahai,Adjektiv,"Essen,Gefühle,A1",1,ฉันกระหายน้ำ,Ich bin durstig.
+เหนื่อย,müde,nueai,Adjektiv,"Gefühle,Gesundheit,A1",1,ฉันเหนื่อยมาก,Ich bin sehr müde.
+ง่วง,schläfrig,nguang,Adjektiv,"Gefühle,Gesundheit,A1",1,ฉันง่วงแล้ว,Ich bin schläfrig.
+ป่วย,krank,puai,Adjektiv,"Gesundheit,A1",1,ฉันป่วยวันนี้,Ich bin heute krank.
+เผ็ด,scharf,phet,Adjektiv,"Essen,A1",1,แกงนี้เผ็ด,Dieses Curry ist scharf.
+หวาน,süß,wan,Adjektiv,"Essen,A1",1,ชานี้หวาน,Dieser Tee ist süß.
+เค็ม,salzig,khem,Adjektiv,"Essen,A1",1,ซุปนี้เค็ม,Diese Suppe ist salzig.
+เปรี้ยว,sauer,priao,Adjektiv,"Essen,A1",1,มะนาวนี้เปรี้ยว,Diese Limette ist sauer.
+ขม,bitter,khom,Adjektiv,"Essen,A1",1,กาแฟนี้ขม,Dieser Kaffee ist bitter.
+อร่อย,lecker,aroi,Adjektiv,"Essen,A1",1,อาหารนี้อร่อย,Dieses Essen ist lecker.
+หมอ,Arzt/Ärztin,mo,Nomen,"Personen,Gesundheit,A1",1,หมอช่วยคน,Der Arzt/Die Ärztin hilft Menschen.
+ครอบครัว,Familie,khrop khrua,Nomen,"Familie,A1",1,ฉันมีครอบครัวใหญ่,Ich habe eine grosse Familie.
+พ่อ,Vater,pho,Nomen,"Familie,A1",1,พ่อของฉันชื่อสมชาย,Mein Vater heißt Somchai.
+แม่,Mutter,mae,Nomen,"Familie,A1",1,แม่ของฉันใจดี,Meine Mutter ist nett.
+พ่อแม่,Eltern,pho mae,Nomen,"Familie,A1",1,พ่อแม่ของฉันอยู่ที่นี่,Meine Eltern sind hier.
+พี่,ältere Bezugsperson / ältere*r (Anrede),phi,Anrede,"Familie,A1",1,พี่ครับ ร้านกาแฟอยู่ที่ไหน,"Entschuldigung, wo ist das Café?"
+น้อง,jüngere Bezugsperson / jüngere*r (Anrede),nong,Anrede,"Familie,A1",1,น้องครับ ช่วยหน่อย,"Hey, kannst du bitte helfen?"
+พี่ชาย,älterer Bruder,phi chai,Nomen,"Familie,A1",1,พี่ชายของฉันทำงาน,Mein älterer Bruder arbeitet.
+พี่สาว,ältere Schwester,phi sao,Nomen,"Familie,A1",1,พี่สาวของฉันสวย,Meine ältere Schwester ist schön.
+น้องชาย,jüngerer Bruder,nong chai,Nomen,"Familie,A1",1,น้องชายของฉันกินข้าว,Mein jüngerer Bruder isst Reis.
+น้องสาว,jüngere Schwester,nong sao,Nomen,"Familie,A1",1,น้องสาวของฉันอยู่บ้าน,Meine jüngere Schwester ist zu Hause.
+ลูก,Kind (eigenes),luk,Nomen,"Familie,A1",1,ลูกของฉันชื่อมีนา,Mein Kind heißt Mina.
+ลูกชาย,Sohn,luk chai,Nomen,"Familie,A1",1,ลูกชายของฉันชื่อทอม,Mein Sohn heißt Tom.
+ลูกสาว,Tochter,luk sao,Nomen,"Familie,A1",1,ลูกสาวของฉันชื่อมีนา,Meine Tochter heißt Mina.
+สามี,Ehemann,sami,Nomen,"Familie,A1",1,สามีของฉันทำงาน,Mein Ehemann arbeitet.
+ภรรยา,Ehefrau,phanraya,Nomen,"Familie,A1",1,ภรรยาของฉันสวย,Meine Ehefrau ist schön.
+ยาย,Großmutter (mütterlich),yai,Nomen,"Familie,A1",1,ยายของฉันอยู่บ้าน,Meine Großmutter ist zu Hause.
+ปู่,Großvater (väterlicherseits),puu,Nomen,"Familie,A1",1,ปู่ของฉันอยู่บ้าน,Mein Großvater ist zu Hause.
+ญาติ,Verwandte,yat,Nomen,"Familie,A1",1,ญาติของฉันมาแล้ว,Meine Verwandten sind schon da.
+ชื่อ,Name,chue,Nomen,"Personen,A1",1,ชื่อของฉันคือมาเรีย,Mein Name ist Maria.
+อายุ,Alter,ayu,Nomen,"Personen,A1",1,ฉันอายุยี่สิบปี,Ich bin zwanzig Jahre alt.
+เพื่อน,Freund/Freundin,phuean,Nomen,"Personen,A1",1,เพื่อนมาแล้ว,Der Freund/Die Freundin ist schon da.
+ตำรวจ,Polizist/in,tamruat,Nomen,"Personen,Berufe,A1",1,ตำรวจมาเร็ว,Der Polizist/Die Polizistin kommt schnell.
+สูง,hoch / groß,sung,Adjektiv,"Adjektive,A1",1,ตึกนี้สูง,Dieses Gebäude ist hoch.
+ต่ำ,niedrig,tam,Adjektiv,"Adjektive,A1",1,โต๊ะนี้ต่ำ,Dieser Tisch ist niedrig.
+หนัก,schwer,nak,Adjektiv,"Adjektive,A1",1,กระเป๋านี้หนัก,Diese Tasche ist schwer.
+เบา,leicht,bao,Adjektiv,"Adjektive,A1",1,กล่องนี้เบา,Diese Box ist leicht.
+ใกล้,nah,glai,Adjektiv,"Orte,Richtung,A1",1,บ้านฉันอยู่ใกล้,Mein Haus ist nah.
+ไกล,weit,glai,Adjektiv,"Orte,Richtung,A1",1,โรงเรียนอยู่ไกล,Die Schule ist weit.
+เต็ม,voll,tem,Adjektiv,"Alltag,A1",1,แก้วนี้เต็ม,Dieses Glas ist voll.
+ว่างเปล่า,leer,wang plao,Adjektiv,"Alltag,A1",1,กล่องนี้ว่างเปล่า,Diese Box ist leer.
+โกรธ,wütend,grot,Adjektiv,"Gefühle,A1",1,เขาโกรธ,Er ist wütend.
+กลัว,ängstlich,klua,Adjektiv,"Gefühle,A1",1,ฉันกลัว,Ich habe Angst.
+สวัสดี,Hallo,sawasdee,Interjektion,"Höflichkeit,A1",2,สวัสดีครับ,Hallo.
+ขอบคุณ,Danke,khop khun,Interjektion,"Höflichkeit,A1",2,ขอบคุณครับ,Danke.
+ขอบคุณมาก,vielen Dank,khop khun mak,Interjektion,"Höflichkeit,A1",2,ขอบคุณมากครับ,Vielen Dank.
+ขอโทษ,Entschuldigung,kho thot,Interjektion,"Höflichkeit,A1",2,ขอโทษครับ,Entschuldigung.
+ลาก่อน,Auf Wiedersehen,la gon,Interjektion,"Höflichkeit,A1",2,ลาก่อนครับ,Auf Wiedersehen.
+กรุณา,bitte,karuna,Interjektion,"Höflichkeit,A1",2,กรุณารอสักครู่,Bitte warten Sie kurz.
+มาก,sehr/viel,maak,Adverb,"Basics,A1",2,ฉันชอบมาก,Ich mag es sehr.
+น้อย,wenig,noi,Adverb,"Basics,A1",2,มีคนน้อยมาก,Es gibt sehr wenige Leute.
+ตอนนี้,jetzt,ton ni,Adverb,"Zeit,A1",2,ตอนนี้ฉันเรียนภาษาไทย,Jetzt lerne ich Thai.
+เมื่อวาน,gestern,muea wan,Nomen,"Zeit,A1",2,เมื่อวานฉันอยู่บ้าน,Gestern war ich zu Hause.
+เมื่อวานซืน,vorgestern,muea wan suen,Nomen,"Zeit,A1",2,เมื่อวานซืนฉันไปตลาด,Vorgestern bin ich zum Markt gegangen.
+ศูนย์,Null,suun,Zahl,"Basics,A1",2,ศูนย์,Null
+หนึ่ง,eins,nueng,Zahl,"Basics,A1",2,หนึ่ง,eins
+สอง,zwei,song,Zahl,"Basics,A1",2,สอง,zwei
+สาม,drei,saam,Zahl,"Basics,A1",2,สาม,drei
+สี่,vier,sii,Zahl,"Basics,A1",2,สี่,vier
+ห้า,fünf,haa,Zahl,"Basics,A1",2,ห้า,fünf
+หก,sechs,hok,Zahl,"Basics,A1",2,หก,sechs
+เจ็ด,sieben,jet,Zahl,"Basics,A1",2,เจ็ด,sieben
+แปด,acht,paet,Zahl,"Basics,A1",2,แปด,acht
+เก้า,neun,gao,Zahl,"Basics,A1",2,เก้า,neun
+สิบ,zehn,sip,Zahl,"Basics,A1",2,สิบ,zehn
+ขนมปัง,Brot,khanom pang,Nomen,"essen,A1",2,ฉันกินขนมปังตอนเช้า,Ich esse morgens Brot.
+เดือน,Monat,duean,Nomen,"Zeit,A1",2,เดือนนี้ฝนตกมาก,Diesen Monat regnet es viel.
+ปี,Jahr,pi,Nomen,"Zeit,A1",2,ปีนี้ฉันไปเยอรมนี,Dieses Jahr fahre ich nach Deutschland.
+วันจันทร์,Montag,wan jan,Nomen,"Zeit,A1",2,วันจันทร์ฉันทำงาน,Am Montag arbeite ich.
+วันอังคาร,Dienstag,wan angkhan,Nomen,"Zeit,A1",2,วันอังคารฉันเรียนภาษาไทย,Am Dienstag lerne ich Thai.
+วันพุธ,Mittwoch,wan phut,Nomen,"Zeit,A1",2,วันพุธฉันไปตลาด,Am Mittwoch gehe ich zum Markt.
+วันพฤหัสบดี,Donnerstag,wan pharuehatsabodi,Nomen,"Zeit,A1",2,วันพฤหัสบดีฉันว่าง,Am Donnerstag habe ich frei.
+วันศุกร์,Freitag,wan suk,Nomen,"Zeit,A1",2,วันศุกร์ฉันเจอเพื่อน,Am Freitag treffe ich Freunde.
+วันเสาร์,Samstag,wan sao,Nomen,"Zeit,A1",2,วันเสาร์ฉันพักผ่อน,Am Samstag ruhe ich mich aus.
+วันอาทิตย์,Sonntag,wan athit,Nomen,"Zeit,A1",2,วันอาทิตย์ฉันอยู่บ้าน,Am Sonntag bin ich zu Hause.
+เช้า,Morgen,chao,Nomen,"Zeit,A1",2,พรุ่งนี้เช้าฉันตื่นเร็ว,Morgen früh wache ich früh auf.
+วันนี้ตอนเช้า,heute Morgen,wan ni ton chao,Nomen,"Zeit,A1",2,วันนี้ตอนเช้าฉันวิ่ง,Heute Morgen bin ich gelaufen.
+สาย,später Vormittag,sai,Nomen,"Zeit,A1",2,ฉันไปโรงเรียนตอนสาย,Ich gehe am späten Vormittag zur Schule.
+เที่ยง,Mittag,thiang,Nomen,"Zeit,A1",2,ตอนเที่ยงฉันกินข้าว,Mittags esse ich Reis.
+บ่าย,Nachmittag,bai,Nomen,"Zeit,A1",2,ตอนบ่ายฉันทำงาน,Am Nachmittag arbeite ich.
+กลางคืน,Nacht,klang khuen,Nomen,"Zeit,A1",2,กลางคืนฉันนอนหลับ,Nachts schlafe ich.
+นาที,Minute,nathi,Nomen,"Zeit,A1",2,รอห้านาที,Warte fünf Minuten.
+ชั่วโมง,Stunde,chua mong,Nomen,"Zeit,A1",2,ฉันเรียนหนึ่งชั่วโมง,Ich lerne eine Stunde.
+โมง,Uhr,mong,Nomen,"Zeit,A1",2,ตอนนี้สามโมง,Jetzt ist es drei Uhr.
+ห้อง,Zimmer,hong,Nomen,"Basics,A1",2,ห้องนี้ใหญ่มาก,Dieses Zimmer ist sehr groß.
+ห้องน้ำ,Toilette,hong-nam,Nomen,"Basics,A1",2,ห้องน้ำอยู่ที่ไหน,Wo ist die Toilette?
+ตลาด,Markt,ta-laat,Nomen,"Shopping,A1",2,ฉันไปตลาดทุกวัน,Ich gehe jeden Tag zum Markt.
+กระเป๋าเดินทาง,Koffer,grapao dern thang,Nomen,"Transport,Reisen,A1",2,ฉันมีกระเป๋าเดินทาง,Ich habe einen Koffer.
+เงินบาท,Baht,ngoen baht,Nomen,"Einkaufen,A1",2,ฉันจ่ายเงินบาทไทย,Ich bezahle in Baht.
+ตะเกียบ,Essstäbchen,takiep,Nomen,"Essen,Trinken,A1",4,ฉันใช้ตะเกียบ,Ich benutze Essstäbchen.
+ขวด,Flasche,khuat,Nomen,"Essen,Trinken,A1",4,นี่คือขวดน้ำ,Stell die Flasche bitte auf den Tisch.
+แก้ว,Glas / Becher,kaeo,Nomen,"Essen,Trinken,A1",4,ฉันขอแก้วน้ำ,Ich möchte ein Glas Wasser.
+ถุง,Tüte / Beutel,thung,Nomen,"Einkaufen,A1",2,ขอถุงหนึ่งใบ,Bitte eine Tüte.
+เมือง,Stadt,mueang,Nomen,"Orte,A1",2,เมืองนี้ใหญ่,Diese Stadt ist groß.
+สะพาน,Brücke,saphan,Nomen,"Orte,A1",2,สะพานนี้ยาว,Diese Brücke ist lang.
+ร้าน,Laden/Shop,raan,Nomen,"Shopping,A1",2,ร้านนี้เปิดเมื่อไหร่,Wann öffnet dieser Laden?
+ร้านอาหาร,Restaurant,raan-aahaan,Nomen,"Food,A1",2,เราไปร้านอาหารกันไหม,Gehen wir zusammen ins Restaurant?
+เมนู,Speisekarte,menu,Nomen,"Essen,Orte,A1",2,ขอเมนูหน่อย,Bitte die Speisekarte.
+เช็คบิล,bezahlen / Rechnung bitte,chek bin,Verb,"Essen,Verben,A1",2,ขอเช็คบิลครับ,Die Rechnung bitte.
+อิ่มแล้ว,ich bin schon satt,im laeo,Satz,"Essen,A1",2,ขอบคุณครับ อิ่มแล้ว,"Danke, ich bin schon satt."
+ไม่เผ็ด,nicht scharf,mai phet,Adjektiv,"Essen,A1",2,ขออาหารไม่เผ็ด,Bitte nicht scharf.
+โรงแรม,Hotel,rong-raem,Nomen,"Travel,A1",2,ฉันพักที่โรงแรม,Ich übernachte im Hotel.
+ถนน,Straße,tha-non,Nomen,"Travel,A1",2,ถนนนี้ชื่ออะไร,Wie heißt diese Straße?
+ทะเล,Meer,tha-lay,Nomen,"Travel,A1",2,ฉันชอบทะเล,Ich mag das Meer.
+แม่น้ำ,Fluss,mae nam,Nomen,"Natur,Orte,A1",2,แม่น้ำสายนี้ยาว,Dieser Fluss ist lang.
+ประเทศ,Land,prathet,Nomen,"Reisen,Orte,A1",2,ฉันชอบประเทศนี้,Ich mag dieses Land.
+กรุงเทพฯ,Bangkok,Krung Thep,Nomen,"Reisen,Orte,A1",2,ฉันอยู่กรุงเทพฯ,Ich bin in Bangkok.
+ประเทศไทย,Thailand,Prathet Thai,Nomen,"Reisen,Orte,A1",2,ประเทศไทยสวยมาก,Thailand ist sehr schön.
+ทางเข้า,Eingang,thang khao,Nomen,"Orte,Richtung,A1",2,ทางเข้าอยู่ข้างหน้า,Der Eingang ist vorne.
+ทางออก,Ausgang,thang ok,Nomen,"Orte,Richtung,A1",2,ทางออกอยู่ข้างหลัง,Der Ausgang ist hinten.
+ตรงข้าม,gegenüber,trong kham,Präposition,"Orte,Richtung,A1",2,ธนาคารอยู่ตรงข้ามโรงเรียน,Die Bank ist gegenüber der Schule.
+ระหว่าง,zwischen,rawang,Präposition,"Orte,Richtung,A1",2,ร้านกาแฟอยู่ระหว่างธนาคารกับโรงพยาบาล,Das Café ist zwischen der Bank und dem Krankenhaus.
+แถวนี้,hier in der Nähe,thaeo ni,Adverb,"Orte,Richtung,A1",2,มีตลาดแถวนี้ไหม,Gibt es hier in der Nähe einen Markt?
+รถยนต์,Auto (PKW),rot yon,Nomen,"Transport,A1",2,เขามีรถยนต์,Er hat ein Auto.
+รถไฟฟ้า,Skytrain / Bahn,rot fai fa,Nomen,"Transport,A1",2,ฉันไปด้วยรถไฟฟ้า,Ich fahre mit dem Skytrain.
+รถใต้ดิน,U-Bahn,rot tai din,Nomen,"Transport,A1",2,รถใต้ดินเร็วมาก,Die U-Bahn ist sehr schnell.
+รถไฟ,Zug,rot-fai,Nomen,"Travel,A1",2,รถไฟสะดวกกว่ารถเมล์,Der Zug ist bequemer als der Bus.
+ผลไม้,Obst,phon-la-mai,Nomen,"Food,A1",2,ฉันชอบกินผลไม้,Ich esse gern Obst.
+ผัก,Gemüse,phak,Nomen,"Food,A1",2,ผักดีต่อสุขภาพ,Gemüse ist gesund.
+ปลา,Fisch,plaa,Nomen,"Food,A1",2,ปลาสดมาก,Der Fisch ist sehr frisch.
+ไก่,Huhn,gai,Nomen,"Food,A1",2,ฉันสั่งไก่ทอด,Ich bestelle gebratenes Hähnchen.
+หมู,Schwein,muu,Nomen,"Food,A1",2,ฉันไม่กินหมู,Ich esse kein Schweinefleisch.
+กุ้ง,Garnele,kung,Nomen,"Essen,Trinken,A1",2,ฉันชอบกุ้ง,Ich mag Garnelen.
+ไข่,Ei,khai,Nomen,"Essen,Trinken,A1",2,ฉันกินไข่ตอนเช้า,Ich esse morgens ein Ei.
+กาแฟ,Kaffee,gafae,Nomen,"Essen,Trinken,A1",2,ตอนเช้าฉันดื่มกาแฟ,Morgens trinke ich Kaffee.
+ชา,Tee,cha,Nomen,"Essen,Trinken,A1",2,ฉันชอบชาร้อน,Ich mag heißen Tee.
+น้ำผลไม้,Saft,nam phonlamai,Nomen,"Essen,Trinken,A1",2,ฉันดื่มน้ำผลไม้,Ich trinke Saft.
+กับข้าว,Beilage zum Reis,kap khao,Nomen,"Essen,Trinken,A1",2,วันนี้มีกับข้าวอร่อย,Heute gibt es leckere Beilagen zum Reis.
+ซุป,Suppe,sup,Nomen,"Essen,Trinken,A1",2,ซุปร้อนมาก,Die Suppe ist sehr heiß.
+หัว,Kopf,hua,Nomen,"Körper,A1",2,หัวของฉันปวด,Mein Kopf tut weh.
+ตา,Auge,ta,Nomen,"Körper,A1",2,ตาของฉันเจ็บ,Mein Auge tut weh.
+หู,Ohr,hu,Nomen,"Körper,A1",2,หูของฉันเจ็บ,Mein Ohr tut weh.
+จมูก,Nase,jamuk,Nomen,"Körper,A1",2,จมูกของฉันเจ็บ,Meine Nase tut weh.
+ปาก,Mund,pak,Nomen,"Körper,A1",2,ปากของฉันแห้ง,Mein Mund ist trocken.
+ฟัน,Zahn,fan,Nomen,"Körper,A1",2,ฟันของฉันเจ็บ,Mein Zahn tut weh.
+มือ,Hand,mue,Nomen,"Körper,A1",2,มือของฉันเปียก,Meine Hand ist nass.
+เท้า,Fuß,thao,Nomen,"Körper,A1",2,เท้าของฉันเจ็บ,Mein Fuß tut weh.
+ปวด,Schmerzen haben (dumpf/innerlich),puat,Verb,"Gesundheit,A1",2,ฉันปวดหัว,Ich habe Kopfschmerzen.
+ประตู,Tür,pra-tuu,Nomen,"Home,A1",2,ประตูเปิด,Die Tür ist offen.
+เตียง,Bett,tiang,Nomen,"Home,A1",2,ฉันนอนในเตียง,Ich bin im Bett.
+ไฟ,Licht,fai,Nomen,"Home,A1",2,โปรดเปิดไฟเหนือ,Bitte mach das Licht an.
+โทรศัพท์,Telefon,tho-ra-sap,Nomen,"Phone,A1",2,โทรศัพท์ของฉันหาย,Mein Telefon ist verloren.
+ซูเปอร์มาร์เก็ต,Supermarkt,supermarket,Nomen,"Einkaufen,Orte,A1",2,ซูเปอร์มาร์เก็ตอยู่ใกล้บ้าน,Der Supermarkt ist in der Nähe des Hauses.
+ไปรษณีย์,Post,praisani,Nomen,"Alltag,Orte,A1",2,ฉันไปไปรษณีย์,Ich gehe zur Post.
+ห้องนอน,Schlafzimmer,hong-non,Nomen,"Home,A1",2,ฉันนอนเกือหี้องโเชุ,Ich schlafe im Schlafzimmer.
+สถานีรถไฟ,Bahnhof,sathani rot fai,Nomen,"Reisen,Orte,A1",2,สถานีรถไฟอยู่ในเมือง,Der Bahnhof ist in der Stadt.
+ป้ายรถเมล์,Bushaltestelle,pai rot me,Nomen,"Reisen,Orte,A1",2,ฉันรอที่ป้ายรถเมล์,Ich warte an der Bushaltestelle.
+รูป,Foto/Bild,ruup,Nomen,"Basics,A1",2,ขอบจ่อต่องถีหรืองไหม,Kann ich ein Foto machen?
+เกลือ,Salz,kluea,Nomen,"Essen,Trinken,A1",4,ใส่เกลือนิดหน่อย,Gib ein bisschen Salz dazu.
+ฝน,Regen,fon,Nomen,"Weather,A1",2,มีหรืดจตนวันเคา,Es regnet heute.
+ลม,Wind,lom,Nomen,"Weather,A1",2,มีลมผุ่งมูลวันนี้,Es ist windig heute.
+ภาษาไทย,Thailändisch (Sprache),phaa-saa-thai,Nomen,"Education,A1",2,ฉันเรียนภาษาไทย,Ich lerne Thai.
+ภาษาอังกฤษ,Englisch (Sprache),phaa-saa-ang-grit,Nomen,"Education,A1",2,เขาพูดภาษาอังกฤษ,Er spricht Englisch.
+เสื้อ,Shirt / Oberteil,suea,Nomen,"Kleidung,A1",2,ฉันใส่เสื้อสีแดง,Ich trage ein rotes Shirt.
+กางเกง,Hose,kangkeng,Nomen,"Kleidung,A1",2,กางเกงนี้ใหม่,Diese Hose ist neu.
+รองเท้า,Schuhe,rong thao,Nomen,"Kleidung,A1",2,รองเท้าของฉันเปียก,Meine Schuhe sind nass.
+กระเป๋า,Tasche,grapao,Nomen,"Transport,Alltag,A1",2,ฉันมีกระเป๋าใบใหญ่,Ich habe eine große Tasche.
+หมวก,Hut,muak,Nomen,"Kleidung,A1",2,หมวกนี้สีดำ,Dieser Hut ist schwarz.
+แว่นตา,Brille,waen ta,Nomen,"Kleidung,A1",2,ฉันใส่แว่นตา,Ich trage eine Brille.
+นาฬิกา,Uhr / Armbanduhr,nalika,Nomen,"Kleidung,Alltag,A1",2,นาฬิกาของฉันใหม่,Meine Armbanduhr ist neu.
+เสื้อผ้า,Kleidung,suea pha,Nomen,"Kleidung,A1",2,ฉันซักเสื้อผ้า,Ich wasche Kleidung.
+สวม,tragen / anziehen,suam,Verb,"Kleidung,Verben,A1",2,ฉันสวมหมวก,Ich trage einen Hut.
+ถอด,ausziehen / abnehmen,thot,Verb,"Kleidung,Verben,A1",2,ฉันถอดรองเท้า,Ich ziehe die Schuhe aus.
+ซัก,waschen,sak,Verb,"Kleidung,Haus,A1",2,ฉันซักเสื้อผ้า,Ich wasche Kleidung.
+สีแดง,rot,si daeng,Adjektiv,"Farben,A1",2,เสื้อสีแดงสวย,Das rote Shirt ist schön.
+สีฟ้า,blau,si fa,Adjektiv,"Farben,A1",2,ท้องฟ้าสีฟ้า,Der Himmel ist blau.
+สีเขียว,grün,si khiao,Adjektiv,"Farben,A1",2,ต้นไม้สีเขียว,Der Baum ist grün.
+สีดำ,schwarz,si dam,Adjektiv,"Farben,A1",2,รถสีดำ,Das Auto ist schwarz.
+สีขาว,weiß,si khao,Adjektiv,"Farben,A1",2,รองเท้าสีขาว,Weiße Schuhe.
+สีน้ำเงิน,dunkelblau,si nam ngoen,Adjektiv,"Farben,A1",2,กระเป๋าสีน้ำเงิน,Die Tasche ist dunkelblau.
+สี,Farbe,sii,Nomen,"Basics,A1",2,ฉันชอบสีแดง,Ich mag rot.
+แดง,rot,daeng,Adjektiv,"Basics,A1",2,มันแดง,Es ist rot.
+เขียว,grün,khiao,Adjektiv,"Basics,A1",2,มันเขียว,Es ist grün.
+เหลือง,gelb,lueang,Adjektiv,"Basics,A1",2,มันเหลือง,Es ist gelb.
+น้ำเงิน,blau,naam-ngoen,Adjektiv,"Basics,A1",2,มันน้ำเงิน,Es ist blau.
+ดำ,schwarz,dam,Adjektiv,"Basics,A1",2,มันดำ,Es ist schwarz.
+ขาว,weiß,khao,Adjektiv,"Basics,A1",2,มันขาว,Es ist weiß.
+แอปเปิล,Apfel,aeppoen,Nomen,"Essen,Trinken,Obst,A1",4,แอปเปิลนี้หวาน,Dieser Apfel ist süß.
+หยุด,anhalten / stoppen,yut,Verb,"Transport,Verben,A1",2,รถหยุดแล้ว,Das Fahrzeug hat angehalten.
+ลอง,anprobieren / versuchen,long,Verb,"Einkaufen,Verben,A1",2,ฉันลองเสื้อ,Ich probiere das Shirt an.
+เลือก,auswählen,lueak,Verb,"Einkaufen,Verben,A1",2,ฉันเลือกอันนี้,Ich wähle dieses hier.
+ขอ,bitten/verlangen,kho,Verb,"Basics,A1",2,ฉันขอ,Ich bitte/verlange.
+จอง,reservieren / buchen,jong,Verb,"Reisen,A1",2,ฉันจองโรงแรม,Ich buche ein Hotel.
+แลก,wechseln / tauschen,laek,Verb,"Einkaufen,Verben,A1",2,ฉันแลกเงิน,Ich wechsle Geld.
+คืน,zurückgeben,khuen,Verb,"Einkaufen,Verben,A1",2,ฉันคืนสินค้า,Ich gebe die Ware zurück.
+เดินทาง,reisen,dern thang,Verb,"Reisen,Verben,A1",2,ฉันเดินทางพรุ่งนี้,Ich reise morgen.
+เที่ยว,reisen / besichtigen,thiao,Verb,"Reisen,A1",2,ฉันเที่ยวกรุงเทพฯ,Ich besichtige Bangkok.
+ส่งถึง,zustellen,song thueng,Verb,"Transport,Verben,A1",2,เขาส่งถึงบ้าน,Er liefert bis nach Hause.
+กระโปรง,Rock,graprong,Nomen,"Kleidung,A1",4,กระโปรงนี้สวย,Dieser Rock ist schön.
+ขึ้น,einsteigen / hinauf,khuen,Verb,"Transport,Verben,A1",2,ฉันขึ้นรถไฟ,Ich steige in den Zug ein.
+ควัน,Rauch,khwan,Nomen,"natur,A1",2,ควันจากรถเยอะมาก,Es gibt viel Rauch von den Autos.
+ฝุ่น,Staub,fun,Nomen,"natur,A1",2,ห้องนี้มีฝุ่นเยอะ,In diesem Zimmer ist viel Staub.
+เคลื่อนย้าย,bewegen,khluean yai,Verb,"verben,A1",2,เราต้องเคลื่อนย้ายโต๊ะ,Wir müssen den Tisch bewegen.
+ถือ,halten/tragen,thue,Verb,"verben,A1",2,เขาถือกระเป๋าหนัก,Er trägt eine schwere Tasche.
+วาง,legen/stellen,wang,Verb,"verben,A1",2,วางหนังสือบนโต๊ะ,Leg das Buch auf den Tisch.
+ยก,heben,yok,Verb,"verben,A1",2,ช่วยยกกล่องนี้หน่อย,"Bitte hilf mir, diese Kiste zu heben."
+ลาก,ziehen,lak,Verb,"verben,A1",2,เขาลากกระเป๋าไปสถานี,Er zieht den Koffer zum Bahnhof.
+ผลัก,schieben,phlak,Verb,"verben,A1",2,กรุณาผลักประตู,Bitte schieb die Tür.
+ฝัน,träumen,fan,Verb,"verben,A1",2,เมื่อคืนฉันฝันแปลก ๆ,Ich habe letzte Nacht seltsam geträumt.
+หัวเราะ,lachen,huaro,Verb,"verben,A1",2,เด็ก ๆ หัวเราะเสียงดัง,Die Kinder lachen laut.
+ร้องไห้,weinen,rong hai,Verb,"verben,A1",2,เขาร้องไห้เพราะเสียใจ,"Er weint, weil er traurig ist."
+ยิ้ม,lächeln,yim,Verb,"verben,A1",2,เธอยิ้มให้ฉัน,Sie lächelt mich an.
+กอด,umarmen,kot,Verb,"verben,A1",2,แม่กอดลูกแน่น,Die Mutter umarmt ihr Kind fest.
+จูบ,küssen,chup,Verb,"verben,A1",2,เขาจูบภรรยาก่อนออกจากบ้าน,Er küsst seine Frau vor dem Verlassen des Hauses.
+แต่งงาน,heiraten,taeng ngan,Verb,"familie,A1",2,พวกเขาจะแต่งงานปีหน้า,Sie werden nächstes Jahr heiraten.
+หย่า,sich scheiden,ya,Verb,"familie,A1",2,ทั้งคู่ตัดสินใจหย่า,"Das Paar entscheidet sich, sich scheiden zu lassen."
+อนุญาต,erlauben,anuyat,Verb,"verben,A1",2,ครูอนุญาตให้เราออกก่อน,"Der Lehrer erlaubt uns, früher zu gehen."
+ห้าม,verbieten,ham,Verb,"verben,A1",2,ที่นี่ห้ามสูบบุหรี่,Hier ist Rauchen verboten.
+บทเรียน,Lektion,bot rian,Nomen,"bildung,A1",2,นี่คือบทเรียน,Die heutige Lektion war nicht schwer.
+การบ้าน,Hausaufgabe,kan ban,Nomen,"bildung,A1",2,ทำการบ้านดิ,Mach die Hausaufgabe.
+ข้อสอบ,Prüfung,kho sop,Nomen,"bildung,A1",2,ข้อสอบยาก,Die Prüfung ist schwierig.
+คะแนน,Punktzahl,khanaen,Nomen,"bildung,A1",2,นี่คือคะแนน,Ich habe im Test eine gute Punktzahl erreicht.
+บริษัท,Firma,borisat,Nomen,"arbeit,A1",2,ฉันทำงานในบริษัท,Ich arbeite in einer Firma.
+เงินเดือน,Gehalt,ngen duean,Nomen,"arbeit,A1",2,เงินเดือนเพียงพอหรือไม่,Das Gehalt ist ausreichend.
+วันหยุด,Feiertag,wan yut,Nomen,"zeit,A1",2,ฉันมีวันหยุดพรุ่งนี้,Ich habe morgen frei.
+วันเกิด,Geburtstag,wan koet,Nomen,"zeit,A1",2,นี่คือวันเกิด,Morgen feiern wir ihren Geburtstag.
+วัด,Tempel,wat,Nomen,"orte,A1",2,เราไปวัด,Wir gehen zum Tempel.
+พระ,Mönch,phra,Nomen,"kultur,A1",2,นี่คือพระ,Am Morgen geben wir dem Mönch Essen.
+ร้านกาแฟ,Café,ran kafe,Nomen,"orte,A1",2,เราไปร้านกาแฟสักภาวินบรีหลิซิ่,Lass uns zu einem Café gehen und einen Kaffee trinken.
+ร้านขายยา,Apotheke,ran khai ya,Nomen,"orte,A1",2,ฉันซื้อยาที่ร้านขายยา,Ich kaufe Medikamente in der Apotheke.
+ร้านเสื้อผ้า,Kleidungsgeschäft,ran suea pha,Nomen,"orte,A1",2,ร้านเสื้อผ้ามีเสื้อสวย,Der Kleidungsladen hat schöne Hemden.
+เค้ก,Kuchen,khek,Nomen,"essen,A1",2,นี่คือเค้ก,Zum Geburtstag gibt es einen großen Kuchen.
+ขนม,Süßigkeit,khanom,Nomen,"essen,A1",2,เด็กชอบขนม,Kinder lieben Süßigkeiten.
+เนย,Butter,noei,Nomen,"essen,A1",2,นี่คือเนย,Ich streiche etwas Butter auf das Brot.
+ชีส,Käse,chi,Nomen,"essen,A1",2,นี่คือชีส,Im Sandwich sind Käse und Tomaten.
+ไอศกรีม,Eis,aisakrim,Nomen,"essen,A1",2,นี่คือไอศกรีม,Kinder essen im Sommer gern Eis.
+แตงโม,Wassermelone,taeng mo,Nomen,"essen,A1",2,แตงโมเย็นมาก,Die Wassermelone ist sehr kühl.
+ส้ม,Orange,som,Nomen,"essen,A1",2,ส้มนี้เปรี้ยว,Diese Orange ist sauer.
+กล้วย,Banane,kluai,Nomen,"essen,A1",2,กล้วยสุกแล้ว,Die Banane ist reif.
+ถุงเท้า,Socken,thung thao,Nomen,"Kleidung,A1",4,ถุงเท้านี้สีขาว,Diese Socken sind weiß.
+มะม่วง,Mango,mamuang,Nomen,"essen,A1",3,มะม่วงนี้หวาน,Diese Mango ist süß.
+สับปะรด,Ananas,sapparot,Nomen,"essen,A1",3,สับปะรดเขียว,Ananas ist grün.
+มะเขือเทศ,Tomate,makhuea thet,Nomen,"essen,A1",3,มะเขือเทศแดง,Die Tomate ist rot.
+แตงกวา,Gurke,taeng kwa,Nomen,"essen,A1",3,แตงกวาสด,Die Gurke ist frisch.
+มันฝรั่ง,Kartoffel,man farang,Nomen,"essen,A1",3,มันฝรั่งขาว,Die Kartoffel ist weiß.
+ข้าวผัด,Gebratener Reis,khao phat,Nomen,"essen,A1",3,ข้าวผัดอร่อย,Gebratener Reis ist lecker.
+ผัดไทย,Pad Thai,phat thai,Nomen,"essen,A1",3,นี่คือผัดไทย,Heute essen wir zum Mittag Pad Thai.
+ต้มยำ,Tom Yum Suppe,tom yam,Nomen,"essen,A1",3,นี่คือต้มยำ,Tom Yum ist für mich zu scharf.
+แกง,Curry,kaeng,Nomen,"essen,A1",3,นี่คือแกง,Zum Abendessen gibt es heute Curry.
+สด,frisch,sot,Adjektiv,"essen,A1",3,มันสด,Es ist frisch.
+เสียง,Geräusch,siang,Nomen,"sinne,A1",3,นี่คือเสียง,Dieses Geräusch kommt aus der Küche.
+อากาศ,Wetter,akat,Nomen,"natur,A1",3,แดดวันนี้สวยโดดไม่,Das Wetter heute ist schön.
+เมฆ,Wolke,mek,Nomen,"natur,A1",3,ท้องฟ้ามีเมฆมาก,Der Himmel ist voll von Wolken.
+พายุ,Sturm,phayu,Nomen,"natur,A1",3,นี่คือพายุ,Heute Nacht kommt wahrscheinlich ein Sturm.
+ฟ้า,Himmel,fa,Nomen,"natur,A1",3,นี่คือฟ้า,Der Himmel ist heute sehr klar.
+แดด,Sonne,phra athit,Nomen,"natur,A1",3,แดดวันนี้แรงมาก,Die Sonne scheint sehr hell.
+หนาว,kalt,nao,Adjektiv,"wetter,A1",3,ฤดูหนาวหนาวมาก,Im Winter ist es sehr kalt.
+อุ่น,warm,op un,Adjektiv,"wetter,A1",3,ชาอุ่นๆ,Warmer Tee.
+แห้ง,trocken,haeng,Adjektiv,"wetter,A1",3,เสื้อนี้แห้งแล้ว,Dieses Shirt ist schon trocken.
+เกาะ,Insel,ko,Nomen,"natur,A1",3,นี่คือเกาะ,Im Urlaub fahren wir auf eine Insel.
+ชายหาด,Strand,chai hat,Nomen,"natur,A1",3,เราไปชายหาดกัน,Lass uns zum Strand gehen.
+น้ำตก,Wasserfall,nam tok,Nomen,"natur,A1",3,นี่คือน้ำตก,Am Wasserfall machen wir viele Fotos.
+รถเมล์,Bus,rot bat,Nomen,"transport,A1",3,ฉันนั่งรถเมล์ทุกวัน,Ich fahre jeden Tag mit dem Bus.
+แท็กซี่,Taxi,thaeksi,Nomen,"transport,A1",3,ฉันเรียกแท็กซี่,Ich rufe ein Taxi.
+รถตู้,Minivan,rot tu,Nomen,"transport,A1",3,นี่คือรถตู้,Wir fahren mit dem Minivan zum Markt.
+จักรยาน,Fahrrad,jakrayan,Nomen,"transport,A1",3,ฉันขี่จักรยาน,Ich fahre Fahrrad.
+มอเตอร์ไซค์,Motorrad,motor sai,Nomen,"transport,A1",3,เขาขี่มอเตอร์ไซค์,Er fährt Motorrad.
+เรือ,Boot,ruea,Nomen,"transport,A1",3,เราไปทางเกาะด้วยเรือ,Wir fahren mit dem Boot zur Insel.
+ตั๋ว,Ticket,tua,Nomen,"transport,A1",3,ฉันซื้อตั๋วรถไฟ,Ich kaufe ein Zugticket.
+การเดินทาง,Reise,kan doen thang,Nomen,"transport,A1",3,นี่คือการเดินทาง,"Die Reise war lang, aber schön."
+สัมภาระ,Gepäck,samphara,Nomen,"transport,A1",3,นี่คือสัมภาระ,Dein Gepäck steht schon im Bus.
+นักศึกษา,Student,nak sueksa,Nomen,"bildung,A1",3,นักศึกษาคนนี้เรียนภาษาไทย,Dieser Student lernt Thai.
+ลง,aussteigen / hinunter,long,Verb,"Transport,Verben,A1",3,ฉันลงรถเมล์,Ich steige aus dem Bus aus.
+ขับ,fahren / lenken,khap,Verb,"Transport,Verben,A1",3,เขาขับรถ,Er fährt Auto.
+เลี้ยว,abbiegen,liao,Verb,"Transport,Verben,A1",3,เลี้ยวซ้ายตรงนี้,Biege hier links ab.
+นาน,lange,nan,Adverb,"Zeit,A1",3,ฉันรอนาน,Ich warte lange.
+ไม่เคย,nie,mai khoei,Adverb,"Zeit,A1",3,ฉันไม่เคยไปเชียงใหม่,Ich war noch nie in Chiang Mai.
+เคย,schon einmal,khoei,Partikel,"Zeit,Erfahrung,A1",3,ฉันเคยไปกรุงเทพ,Ich war schon einmal in Bangkok.
+สายไป,zu spät,sai bpai,Adjektiv,"Zeit,A1",3,ฉันมาสายไป,Ich komme zu spät.
+เร็วไป,zu früh,reo bpai,Adjektiv,"Zeit,A1",3,คุณมาเร็วไป,Du kommst zu früh.
+ขา,Bein,kha,Nomen,"Körper,A1",4,ขาของฉันเจ็บ,Mein Bein tut weh.
+ไม่เป็นไร,kein Problem,mai pen rai,Satz,"Höflichkeit,A1",4,ไม่เป็นไรครับ,Kein Problem.
+ช่วยด้วย,Hilfe!,chuai duai,Interjektion,"Notfall,A1",4,ช่วยด้วย!,Hilfe!
+ราคาเท่าไหร่,wie viel kostet das?,raa-khaa-thao-rai,Phrase,"Shopping,A1",4,ราคาเท่าไหร่,wie viel kostet das?
+ฉันไม่รู้,ich weiß nicht,chan-mai-ruu,Phrase,"Basics,A1",4,ฉันไม่รู้,ich weiß nicht
+กรกฎาคม,Juli,karakadakhom,Nomen,"Zeit,Monate,A1",4,กรกฎาคมฝนตกมาก,Im Juli regnet es viel.
+กันยายน,September,kanyayon,Nomen,"Zeit,Monate,A1",4,กันยายนอากาศดี,Im September ist das Wetter gut.
+ใกล้ๆ,ganz nah,glai glai,Adverb,"Orte,Richtung,A1",4,ร้านอยู่ใกล้ๆ,Der Laden ist ganz nah.
+ข้างใน,drinnen,khang nai,Adverb,"Orte,Richtung,A1",4,เขาอยู่ข้างใน,Er ist drinnen.
+ข้างนอก,draußen,khang nok,Adverb,"Orte,Richtung,A1",4,เด็กเล่นข้างนอก,Die Kinder spielen draußen.
+ฝนตก,es regnet,fon-tok,Phrase,"Weather,A1",4,ฝนตก,es regnet
+แดดออก,die Sonne scheint,daet-ok,Phrase,"Weather,A1",4,แดดออก,die Sonne scheint
+ผัด,gebraten / pfannenrühren,phat,Verb,"Essen,Verben,A1",4,ฉันผัดผัก,Ich brate Gemüse an.
+ย่าง,grillen,yang,Verb,"Essen,Verben,A1",4,พ่อย่างปลา,Papa grillt Fisch.
+เบียร์,Bier,bia,Nomen,"Essen,Trinken,A1",4,เขาดื่มเบียร์,Er trinkt Bier.
+ไวน์,Wein,wai,Nomen,"Essen,Trinken,A1",4,เธอดื่มไวน์,Sie trinkt Wein.
+อันนี้,dieses hier,an ni,Pronomen,"Fragen,Grundwortschatz,A1",4,ฉันเอาอันนี้,Ich nehme dieses hier.
+อันนั้น,jenes dort,an nan,Pronomen,"Fragen,Grundwortschatz,A1",4,ฉันไม่เอาอันนั้น,Ich nehme jenes dort nicht.
+ใช่ไหม,nicht wahr?,chai mai,Partikel,"Fragen,A1",4,อันนี้ดีใช่ไหม,"Du kommst morgen, nicht wahr?"
+ได้ไหม,geht das? / darf ich?,dai mai,Partikel,"Fragen,A1",4,ฉันลองได้ไหม,Darf ich probieren?
+มีไหม,gibt es?,mi mai,Partikel,"Fragen,A1",4,มีน้ำไหม,Gibt es Wasser?
+เอาไหม,willst du?,ao mai,Partikel,"Fragen,A1",4,เอากาแฟไหม,Willst du Kaffee?
+มืด,dunkel,muet,Adjektiv,"eigenschaften,A1",4,ห้องนี้มืดเกินไป,Dieses Zimmer ist zu dunkel.
+สว่าง,hell,sawang,Adjektiv,"eigenschaften,A1",4,ห้องนี้สว่างมาก,Dieses Zimmer ist sehr hell.
+แคบ,eng,khaep,Adjektiv,"eigenschaften,A1",4,ซอยนี้แคบมาก,Diese Gasse ist sehr eng.
+กว้าง,breit,kwang,Adjektiv,"eigenschaften,A1",4,ถนนเส้นนี้กว้าง,Diese Straße ist breit.
+ลึก,tief,luek,Adjektiv,"eigenschaften,A1",4,น้ำตรงนี้ลึก,Das Wasser ist hier tief.
+ตื้น,flach,tuen,Adjektiv,"eigenschaften,A1",4,น้ำตรงนี้ตื้น,Das Wasser ist hier flach.
+ทื่อ,stumpf,thue,Adjektiv,"eigenschaften,A1",4,มีดเล่มนี้ทื่อ,Dieses Messer ist stumpf.
+เรียบ,glatt,riap,Adjektiv,"eigenschaften,A1",4,พื้นนี้เรียบมาก,Dieser Boden ist sehr glatt.
+หยาบ,rau,yap,Adjektiv,"eigenschaften,A1",4,ผ้านี้หยาบไปหน่อย,Dieser Stoff ist etwas rau.
+นุ่ม,weich,num,Adjektiv,"eigenschaften,A1",4,หมอนใบนี้นุ่มมาก,Dieses Kissen ist sehr weich.
+แข็ง,hart,khaeng,Adjektiv,"eigenschaften,A1",4,ขนมปังนี้แข็งเกินไป,Dieses Brot ist zu hart.
+บางครั้ง,manchmal,baang-khrang,Adverb,"Basics,A1",2,บางครั้งฉันทำอาหาร,Manchmal koche ich.
+เสมอ,immer,sa-moe,Adverb,"Basics,A1",2,ฉันตื่นเช้าเสมอ,Ich wache immer früh auf.
+บ่อย,oft,boi,Adverb,"zeit,A1",5,ฉันไปที่ร้านนี้บ่อย,Ich gehe oft in diesen Laden.
+เพียง,nur,phiang,Adverb,"grammatik,A1",5,ฉันมีเวลาเพียงสิบนาที,Ich habe nur zehn Minuten Zeit.
+เกือบ,fast,kueap,Adverb,"grammatik,A1",5,ฉันเกือบลืมกระเป๋า,Ich hätte fast die Tasche vergessen.
+เหมือนกัน,gleich sein,muean kan,Verb,"grammatik,A1",5,สองประโยคนี้เหมือนกัน,Die zwei Sätze sind gleich.
+ทั้งหมด,alles/gesamt,thangmot,Pronomen,"grammatik,A1",5,ฉันอ่านทั้งหมดแล้ว,Ich habe alles gelesen.
+บางส่วน,ein Teil,bang suan,Pronomen,"grammatik,A1",5,คำนี้คือบางส่วน,Ich verstehe nur einen Teil des Textes.
+แต่ละ,jeder einzelne,tae la,Pronomen,"grammatik,A1",5,คำนี้คือแต่ละ,Jeder einzelne Schritt ist wichtig.
+ควร,sollte,khuan,Modalverb,"grammatik,A1",5,ฉันใช้คำว่าควรบ่อย,Du solltest heute früher schlafen.
+อาจจะ,vielleicht/könnte,at ja,Modalverb,"grammatik,A1",5,ฉันใช้คำว่าอาจจะบ่อย,Vielleicht komme ich etwas später.
+แน่นอน,sicher/definitiv,nae non,Adverb,"grammatik,A1",5,คำนี้คือแน่นอน,Morgen komme ich ganz sicher.
+ดูทีวี,fernsehen,du thiiwii,Verb,"Medien,A1",5,ตอนเย็นฉันดูทีวี,Am Abend sehe ich fern.
+อยู่ต่อ,bleiben,yu to,Verb,"Verben,Alltag,A1",5,วันนี้ฉันอยู่ต่อที่บ้าน,Ich bleibe heute zu Hause.
+คุ้ม,günstig,khum,Adjektiv,"Einkaufen,A1",5,ร้านนี้คุ้มมาก,Dieser Laden ist sehr günstig.
+ด้วยกัน,zusammen,duai gan,Adverb,"Grundwortschatz,A1",5,เราไปด้วยกัน,Wir gehen zusammen.
+วันหยุดพักผ่อน,Urlaub,wan yut phak phon,Nomen,"Reisen,A1",5,วันหยุดพักผ่อนนี้เราไปทะเล,Im Urlaub fahren wir ans Meer.
+ขับรถ,Auto fahren,khap-rot,Verb,"Travel,A2",2,ฉันขับรถไปทำงาน,Ich fahre mit dem Auto zur Arbeit.
+ออกกำลังกาย,Sport treiben,ok-kamlang-kai,Verb,"Health,A2",2,ฉันออกกำลังกายทุกเช้า,Ich mache morgens Sport.
+ทำอาหาร,kochen (allgemein),tham-aahaan,Verb,"Food,A2",2,ฉันทำอาหารเย็น,Ich koche das Abendessen.
+ล้าง,waschen/spülen,laang,Verb,"Home,A2",2,ฉันล้างจาน,Ich spüle das Geschirr.
+ทำความสะอาด,putzen,tham-khwaam-sa-aat,Verb,"Home,A2",2,ฉันทำความสะอาดบ้าน,Ich putze die Wohnung.
+ซักผ้า,Wäsche waschen,sak-phaa,Verb,"Home,A2",2,ฉันซักผ้าวันเสาร์,Ich wasche am Samstag die Wäsche.
+ยี่สิบ,zwanzig,yii-sip,Zahl,"Basics,A2",2,ยี่สิบ,zwanzig
+ร้อย,hundert,roi,Zahl,"Basics,A2",2,ร้อย,hundert
+พัน,tausend,phan,Zahl,"Basics,A2",2,พัน,tausend
+ห้องครัว,Küche,hong-khrua,Nomen,"Home,A2",2,แม่ทำอาหารในห้องครัว,Mama kocht in der Küche.
+โรงพยาบาล,Krankenhaus,rong-pha-yaa-baan,Nomen,"Health,A2",2,เขาไปโรงพยาบาล,Er ist im Krankenhaus.
+ธนาคาร,Bank,tha-na-khaan,Nomen,"Shopping,A2",2,ฉันต้องไปธนาคาร,Ich muss zur Bank.
+สนามบิน,Flughafen,sa-naam-bin,Nomen,"Travel,A2",2,ฉันไปสนามบิน,Ich fahre zum Flughafen.
+สถานี,Station,sa-thaa-nii,Nomen,"Travel,A2",2,สถานีอยู่ไกลไหม,Wo ist der Bahnhof?
+สวน,Park/Garten,suan,Nomen,"Home,A2",2,เราไปเดินเล่นในสวน,Wir spazieren im Park.
+ภูเขา,Berg,phuu-khao,Nomen,"Travel,A2",2,ภูเขาสูงมาก,Der Berg ist sehr hoch.
+เครื่องบิน,Flugzeug,khrueang-bin,Nomen,"Travel,A2",2,เครื่องบินขึ้นแล้ว,Das Flugzeug ist schon gestartet.
+เนื้อ,Fleisch,nuea,Nomen,"Food,A2",2,ฉันไม่กินเนื้อ,Ich esse kein Fleisch.
+สัปดาห์,Woche,sapda,Nomen,"zeit,A2",3,ฉันทำงานห้าวันต่อสัปดาห์,Ich arbeite fünf Tage pro Woche.
+กระจก,Spiegel,krajok,Nomen,"haushalt,A2",3,นี่คือกระจก,Zu Hause brauche ich oft Spiegel.
+กางเกงยีนส์,Jeans,kangkeng yin,Nomen,"kleidung,A2",3,นี่คือกางเกงยีนส์,Diese Jeans passt mir sehr gut.
+การท่องเที่ยว,Tourismus,kan thongthiao,Nomen,"reise,A2",3,นี่คือการท่องเที่ยว,Der Tourismus ist wichtig fuer die Region.
+กำแพง,Wand,kamphaeng,Nomen,"haushalt,A2",3,นี่คือกำแพง,An der Wand haengt ein Kalender.
+กำไร,Gewinn,kamrai,Nomen,"arbeit,A2",3,นี่คือกำไร,Dieses Jahr macht die Firma mehr Gewinn.
+ก๋วยเตี๋ยว,Nudelsuppe,kuai tiao,Nomen,"essen,A2",3,นี่คือก๋วยเตี๋ยว,Die Nudelsuppe ist sehr heiss.
+ขาดทุน,Verlust,khatthun,Nomen,"arbeit,A2",3,นี่คือขาดทุน,Letzten Monat gab es leider Verlust.
+ข้าวเหนียว,Klebreis,khao niao,Nomen,"essen,A2",3,นี่คือข้าวเหนียว,Zu Mango passt Klebreis sehr gut.
+คลินิก,Klinik,khlinik,Nomen,"gesundheit,A2",3,นี่คือคลินิก,Die Klinik ist nur fuenf Minuten entfernt.
+คอ,Hals,kho,Nomen,"koerper,A2",3,นี่คือคอ,Beim Sport achte ich auf Hals.
+คุกกี้,Keks,khukki,Nomen,"essen,A2",3,นี่คือคุกกี้,Zum Kaffee nehme ich einen Keks.
+จองล่วงหน้า,im Voraus buchen,jong luang na,Verb,"reise,A2",3,ฉันจองล่วงหน้า,In der Hauptsaison solltest du im Voraus buchen.
+จัดการ,organisieren/verwalten,jatkan,Verb,"arbeit,A2",3,ฉันจัดการ,Sie organisiert das Team sehr gut.
+จาน,Teller,jan,Nomen,"haushalt,A2",3,นี่คือจาน,Zu Hause brauche ich oft Teller.
+จาม,niesen,jam,Verb,"gesundheit,A2",3,ฉันจาม,Wegen des Staubs muss ich staendig niesen.
+ชานเมือง,Vorstadt,chan mueang,Nomen,"orte,A2",3,นี่คือชานเมือง,In der Vorstadt sind die Mieten guenstiger.
+ชาม,Schüssel,cham,Nomen,"haushalt,A2",3,นี่คือชาม,Die Suppe ist in einer grossen Schuessel.
+ชุดว่ายน้ำ,Badeanzug,chut wai nam,Nomen,"kleidung,A2",3,นี่คือชุดว่ายน้ำ,Vergiss deinen Badeanzug fuer den Strand nicht.
+ช็อกโกแลต,Schokolade,chokkolat,Nomen,"essen,A2",3,นี่คือช็อกโกแลต,Ich esse nur ein kleines Stueck Schokolade.
+ช้อน,Löffel,chon,Nomen,"haushalt,A2",3,นี่คือช้อน,Zu Hause brauche ich oft Löffel.
+ช้อนชา,Teelöffel,chon cha,Nomen,"essen,A2",3,นี่คือช้อนชา,Ich nehme einen Teeloeffel Zucker.
+ช้อนโต๊ะ,Esslöffel,chon to,Nomen,"essen,A2",3,นี่คือช้อนโต๊ะ,Fuer das Rezept brauchst du einen Essloeffel Oel.
+ซอย,Gasse,soi,Nomen,"orte,A2",3,นี่คือซอย,Das Cafe ist in einer kleinen Gasse.
+ซีอิ๊ว,Sojasauce,si iu,Nomen,"essen,A2",3,นี่คือซีอิ๊ว,Gib nicht zu viel Sojasauce in die Pfanne.
+ดาวน์โหลด,herunterladen,dao lot,Verb,"technik,A2",3,ฉันดาวน์โหลด,Bei der Arbeit muss ich oft herunterladen.
+ด่านตรวจ,Kontrollstelle,dan truat,Nomen,"reise,A2",3,นี่คือด่านตรวจ,An der Kontrollstelle wurden alle Fahrzeuge geprueft.
+ติดต่อ,kontaktieren,tit to,Verb,"arbeit,A2",3,ฉันติดต่อ,Bei Fragen koennen Sie uns jederzeit kontaktieren.
+ตู้,Schrank,tu,Nomen,"haushalt,A2",3,นี่คือตู้,Die Glaeser stehen im oberen Schrank.
+ตู้เย็น,Kühlschrank,tu yen,Nomen,"haushalt,A2",3,นี่คือตู้เย็น,Zu Hause brauche ich oft Kühlschrank.
+ตู้เสื้อผ้า,Kleiderschrank,tu suea pha,Nomen,"haushalt,A2",3,นี่คือตู้เสื้อผ้า,Die Jacke haengt im Kleiderschrank.
+ต่างหู,Ohrring,tang hu,Nomen,"kleidung,A2",3,นี่คือต่างหู,Sie traegt heute goldene Ohrringe.
+ต้ม,kochen/sieden,tom,Verb,"essen,A2",3,ฉันต้ม,Heute koche ich Reis und Suppe.
+ถังขยะ,Mülleimer,thang khaya,Nomen,"haushalt,A2",3,นี่คือถังขยะ,Wirf das bitte in den Muelleimer.
+ถั่ว,Bohne/Nuss,thua,Nomen,"essen,A2",3,นี่คือถั่ว,Im Salat sind Bohnen und Nuesse.
+ถุงมือ,Handschuh,thung mue,Nomen,"kleidung,A2",3,นี่คือถุงมือ,Ohne Handschuhe sind meine Haende sofort kalt.
+ทอด,braten/frittieren,thot,Verb,"essen,A2",3,ฉันทอด,Ich brate den Fisch in der Pfanne.
+ที่นอน,Matratze,thi non,Nomen,"haushalt,A2",3,นี่คือที่นอน,Die Matratze ist fuer mich zu weich.
+ท้อง,Bauch,thong,Nomen,"koerper,A2",3,นี่คือท้อง,Beim Sport achte ich auf Bauch.
+นม,Milch,nom,Nomen,"essen,A2",3,นี่คือนม,Im Supermarkt kaufe ich oft Milch.
+นิ้ว,Finger,nio,Nomen,"koerper,A2",3,นี่คือนิ้ว,Beim Sport achte ich auf Finger.
+น้ำปลา,Fischsauce,nam pla,Nomen,"essen,A2",3,นี่คือน้ำปลา,Fuer den typischen Geschmack kommt etwas Fischsauce dazu.
+น้ำผึ้ง,Honig,nam phueng,Nomen,"essen,A2",3,นี่คือน้ำผึ้ง,Ich trinke Tee mit etwas Honig.
+น้ำมัน,Öl,nam man,Nomen,"essen,A2",3,นี่คือน้ำมัน,Zum Braten nehme ich nur wenig Oel.
+น้ำส้ม,Orangensaft,nam som,Nomen,"essen,A2",3,นี่คือน้ำส้ม,Morgens trinke ich ein Glas Orangensaft.
+น้ำแข็ง,Eiswürfel,nam khaeng,Nomen,"essen,A2",3,นี่คือน้ำแข็ง,Bitte gib drei Eiswuerfel ins Glas.
+บะหมี่,Nudeln,ba mi,Nomen,"essen,A2",3,นี่คือบะหมี่,Abends koche ich oft Nudeln.
+บัญชี,Konto,banchi,Nomen,"arbeit,A2",3,นี่คือบัญชี,Im Buero brauche ich Konto.
+ประชุม,Besprechung,prachum,Nomen,"arbeit,A2",3,นี่คือประชุม,Um neun Uhr haben wir eine Besprechung.
+ประสบการณ์,Erfahrung,prasopkan,Nomen,"arbeit,A2",3,นี่คือประสบการณ์,Fuer diese Stelle braucht man Erfahrung.
+ปวดท้อง,Bauchschmerzen,puat thong,Nomen,"gesundheit,A2",3,นี่คือปวดท้อง,Nach dem Essen bekam ich Bauchschmerzen.
+ปวดหัว,Kopfschmerzen,puat hua,Nomen,"gesundheit,A2",3,นี่คือปวดหัว,Ich habe nach der Arbeit oft Kopfschmerzen.
+ผสม,mischen,phasom,Verb,"essen,A2",3,ฉันผสม,Mische zuerst Mehl und Wasser gut.
+ผ้า,Stoff,pha,Nomen,"kleidung,A2",3,นี่คือผ้า,Dieser Stoff fuehlt sich sehr weich an.
+ผ้าห่ม,Decke,pha hom,Nomen,"haushalt,A2",3,นี่คือผ้าห่ม,Zu Hause brauche ich oft Decke.
+ผ้าเช็ดตัว,Handtuch,pha chet tua,Nomen,"haushalt,A2",3,นี่คือผ้าเช็ดตัว,Zu Hause brauche ich oft Handtuch.
+พัดลม,Ventilator,phat lom,Nomen,"haushalt,A2",3,นี่คือพัดลม,Bei Hitze laeuft der Ventilator den ganzen Tag.
+พิมพ์,tippen/drucken,phim,Verb,"arbeit,A2",3,ฉันพิมพ์,Bei der Arbeit muss ich oft tippen/drucken.
+พื้น,Boden,phuen,Nomen,"haushalt,A2",3,นี่คือพื้น,Der Boden ist nach dem Wischen noch nass.
+ฟักทอง,Kürbis,fak thong,Nomen,"essen,A2",3,นี่คือฟักทอง,Im Herbst machen wir oft Kuerbissuppe.
+มะนาว,Limette,manao,Nomen,"essen,A2",3,นี่คือมะนาว,Ein wenig Limette macht den Geschmack frischer.
+มีด,Messer,mit,Nomen,"haushalt,A2",3,นี่คือมีด,Zu Hause brauche ich oft Messer.
+ยา,Medizin,ya,Nomen,"gesundheit,A2",3,นี่คือยา,In der Apotheke frage ich nach Medizin.
+ยาสีฟัน,Zahnpasta,ya si fan,Nomen,"haushalt,A2",3,นี่คือยาสีฟัน,Zu Hause brauche ich oft Zahnpasta.
+รถติด,Stau,rot tit,Nomen,"verkehr,A2",3,นี่คือรถติด,Wegen des Staus komme ich zu spaet.
+รหัสผ่าน,Passwort,rahat phan,Nomen,"technik,A2",3,นี่คือรหัสผ่าน,Am Computer nutze ich Passwort.
+รองเท้าบูท,Stiefel,rong thao but,Nomen,"kleidung,A2",3,นี่คือรองเท้าบูท,Bei Regen ziehe ich Stiefel an.
+รองเท้าแตะ,Sandalen,rong thao tae,Nomen,"kleidung,A2",3,นี่คือรองเท้าแตะ,Am Strand trage ich nur Sandalen.
+รายงาน,Bericht,raingan,Nomen,"arbeit,A2",3,นี่คือรายงาน,Den Bericht gebe ich bis morgen ab.
+ร่ม,Regenschirm,rom,Nomen,"kleidung,A2",3,นี่คือร่ม,"Nimm einen Regenschirm mit, es wird gleich regnen."
+ลายเซ็น,Unterschrift,laisen,Nomen,"arbeit,A2",3,นี่คือลายเซ็น,Hier fehlt noch deine Unterschrift.
+ลาออก,kündigen,la ok,Verb,"arbeit,A2",3,ฉันลาออก,Er kuendigt zum Monatsende.
+วีซ่า,Visum,wisa,Nomen,"reise,A2",3,นี่คือวีซ่า,Fuer diese Reise brauche ich ein Visum.
+สถานีตำรวจ,Polizeistation,sathani tamruat,Nomen,"stadt,A2",3,นี่คือสถานีตำรวจ,Die Polizeistation ist gleich neben dem Markt.
+สบู่,Seife,sabu,Nomen,"haushalt,A2",3,นี่คือสบู่,Zu Hause brauche ich oft Seife.
+สมัคร,bewerben/anmelden,samak,Verb,"arbeit,A2",3,ฉันสมัคร,Bei der Arbeit muss ich oft bewerben/anmelden.
+สร้อยคอ,Halskette,soi kho,Nomen,"kleidung,A2",3,นี่คือสร้อยคอ,Die Halskette war ein Geschenk von meiner Mutter.
+สัมภาษณ์,Interview,samphat,Nomen,"arbeit,A2",3,นี่คือสัมภาษณ์,Morgen habe ich ein Interview.
+สำนักงาน,Büro,samnakngan,Nomen,"arbeit,A2",3,นี่คือสำนักงาน,Mein Buero ist im dritten Stock.
+สี่แยก,Kreuzung,si yaek,Nomen,"orte,A2",3,นี่คือสี่แยก,An der Kreuzung biegen wir links ab.
+สุขภาพ,Gesundheit,sukkhaphap,Nomen,"gesundheit,A2",3,นี่คือสุขภาพ,Fuer meine Gesundheit gehe ich regelmaessig spazieren.
+สแกน,scannen,saekaen,Verb,"technik,A2",3,ฉันสแกน,Kannst du dieses Dokument bitte scannen?
+ส้อม,Gabel,som,Nomen,"haushalt,A2",3,นี่คือส้อม,Zu Hause brauche ich oft Gabel.
+หนังสือเดินทาง,Reisepass,nangsue doenthang,Nomen,"reise,A2",3,นี่คือหนังสือเดินทาง,Bitte zeigen Sie Ihren Reisepass.
+หน้าต่าง,Fenster,nataang,Nomen,"haushalt,A2",3,นี่คือหน้าต่าง,Zu Hause brauche ich oft Fenster.
+หมอน,Kissen,mon,Nomen,"haushalt,A2",3,นี่คือหมอน,Zu Hause brauche ich oft Kissen.
+หมู่บ้าน,Dorf,mu ban,Nomen,"orte,A2",3,นี่คือหมู่บ้าน,Das Dorf liegt in den Bergen.
+หวี,Kamm,wi,Nomen,"haushalt,A2",3,นี่คือหวี,Ich suche morgens oft meinen Kamm.
+หัวหน้า,Chef/Vorgesetzter,huana,Nomen,"arbeit,A2",3,นี่คือหัวหน้า,Mein Chef hat heute viele Termine.
+หัวใจ,Herz,huachai,Nomen,"koerper,A2",3,นี่คือหัวใจ,Beim Sport achte ich auf Herz.
+หั่น,schneiden,han,Verb,"essen,A2",3,ฉันหั่น,Kannst du bitte die Tomaten klein schneiden?
+ห้องพัก,Hotelzimmer,hong phak,Nomen,"reise,A2",3,นี่คือห้องพัก,Das Hotelzimmer ist sauber und ruhig.
+อก,Brust,ok,Nomen,"koerper,A2",3,นี่คืออก,Seit gestern habe ich Schmerzen in der Brust.
+อบ,backen,op,Verb,"essen,A2",3,ฉันอบ,Am Wochenende backe ich einen Kuchen.
+อัปโหลด,hochladen,ap lot,Verb,"technik,A2",3,ฉันอัปโหลด,Bitte lade das Foto in die Cloud hoch.
+อีเมล,E-Mail,i-meo,Nomen,"arbeit,A2",3,นี่คืออีเมล,Im Buero brauche ich E-Mail.
+อุบัติเหตุ,Unfall,ubathet,Nomen,"gesundheit,A2",3,นี่คืออุบัติเหตุ,Auf der Kreuzung gab es einen Unfall.
+เก้าอี้,Stuhl,kao i,Nomen,"haushalt,A2",3,นี่คือเก้าอี้,Zu Hause brauche ich oft Stuhl.
+เขต,Bezirk,khet,Nomen,"orte,A2",3,นี่คือเขต,Ich wohne in einem ruhigen Bezirk.
+เครื่องซักผ้า,Waschmaschine,khrueang sak pha,Nomen,"haushalt,A2",3,นี่คือเครื่องซักผ้า,Die Waschmaschine ist schon wieder kaputt.
+เงินสด,Bargeld,ngen sot,Nomen,"arbeit,A2",3,นี่คือเงินสด,Ich habe heute kein Bargeld dabei.
+เจ็บ,"wehtun/schmerzen (allgemein, auch verletzen)",jep,Verb,"gesundheit,A2",3,ฉันเจ็บ,Mein Bein tut heute noch weh.
+เช็กอิน,einchecken,chek in,Verb,"reise,A2",3,ฉันเช็กอิน,Wir checken um 14 Uhr im Hotel ein.
+เช็กเอาต์,auschecken,chek aut,Verb,"reise,A2",3,ฉันเช็กเอาต์,Morgen checken wir frueh aus.
+เพดาน,Zimmerdecke,phedan,Nomen,"haushalt,A2",3,นี่คือเพดาน,An der Zimmerdecke haengt eine Lampe.
+เพื่อนร่วมงาน,Kollege,phuean ruam ngan,Nomen,"arbeit,A2",3,นี่คือเพื่อนร่วมงาน,Ich bespreche das mit meinem Kollegen.
+เลือด,Blut,lueat,Nomen,"koerper,A2",3,นี่คือเลือด,Nach dem Unfall war Blut auf dem Hemd.
+เล็บ,Nagel,lep,Nomen,"koerper,A2",3,นี่คือเล็บ,Ich schneide mir heute die Naegel.
+เว็บไซต์,Webseite,websai,Nomen,"technik,A2",3,นี่คือเว็บไซต์,Am Computer nutze ich Webseite.
+เสิร์ฟ,servieren,soef,Verb,"essen,A2",3,ฉันเสิร์ฟ,Das Restaurant serviert das Essen sehr schnell.
+เสื้อกันหนาว,Pullover,suea kan nao,Nomen,"kleidung,A2",3,นี่คือเสื้อกันหนาว,"Abends wird es kalt, deshalb ziehe ich einen Pullover an."
+เสื้อยืด,T-Shirt,suea yuet,Nomen,"kleidung,A2",3,นี่คือเสื้อยืด,Im Laden suche ich neue T-Shirt.
+เสื้อเชิ้ต,Hemd,suea choet,Nomen,"kleidung,A2",3,นี่คือเสื้อเชิ้ต,Fuer das Meeting trage ich ein weisses Hemd.
+เสื้อโค้ท,Mantel,suea khot,Nomen,"kleidung,A2",3,นี่คือเสื้อโค้ท,Im Winter brauche ich einen warmen Mantel.
+เห็ด,Pilz,het,Nomen,"essen,A2",3,นี่คือเห็ด,In der Suppe sind frische Pilze.
+เอกสาร,Dokument,eksan,Nomen,"arbeit,A2",3,นี่คือเอกสาร,Bitte schick mir das Dokument per E-Mail.
+แชมพู,Shampoo,chaemphu,Nomen,"haushalt,A2",3,นี่คือแชมพู,Zu Hause brauche ich oft Shampoo.
+แปรงสีฟัน,Zahnbürste,praeng si fan,Nomen,"haushalt,A2",3,นี่คือแปรงสีฟัน,Zu Hause brauche ich oft Zahnbürste.
+แป้ง,Mehl,paeng,Nomen,"essen,A2",3,นี่คือแป้ง,Fuer den Kuchen brauchen wir Mehl.
+การ์ด,Karte,kat,Nomen,"soziales,A2",3,ฉันเขียนการ์ดให้เพื่อน,Ich schreibe eine Karte für einen Freund.
+แผล,Wunde,phlae,Nomen,"gesundheit,A2",3,นี่คือแผล,Die Wunde heilt langsam.
+แฟชั่น,Mode,faechan,Nomen,"kleidung,A2",3,นี่คือแฟชั่น,Sie interessiert sich sehr fuer Mode.
+แยม,Marmelade,yaem,Nomen,"essen,A2",3,นี่คือแยม,Zum Fruehstueck esse ich Brot mit Marmelade.
+แหวน,Ring,waen,Nomen,"kleidung,A2",3,นี่คือแหวน,Er traegt den Ring an der linken Hand.
+แอร์,Klimaanlage,ae,Nomen,"reise,A2",3,นี่คือแอร์,Die Klimaanlage laeuft die ganze Nacht.
+แฮม,Schinken,haem,Nomen,"essen,A2",3,นี่คือแฮม,Auf dem Sandwich ist Schinken und Kaese.
+โครงการ,Projekt,khrongkan,Nomen,"arbeit,A2",3,นี่คือโครงการ,Das Projekt endet Ende des Monats.
+โซฟา,Sofa,sofa,Nomen,"haushalt,A2",3,นี่คือโซฟา,Im Wohnzimmer steht ein bequemes Sofa.
+โต๊ะ,Tisch,to,Nomen,"haushalt,A2",3,นี่คือโต๊ะ,Zu Hause brauche ich oft Tisch.
+โยเกิร์ต,Joghurt,yokoet,Nomen,"essen,A2",3,นี่คือโยเกิร์ต,Nachmittags esse ich oft Joghurt mit Obst.
+ใบกำกับภาษี,Rechnung,bai kamkap phasi,Nomen,"arbeit,A2",3,นี่คือใบกำกับภาษี,Die Rechnung wird heute noch geschickt.
+ใบเสร็จ,Quittung,baiset,Nomen,"arbeit,A2",3,นี่คือใบเสร็จ,Kann ich bitte die Quittung bekommen?
+ไกด์,Reiseführer,kai,Nomen,"reise,A2",3,นี่คือไกด์,Unser Reisefuehrer spricht sehr gut Deutsch.
+ไข้,Fieber,khai,Nomen,"gesundheit,A2",3,นี่คือไข้,In der Apotheke frage ich nach Fieber.
+ไฟจราจร,Ampel,fai jarajon,Nomen,"verkehr,A2",3,นี่คือไฟจราจร,Warte bitte an der Ampel.
+ไมโครเวฟ,Mikrowelle,maikhrowef,Nomen,"haushalt,A2",3,นี่คือไมโครเวฟ,Ich waerme das Essen in der Mikrowelle auf.
+ไม้กวาด,Besen,mai kwat,Nomen,"haushalt,A2",3,นี่คือไม้กวาด,Mit dem Besen fege ich den Boden.
+ไส้กรอก,Wurst,saikrok,Nomen,"essen,A2",3,นี่คือไส้กรอก,Heute gibt es Wurst mit Reis.
+ไหล่,Schulter,lai,Nomen,"koerper,A2",3,นี่คือไหล่,Beim Sport achte ich auf Schulter.
+ไอ,husten,ai,Verb,"gesundheit,A2",3,ฉันไอ,Im Alltag muss ich häufig husten.
+อาจารย์,Dozent,ajan,Nomen,"bildung,A2",3,นี่คืออาจารย์,Heute benutze ich das Wort Dozent in einem Satz.
+โรงงาน,Fabrik,rong ngan,Nomen,"arbeit,A2",3,เขาทำงานในโรงงาน,Er arbeitet in einer Fabrik.
+ตำแหน่ง,Position,tamnaeng,Nomen,"arbeit,A2",3,นี่คือตำแหน่ง,Heute benutze ich das Wort Position in einem Satz.
+เทศกาล,Festival,thetsakan,Nomen,"kultur,A2",3,นี่คือเทศกาล,Heute benutze ich das Wort Festival in einem Satz.
+ประเพณี,Tradition,prapheni,Nomen,"kultur,A2",3,นี่คือประเพณี,Heute benutze ich das Wort Tradition in einem Satz.
+ศาสนา,Religion,satsana,Nomen,"kultur,A2",3,นี่คือศาสนา,Heute benutze ich das Wort Religion in einem Satz.
+ตลาดนัด,Flohmarkt,talat nat,Nomen,"orte,A2",3,ตลาดนัดเปิดเฉพาะวันเสาร์อาทิตย์,Der Flohmarkt ist nur am Wochenende offen.
+ห้างสรรพสินค้า,Einkaufszentrum,hang sap sin kha,Nomen,"orte,A2",3,ห้างสรรพสินค้าใหญ่,Das Einkaufszentrum ist groß.
+ทันที,sofort,thanthi,Adverb,"zeit,A2",3,ถ้าถึงแล้วโทรหาฉันทันที,"Ruf mich sofort an, wenn du ankommst."
+มกราคม,Januar,makarakhom,Nomen,"zeit,A2",3,ฉันจะเริ่มงานใหม่ในเดือนมกราคม,Ich beginne im Januar eine neue Arbeit.
+กุมภาพันธ์,Februar,kumphaphan,Nomen,"zeit,A2",3,เดือนกุมภาพันธ์สั้นกว่าเดือนอื่น,Der Februar ist kürzer als andere Monate.
+มีนาคม,März,minakhom,Nomen,"zeit,A2",3,อากาศเริ่มร้อนในเดือนมีนาคม,Im März wird es langsam heiß.
+เมษายน,April,mesayon,Nomen,"zeit,A2",3,เราไปเที่ยวทะเลในเดือนเมษายน,Im April fahren wir ans Meer.
+พฤษภาคม,Mai,phruesaphakhom,Nomen,"zeit,A2",3,เดือนพฤษภาคมมีวันหยุดหลายวัน,Im Mai gibt es viele Feiertage.
+มิถุนายน,Juni,mithunayon,Nomen,"zeit,A2",3,ฝนตกบ่อยในเดือนมิถุนายน,Im Juni regnet es oft.
+สิงหาคม,August,singhakhom,Nomen,"zeit,A2",3,เราย้ายบ้านในเดือนสิงหาคม,Wir ziehen im August um.
+ตุลาคม,Oktober,tulakhom,Nomen,"zeit,A2",3,ฉันมีสอบใหญ่ในเดือนตุลาคม,Ich habe im Oktober eine große Prüfung.
+พฤศจิกายน,November,phruetsachikayon,Nomen,"zeit,A2",3,อากาศเย็นขึ้นในเดือนพฤศจิกายน,Im November wird es kühler.
+ธันวาคม,Dezember,thanwakhom,Nomen,"zeit,A2",3,เดือนธันวาคมมีบรรยากาศเทศกาล,Im Dezember ist Feststimmung.
+บัตรเครดิต,Kreditkarte,bat khredit,Nomen,"einkaufen,A2",4,คำนี้คือบัตรเครดิต,Ich zahle heute mit Kreditkarte.
+ธนบัตร,Banknote,thanabat,Nomen,"finanzen,A2",4,คำนี้คือธนบัตร,Ich habe nur noch einen Geldschein dabei.
+เหรียญ,Münze,rian,Nomen,"finanzen,A2",4,คำนี้คือเหรียญ,Für den Automaten brauche ich eine Münze.
+เพลง,Lied,phleng,Nomen,"medien,A2",4,คำนี้คือเพลง,Dieses Lied kenne ich schon.
+ตรงไป,geradeaus gehen,trong pai,Verb,"verkehr,A2",4,ฉันใช้คำว่าตรงไปบ่อย,Geh geradeaus bis zur Ampel.
+เช่า,mieten,chao,Verb,"finanzen,A2",4,ฉันใช้คำว่าเช่าบ่อย,Wir wollen nächstes Jahr eine Wohnung mieten.
+มหาวิทยาลัย,Universität,mahawitthayalai,Nomen,"bildung,A2",4,คำนี้คือมหาวิทยาลัย,Meine Schwester studiert an der Universität.
+จน,arm,chon,Adjektiv,"finanzen,A2",4,คำนี้คือจน,"Er ist nicht reich, aber auch nicht arm."
+ส่วนลด,Rabatt,suan lot,Nomen,"einkaufen,A2",4,คำนี้คือส่วนลด,Mit diesem Rabatt ist es viel günstiger.
+หลงทาง,sich verirren,long thang,Verb,"reise,A2",4,เราอาจหลงทางในเมืองใหม่,Wir können uns in einer neuen Stadt verirren.
+เปียก,nass,piak,Adjektiv,"eigenschaften,A2",4,เสื้อผ้ายังเปียกอยู่,Die Kleidung ist noch nass.
+เสีย,verdorben,sia,Adjektiv,"essen,A2",4,มันเสีย,Es ist verdorben.
+กลิ่น,Geruch,klin,Nomen,"sinne,A2",4,นี่คือกลิ่น,Dieser Geruch erinnert mich an Kindheit.
+รสชาติ,Geschmack,rotchat,Nomen,"essen,A2",4,นี่คือรสชาติ,Der Geschmack ist heute besonders gut.
+หมอก,Nebel,mok,Nomen,"natur,A2",4,นี่คือหมอก,Am Morgen liegt dichter Nebel über der Straße.
+อุณหภูมิ,Temperatur,unhaphum,Nomen,"natur,A2",4,นี่คืออุณหภูมิ,Die Temperatur fällt heute Nacht stark.
+ชื้น,feucht,chuen,Adjektiv,"wetter,A2",4,มันชื้น,Es ist feucht.
+ทะเลสาบ,See,thale sap,Nomen,"natur,A2",4,นี่คือทะเลสาบ,Am See ist es am Abend sehr ruhig.
+ถ้ำ,Höhle,tham,Nomen,"natur,A2",4,นี่คือถ้ำ,In der Höhle ist es kühl und dunkel.
+ทางด่วน,Autobahn,thang duan,Nomen,"transport,A2",4,นี่คือทางด่วน,Über die Autobahn sind wir schneller angekommen.
+ท่าเรือ,Hafen,tha ruea,Nomen,"transport,A2",4,นี่คือท่าเรือ,Wir treffen uns am Hafen um acht.
+ผู้โดยสาร,Passagier,phu doisan,Nomen,"transport,A2",4,นี่คือผู้โดยสาร,Alle Passagiere müssen jetzt einsteigen.
+อาหารเช้า,Frühstück,ahan chao,Nomen,"essen,A2",4,ฉันกินอาหารเช้า,Ich esse Frühstück.
+อาหารกลางวัน,Mittagessen,ahan klang wan,Nomen,"essen,A2",4,ตอนเที่ยงฉันกินอาหารกลางวัน,Mittags esse ich Mittagessen.
+อาหารเย็น,Abendessen,ahan yen,Nomen,"essen,A2",4,เย็นนี้เรากินอาหารเย็นด้วยกัน,Heute Abend essen wir Abendessen zusammen.
+ตรงเวลา,pünktlich,trong wela,Adjektiv,"zeit,A2",4,เขามาถึงตรงเวลา,Er kommt pünktlich an.
+กุญแจ,Schlüssel,gun-jae,Nomen,"Home,A2",4,ฉันลืมกุญแจ,Ich habe den Schlüssel vergessen.
+อินเทอร์เณ็ต,Internet,in-thoe-noet,Nomen,"Work,A2",4,อินเทอร์เณ็ตเร็วมาก,Das Internet ist schnell.
+ที่อยู่,Adresse,thii-yuu,Nomen,"Basics,A2",4,ที่อยู่ของฉันสงครมหลายคุงเทพ,Meine Adresse ist in Bangkok.
+โรงหนัง,Kino,rong-nang,Nomen,"Leisure,A2",4,เราไปโรงหนังนั่ว,Lass uns heute ins Kino gehen.
+สวนสาธารณะ,Park,suan-saa-thaa-ra-na,Nomen,"Travel,A2",4,ป่สวนสาธารณะข่างหน้อยกี่คน,Der Park hat viele Bäume.
+ห้องนั่งเล่น,Wohnzimmer,hong-nang-len,Nomen,"Home,A2",4,เราดูทีวีหอในห้องนั่งเล่น,Wollen wir fernschauen im Wohnzimmer?
+ห้องเรียน,Klassenzimmer,hong-rian,Nomen,"Education,A2",4,วัอะเมื่อจากห้องเรียน,Wann verlasse ich das Klassenzimmer?
+สนามกีฬา,Sportplatz,sa-naam-gii-laa,Nomen,"Leisure,A2",4,เราสำกลิกคนในสนามกีฬา,Lass uns auf dem Sportplatz Sport machen.
+ของขวัญ,Geschenk,khong khwan,Nomen,"soziales,A2",3,เขาให้ของขวัญวันเกิดฉัน,Er gibt mir ein Geburtstagsgeschenk.
+กล้อง,Kamera,klong,Nomen,"technik,A2",4,คำนี้คือกล้อง,Nimm die Kamera für den Ausflug mit.
+ดนตรี,Musik,dontri,Nomen,"medien,A2",4,คำนี้คือดนตรี,Musik hilft mir beim Lernen.
+กีฬา,Sport,kila,Nomen,"freizeit,A2",4,คำนี้คือกีฬา,Sport ist gut für die Gesundheit.
+บัตรประชาชน,Ausweis,bat-pra-chaa-chon,Nomen,"Basics,A2",4,ฉันต้องมีบัตรประชาชน,Ich brauche einen Ausweis.
+ปัญหา,Problem,panha,Nomen,"abstrakt,A2",4,คำนี้คือปัญหา,Das Problem lösen wir zusammen.
+คำถาม,Frage,khamtham,Nomen,"abstrakt,A2",4,คำนี้คือคำถาม,Hast du noch eine Frage?
+คำตอบ,Antwort,khamtop,Nomen,"abstrakt,A2",4,คำนี้คือคำตอบ,Die Antwort ist einfacher als gedacht.
+นัดหมาย,Termin,nat-maai,Nomen,"Basics,A2",4,ฉันมีนัดหมายวันพรุ่งนี้,Ich habe morgen einen Termin.
+ข่าว,Nachrichten,khao,Nomen,"medien,A2",4,คำนี้คือข่าว,Ich schaue jeden Abend die Nachrichten.
+ภาษาเยอรมัน,Deutsch (Sprache),phaa-saa-yoe-ra-man,Nomen,"Education,A2",4,ฉันรักภาษาเยอรมัน,Ich liebe Deutsch.
+น้ำตาล,braun,naam-taan,Adjektiv,"Basics,A2",4,มันน้ำตาล,Es ist braun.
+ชมพู,rosa,chom-phuu,Adjektiv,"Basics,A2",4,มันชมพู,Es ist rosa.
+เทา,grau,thao,Adjektiv,"Basics,A2",4,มันเทา,Es ist grau.
+เลี้ยวซ้าย,links abbiegen,liao sai,Verb,"verkehr,A2",4,ฉันใช้คำว่าเลี้ยวซ้ายบ่อย,An der nächsten Kreuzung bieg links ab.
+เลี้ยวขวา,rechts abbiegen,liao khwa,Verb,"verkehr,A2",4,ฉันใช้คำว่าเลี้ยวขวาบ่อย,Nach dem Markt bieg rechts ab.
+เริ่มต้น,anfangen,roem-ton,Verb,"Basics,A2",4,ฉันเริ่มต้น,Ich fange an.
+สำคัญ,wichtig,samkhan,Adjektiv,"eigenschaften,A2",4,เรื่องนี้สำคัญมาก,Diese Sache ist sehr wichtig.
+จำเป็น,notwendig,jampen,Adjektiv,"eigenschaften,A2",4,การพักผ่อนเป็นสิ่งจำเป็น,Erholung ist notwendig.
+ปลอดภัย,sicher,plodphai,Adjektiv,"eigenschaften,A2",4,ย่านนี้ค่อนข้างปลอดภัย,Diese Gegend ist ziemlich sicher.
+ทำกับข้าว,(Thai-)Gerichte kochen,tham-kap-khao,Verb,"Food,A2",4,ฉันทำกับข้าว,Ich koche.
+ลืม,vergessen,luem,Verb,"verben,A2",4,ฉันลืมกุญแจที่บ้าน,Ich habe den Schlüssel zu Hause vergessen.
+จำ,sich erinnern,jam,Verb,"verben,A2",4,ฉันจำชื่อเขาได้,Ich erinnere mich an seinen Namen.
+พบ,treffen,phop,Verb,"Basics,A2",4,ฉันพบ,Ich treffe.
+จำต้อง,müssen,jam tong,Modalverb,"grammatik,A2",4,ฉันใช้คำว่าจำต้องบ่อย,Ich muss heute leider länger arbeiten.
+อธิบาย,erklären,athibai,Verb,"verben,A2",4,ครูอธิบายบทเรียนชัดเจน,Der Lehrer erklärt die Lektion klar.
+แนะนำ,empfehlen/vorstellen,nae-nam,Verb,"Basics,A2",4,ฉันแนะนำ,Ich empfehle/stelle vor.
+เตรียม,vorbereiten,triam,Verb,"Basics,A2",4,ฉันเตรียม,Ich bereite vor.
+เยี่ยม,besuchen,yiam,Verb,"Basics,A2",4,ฉันเยี่ยม,Ich besuche.
+โทรกลับ,zurückrufen,tho-klap,Verb,"Phone,A2",4,ฉันโทรกลับ,Ich rufe zurück.
+ส่งข้อความ,Nachricht senden,song-kho-khwaam,Verb,"Phone,A2",4,ฉันส่งข้อความ,Ich sende eine Nachricht.
+ถ่ายเอกสาร,kopieren,thaai-eek-ka-saan,Verb,"Work,A2",4,ฉันถ่ายเอกสาร,Ich kopiere.
+ซ่อมแซม,reparieren,somsaem,Verb,"haus,A2",4,ฉันใช้คำว่าซ่อมแซมบ่อย,Er repariert heute den kaputten Stuhl.
+ชำระเงิน,eine Zahlung leisten / begleichen,cham-ra-ngoen,Verb,"Shopping,A2",4,ฉันชำระเงิน,Ich bezahle.
+ขึ้นรถ,einsteigen,khuen-rot,Verb,"Travel,A2",4,ฉันขึ้นรถ,Ich steige ein.
+ลงรถ,aussteigen,long-rot,Verb,"Travel,A2",4,ฉันลงรถ,Ich steige aus.
+เปลี่ยน,wechseln,plian,Verb,"Basics,A2",4,ฉันเปลี่ยน,Ich wechsle.
+ย้าย,umziehen/versetzen,yaai,Verb,"Basics,A2",4,ฉันย้าย,Ich ziehe um/versetze.
+เริ่มเรียน,anfangen zu lernen,roem-rian,Verb,"Education,A2",4,ฉันเริ่มเรียน,Ich fange an zu lernen.
+หยุดพัก,Pause machen,yut-phak,Verb,"Work,A2",4,ฉันหยุดพัก,Ich mache Pause.
+พร้อม,bereit,phrom,Adjektiv,"Basics,A2",4,มันพร้อม,Es ist bereit.
+จริง,echt/wirklich,jing,Adjektiv,"Basics,A2",4,มันจริง,Es ist echt/wirklich.
+เร็วๆนี้,bald,reo-reo-nii,Adverb,"Basics,A2",4,เร็วๆนี้,bald
+ช้าๆ,langsam (bitte),chaa-chaa,Adverb,"Basics,A2",4,ช้าๆ,langsam (bitte)
+โต๊ะทำงาน,Schreibtisch,to-tham-ngaan,Nomen,"Work,A2",4,โต๊ะทำงานของฉันสะอาด,Mein Schreibtisch ist sauber.
+คีย์บอร์ด,Tastatur,khii-bot,Nomen,"Work,A2",4,ฉันพิมพ์ด้วยคีย์บอร์ด,Ich tippe mit der Tastatur.
+เมาส์,Maus (PC),mao,Nomen,"Work,A2",4,เมาส์ไม่ทำงาน,Die Maus funktioniert nicht.
+หน้าจอ,Bildschirm,na jo,Nomen,"technik,A2",4,คำนี้คือหน้าจอ,Der Bildschirm ist zu dunkel eingestellt.
+เครื่องพิมพ์,Drucker,khrueang-phim,Nomen,"Work,A2",4,เครื่องพิมพ์เสีย,Der Drucker ist kaputt.
+ปลั๊กไฟ,Steckdose,plak fai,Nomen,"haus,A2",4,คำนี้คือปลั๊กไฟ,Die Steckdose ist hinter dem Schrank.
+สายชาร์จ,Ladekabel,sai chat,Nomen,"technik,A2",4,คำนี้คือสายชาร์จ,Wo ist mein Ladekabel geblieben?
+แบตเตอรี่,Batterie,baettoeri,Nomen,"technik,A2",4,คำนี้คือแบตเตอรี่,Die Batterie ist fast leer.
+หม้อ,Topf,mo,Nomen,"haushalt,A2",4,คำนี้คือหม้อ,Die Suppe kocht im Topf seit zehn Minuten.
+กระทะ,Pfanne,kratha,Nomen,"haushalt,A2",4,คำนี้คือกระทะ,Brate das Gemüse in der Pfanne kurz an.
+ร้านสะดวกซื้อ,Minimarkt,raan-sa-duak-sue,Nomen,"Shopping,A2",4,ร้านสะดวกซื้ออยู่ตรงนี้,Der Minimarkt ist gleich hier.
+โรงพัก,Polizeiwache,rong-phak,Nomen,"Basics,A2",4,โรงพักอยู่ไกล,Die Polizeiwache ist weit weg.
+พิพิธภัณฑ์,Museum,phiphitthaphan,Nomen,"kultur,A2",4,คำนี้คือพิพิธภัณฑ์,Am Sonntag besuchen wir ein Museum.
+ห้องสมุด,Bibliothek,hong samut,Nomen,"bildung,A2",4,คำนี้คือห้องสมุด,In der Bibliothek ist es ruhig.
+สระว่ายน้ำ,Schwimmbad/Pool,sa-waai-nam,Nomen,"Leisure,A2",4,สระว่ายน้ำเปิดวันจันทร์,Das Schwimmbad ist montags geöffnet.
+ส้มตำ,Papayasalat,som-tam,Nomen,"Food,A2",4,ส้มตำเผ็ด,Der Papayasalat ist scharf.
+พริก,Chili,phrik,Nomen,"Food,A2",4,พริกแดง,Die Chili ist rot.
+กระเทียม,Knoblauch,kra-thiam,Nomen,"Food,A2",4,กระเทียมร้อน,Knoblauch ist warm.
+หัวหอม,Zwiebel,hua-hom,Nomen,"Food,A2",4,หัวหอมอ่อน,Die Zwiebel ist zart.
+ข้าวโพด,Mais,khao-phot,Nomen,"Food,A2",4,ข้าวโพดนุ่ม,Mais ist zart.
+เสื้อกันฝน,Regenjacke,suea-kan-fon,Nomen,"Clothes,A2",4,เสื้อกันฝนสีเขียว,Die Regenjacke ist grün.
+กาต้มน้ำ,Wasserkocher,ka tom nam,Nomen,"haushalt,A2",4,คำนี้คือกาต้มน้ำ,Der Wasserkocher ist schon heiß.
+ผ้าปูที่นอน,Bettlaken,pha pu thi non,Nomen,"haushalt,A2",4,ฉันซักผ้าปูที่นอนทุกสัปดาห์,Ich wasche das Bettlaken jede Woche.
+สำรอง,reservieren/Reserve,samrong,Verb,"reise,A2",4,ฉันสำรองห้องพักล่วงหน้า,Ich reserviere das Zimmer im Voraus.
+เลื่อน,verschieben,luean,Verb,"zeit,A2",4,เราต้องเลื่อนการประชุม,Wir müssen das Treffen verschieben.
+ยกเลิก,stornieren,yok loek,Verb,"reise,A2",4,ฉันต้องยกเลิกการจอง,Ich muss die Buchung stornieren.
+ล่าช้า,verspätet,la cha,Adjektiv,"reise,A2",4,รถไฟมาล่าช้า,Der Zug ist verspätet.
+แนะนำทาง,den Weg weisen,naenam thang,Verb,"reise,A2",4,เขาแนะนำทางไปโรงแรม,Er zeigt den Weg zum Hotel.
+ใบไม้,Blatt,bai mai,Nomen,"natur,A2",4,ใบไม้ร่วงเต็มสวน,Die Blätter fallen im ganzen Garten.
+ต้นไม้,Baum,ton mai,Nomen,"natur,A2",4,หน้าบ้านมีต้นไม้ใหญ่,Vor dem Haus steht ein großer Baum.
+ดอกไม้,Blume,dok mai,Nomen,"natur,A2",4,เธอซื้อดอกไม้ให้แม่,Sie kauft Blumen für ihre Mutter.
+หญ้า,Gras,ya,Nomen,"natur,A2",4,เด็ก ๆ วิ่งบนหญ้า,Die Kinder laufen über das Gras.
+เมล็ด,Samen,malet,Nomen,"natur,A2",4,เราปลูกต้นไม้จากเมล็ด,Wir pflanzen einen Baum aus Samen.
+สวนสัตว์,Zoo,suan sat,Nomen,"orte,A2",4,วันอาทิตย์เราไปสวนสัตว์,Am Sonntag gehen wir in den Zoo.
+ปลาโลมา,Delfin,pla loma,Nomen,"tiere,A2",4,เด็กชอบดูปลาโลมา,Kinder sehen gerne Delfine.
+เต่า,Schildkröte,tao,Nomen,"tiere,A2",4,เต่าเดินช้ามาก,Die Schildkröte läuft sehr langsam.
+กระต่าย,Kaninchen,kratai,Nomen,"tiere,A2",4,กระต่ายกินแครอท,Das Kaninchen frisst Karotten.
+ไก่งวง,Truthahn,kai nguang,Nomen,"tiere,A2",4,ในฟาร์มมีไก่งวงหลายตัว,Auf dem Bauernhof gibt es viele Truthähne.
+เป็ด,Ente,pet,Nomen,"tiere,A2",4,เป็ดว่ายน้ำในบ่อ,Die Ente schwimmt im Teich.
+ไก่ชน,Kampfhahn,kai chon,Nomen,"tiere,A2",4,เขาเลี้ยงไก่ชนที่บ้าน,Er hält zu Hause Kampfhähne.
+ผีเสื้อ,Schmetterling,phi suea,Nomen,"tiere,A2",4,ผีเสื้อบินรอบดอกไม้,Der Schmetterling fliegt um die Blumen.
+ยุง,Mücke,yung,Nomen,"tiere,A2",4,ตอนกลางคืนมียุงเยอะมาก,Nachts gibt es sehr viele Mücken.
+แมลงวัน,Fliege,maelang wan,Nomen,"tiere,A2",4,แมลงวันบินเข้าครัว,Eine Fliege fliegt in die Küche.
+มด,Ameise,mot,Nomen,"tiere,A2",4,มดเดินเป็นแถวบนโต๊ะ,Die Ameisen laufen in einer Reihe über den Tisch.
+ผึ้ง,Biene,phueng,Nomen,"tiere,A2",4,ผึ้งบินรอบดอกไม้,Die Biene fliegt um die Blumen.
+แมงมุม,Spinne,maengmum,Nomen,"tiere,A2",4,มีแมงมุมอยู่ที่มุมห้อง,In der Ecke ist eine Spinne.
+จระเข้,Krokodil,jorakhe,Nomen,"tiere,A2",4,จระเข้ว่ายน้ำช้ามาก,Das Krokodil schwimmt sehr langsam.
+ค้างคาว,Fledermaus,khangkhaw,Nomen,"tiere,A2",4,ตอนเย็นเห็นค้างคาวบิน,Am Abend sieht man Fledermäuse fliegen.
+ขยะ,Müll,khaya,Nomen,"natur,A2",4,กรุณาทิ้งขยะลงถัง,Bitte wirf den Müll in den Eimer.
+มลพิษ,Verschmutzung,monlapit,Nomen,"natur,A2",4,เมืองใหญ่มีมลพิษมาก,In Großstädten gibt es viel Verschmutzung.
+สิ่งแวดล้อม,Umwelt,singwaetlom,Nomen,"natur,A2",4,เราต้องดูแลสิ่งแวดล้อม,Wir müssen die Umwelt schützen.
+โยน,werfen,yon,Verb,"verben,A2",4,อย่าโยนขวดลงพื้น,Wirf die Flasche nicht auf den Boden.
+จับ,fangen/greifen,chap,Verb,"verben,A2",4,เด็กพยายามจับลูกบอล,"Das Kind versucht, den Ball zu fangen."
+ปล่อย,loslassen,ploi,Verb,"verben,A2",4,ค่อย ๆ ปล่อยมือ,Lass langsam los.
+ช่วยเหลือ,helfen/unterstützen,chuai luea,Verb,"verben,A2",4,เพื่อนช่วยเหลือฉันมาก,Ein Freund unterstützt mir sehr.
+เชื่อ,glauben,chuea,Verb,"verben,A2",4,ฉันเชื่อคำพูดของเขา,Ich glaube seinen Worten.
+สงสัย,sich wundern/zweifeln,songsai,Verb,"verben,A2",4,ฉันสงสัยว่าทำไมเขามาช้า,"Ich frage mich, warum er spät kommt."
+ป้องกัน,schützen,pongkan,Verb,"verben,A2",4,หน้ากากช่วยป้องกันฝุ่น,Eine Maske schützt vor Staub.
+เตือน,warnen/erinnern,tuean,Verb,"verben,A2",4,ช่วยเตือนฉันพรุ่งนี้,Bitte erinnere mich morgen daran.
+เงียบ,leise/ruhig,ngiap,Adjektiv,"eigenschaften,A2",4,ห้องนี้เงียบมาก,Dieses Zimmer ist sehr ruhig.
+ดัง,laut,dang,Adjektiv,"eigenschaften,A2",4,เพลงนี้ดังเกินไป,Dieses Lied ist zu laut.
+พิเศษ,besonders,phiset,Adjektiv,"eigenschaften,A2",4,วันนี้มีเมนูพิเศษ,Heute gibt es ein besonderes Menü.
+ธรรมดา,gewöhnlich,thammada,Adjektiv,"eigenschaften,A2",4,วันนี้เป็นวันธรรมดา,Heute ist ein gewöhnlicher Tag.
+สะดวก,bequem,saduak,Adjektiv,"eigenschaften,A2",4,รถไฟฟ้าสะดวกมาก,Die U-Bahn ist sehr praktisch.
+อันตราย,gefährlich,antarai,Adjektiv,"eigenschaften,A2",4,ถนนนี้อันตรายตอนกลางคืน,Diese Straße ist nachts gefährlich.
+เรียบร้อย,ordentlich/fertig,riaproi,Adjektiv,"eigenschaften,A2",4,งานเสร็จเรียบร้อยแล้ว,Die Arbeit ist ordentlich fertig.
+นก,Vogel,nok,Nomen,"Animals,A2",5,นกร้องเพลง,Der Vogel singt.
+วัว,Kuh,wua,Nomen,"Animals,A2",5,วัวกินหญ้า,Die Kuh isst Gras.
+ดีใจ,froh,dii-jai,Adjektiv,"Basics,A2",5,มันดีใจ,Es ist froh.
+เสียใจ,traurig,sia-jai,Adjektiv,"Basics,A2",5,มันเสียใจ,Es ist traurig.
+กังวล,besorgt,kang-won,Adjektiv,"Basics,A2",5,มันกังวล,Es ist besorgt.
+ขอหน่อย,bitte (kurz),kho-noi,Phrase,"Basics,A2",5,ขอหน่อย,bitte (kurz)
+ไปทางไหน,wo geht's lang?,pai-thaang-nai,Phrase,"Travel,A2",5,ไปทางไหน,wo geht's lang?
+ฉันเข้าใจแล้ว,ich habe verstanden,chan-khao-jai-laeo,Phrase,"Basics,A2",5,ฉันเข้าใจแล้ว,ich habe verstanden
+พูดช้าๆ,bitte langsam sprechen,phuut-chaa-chaa,Phrase,"Basics,A2",5,พูดช้าๆ,bitte langsam sprechen
+สิบเอ็ด,elf,sip-et,Zahl,"Basics,A2",5,สิบเอ็ด,elf
+สิบสอง,zwölf,sip-song,Zahl,"Basics,A2",5,สิบสอง,zwölf
+สิบสาม,dreizehn,sip-saam,Zahl,"Basics,A2",5,สิบสาม,dreizehn
+สิบสี่,vierzehn,sip-sii,Zahl,"Basics,A2",5,สิบสี่,vierzehn
+สิบห้า,fünfzehn,sip-haa,Zahl,"Basics,A2",5,สิบห้า,fünfzehn
+สิบหก,sechzehn,sip-hok,Zahl,"Basics,A2",5,สิบหก,sechzehn
+สิบเจ็ด,siebzehn,sip-jet,Zahl,"Basics,A2",5,สิบเจ็ด,siebzehn
+สิบแปด,achtzehn,sip-paet,Zahl,"Basics,A2",5,สิบแปด,achtzehn
+สิบเก้า,neunzehn,sip-gao,Zahl,"Basics,A2",5,สิบเก้า,neunzehn
+สามสิบ,dreißig,saam-sip,Zahl,"Basics,A2",5,สามสิบ,dreißig
+สี่สิบ,vierzig,sii-sip,Zahl,"Basics,A2",5,สี่สิบ,vierzig
+ห้าสิบ,fünfzig,haa-sip,Zahl,"Basics,A2",5,ห้าสิบ,fünfzig
+หกสิบ,sechzig,hok-sip,Zahl,"Basics,A2",5,หกสิบ,sechzig
+เจ็ดสิบ,siebzig,jet-sip,Zahl,"Basics,A2",5,เจ็ดสิบ,siebzig
+แปดสิบ,achtzig,paet-sip,Zahl,"Basics,A2",5,แปดสิบ,achtzig
+เก้าสิบ,neunzig,gao-sip,Zahl,"Basics,A2",5,เก้าสิบ,neunzig
+หนึ่งร้อย,hundert,nueng-roi,Zahl,"Basics,A2",5,หนึ่งร้อย,hundert
+สองร้อย,zweihundert,song-roi,Zahl,"Basics,A2",5,สองร้อย,zweihundert
+พันหนึ่ง,eintausend (ausgeschriebene Form),phan-nueng,Zahl,"Basics,A2",5,พันหนึ่ง,tausend
+เหนือ,Norden,nuea,Nomen,"Travel,A2",5,ไปเหนือกันได้ไหม,Können wir in den Norden gehen?
+ใต้,Süden,tai,Nomen,"Travel,A2",5,ใต้ร้อน,Der Süden ist heiß.
+ตะวันออก,Osten,ta-wan-ok,Nomen,"Travel,A2",5,ตะวันออกไกล,Der Osten ist weit weg.
+ตะวันตก,Westen,ta-wan-tok,Nomen,"Travel,A2",5,ตะวันตกสวย,Der Westen ist schön.
+ข้างหน้า,vorne,khaang-naa,Nomen,"Travel,A2",5,มีรถข้างหน้า,Es gibt ein Auto vorne.
+ข้างหลัง,hinten,khaang-lang,Nomen,"Travel,A2",5,นั่งข้างหลัง,Hinten sitzen.
+ลมแรง,starker Wind,lom-raeng,Phrase,"Weather,A2",5,ลมแรง,starker Wind
+ข้าวสวย,Reis (gekocht),khao-suay,Nomen,"Food,A2",5,ข้าวสวยอร่อย,Der Reis ist lecker.
+เส้น,Nudeln (allg.),sen,Nomen,"Food,A2",5,เส้นนุ่ม,Die Nudeln sind weich.
+หมี่,Nudeln (thin),mii,Nomen,"Food,A2",5,หมี่ทำเร็ว,Nudeln gehen schnell zu machen.
+แครอท,Karotte,khrae-rot,Nomen,"Food,A2",5,แครอทส้ม,Die Karotte ist orange.
+ขิง,Ingwer,khing,Nomen,"Food,A2",5,ขิงร้อน,Ingwer ist warm.
+ใบกะเพรา,Thai-Basilikum,bai-ga-phrao,Nomen,"Food,A2",5,ใบกะเพราว่า,Thai-Basilikum aromatisch.
+น้ำชา,Tee (Getränk),nam-chaa,Nomen,"Food,A2",5,น้ำชาร้อน,Tee ist heiß.
+ยาแก้ปวด,Schmerzmittel,yaa-kae-puat,Nomen,"Health,A2",5,ฉันต้องยาแก้ปวด,Ich brauche Schmerzmittel.
+แพ้,allergisch sein,phae,Verb,"Health,A2",5,ฉันแพ้,Ich allergisch sein.
+อาการ,Symptom,aa-gaan,Nomen,"Health,A2",5,อาการเป็นไง,Wie sind die Symptome?
+นัดหมอ,Arzttermin,nat-mo,Nomen,"Health,A2",5,ฉันมีนัดหมอ,Ich habe einen Arzttermin.
+ห้องประชุม,Besprechungsraum,hong-pra-chum,Nomen,"Work,A2",5,ห้องประชุมสะอาด,Der Besprechungsraum ist sauber.
+ไฟล์,Datei,fai,Nomen,"Work,A2",5,เปิดไฟล์นี้,Öffne diese Datei.
+แพ็ก,Packung,phaek,Nomen,"einkaufen,A2",5,คำนี้คือแพ็ก,Nimm bitte eine Packung Milch mit.
+ขนาด,Größe,kha-naat,Nomen,"Shopping,A2",5,ขนาด S ได้ไหม,Hast du Größe S?
+สีไหน,welche Farbe,sii-nai,Phrase,"Shopping,A2",5,สีไหน,welche Farbe
+ลองได้ไหม,kann ich probieren?,long-dai-mai,Phrase,"Shopping,A2",5,ลองได้ไหม,kann ich probieren?
+ห้องเดี่ยว,Einzelzimmer,hong-diao,Nomen,"Travel,A2",5,หนึ่งห้องเดี่ยว,"Ein Einzelzimmer, bitte."
+ใกล้เคียง,ähnlich,klai khiang,Adjektiv,"eigenschaften,A2",5,สองคำนี้ความหมายใกล้เคียงกัน,Diese zwei Wörter haben eine ähnliche Bedeutung.
+แตกต่าง,unterschiedlich,taek tang,Adjektiv,"eigenschaften,A2",5,สองแบบนี้แตกต่างกันมาก,Diese zwei Varianten sind sehr unterschiedlich.
+แทบจะ,fast/beinahe,thaep ja,Adverb,"zeit,A2",5,ฉันแทบจะลืมกุญแจ,Ich hätte beinahe den Schlüssel vergessen.
+อารมณ์,Stimmung,arom,Nomen,"gefuehle,A2",5,วันนี้อารมณ์ของเขาไม่ค่อยดี,Seine Stimmung ist heute nicht so gut.
+ความสุข,Glück,khwamsuk,Nomen,"gefuehle,A2",5,ความสุขของฉันคือครอบครัว,Mein Glück ist meine Familie.
+ความเศร้า,Traurigkeit,khwam sao,Nomen,"gefuehle,A2",5,เธอพยายามซ่อนความเศร้า,Sie versucht ihre Traurigkeit zu verbergen.
+ความรัก,Liebe,khwam rak,Nomen,"gefuehle,A2",5,ความรักทำให้คนเข้มแข็ง,Liebe macht Menschen stark.
+ความหวัง,Hoffnung,khwam wang,Nomen,"gefuehle,A2",5,เรายังมีความหวัง,Wir haben noch Hoffnung.
+ความฝัน,Traum,khwam fan,Nomen,"gefuehle,A2",5,ความฝันของฉันคือการเดินทางรอบโลก,Mein Traum ist eine Weltreise.
+ความลับ,Geheimnis,khwam lap,Nomen,"gefuehle,A2",5,นี่เป็นความลับระหว่างเรา,Das bleibt ein Geheimnis zwischen uns.
+มิตรภาพ,Freundschaft,mittraphap,Nomen,"soziales,A2",5,มิตรภาพของเราแน่นแฟ้นมาก,Unsere Freundschaft ist sehr stark.
+ศัตรู,Feind,satru,Nomen,"soziales,A2",5,เขาไม่อยากมีศัตรู,Er will keine Feinde haben.
+คนรัก,Partner/in,khon rak,Nomen,"soziales,A2",4,เขาไปเที่ยวกับคนรักของเขา,Er reist mit seiner Partnerin.
+นัด,Termin/Verabredung,nat,Nomen,"soziales,A2",4,พรุ่งนี้ฉันมีนัดกับหมอ,Morgen habe ich einen Termin beim Arzt.
+ปาร์ตี้,Party,pati,Nomen,"soziales,A2",4,คืนนี้เราจะไปปาร์ตี้กัน,Heute Abend gehen wir auf eine Party.
+เชิญ,einladen,choen,Verb,"soziales,A2",4,ฉันจะเชิญเพื่อนมาที่บ้าน,Ich werde Freunde nach Hause einladen.
+อวยพร,gratulieren/wünschen,uai phon,Verb,"soziales,A2",4,ทุกคนอวยพรวันเกิดให้เธอ,Alle gratulieren ihr zum Geburtstag.
+ขอบใจ,danke (informell),khop chai,Interjektion,"soziales,A2",4,ขอบใจมากที่ช่วยฉัน,"Danke dir, dass du mir geholfen hast."
+ยินดีต้อนรับ,willkommen,yin di ton rap,Interjektion,"soziales,A2",4,ยินดีต้อนรับสู่บ้านของเรา,Willkommen in unserem Zuhause.
+สุภาพ,höflich,suphap,Adjektiv,"soziales,A2",4,เธอพูดอย่างสุภาพมาก,Sie spricht sehr höflich.
+ใจดี,nett,jai di,Adjektiv,"soziales,A2",4,ครูคนนี้ใจดีมาก,Diese Lehrerin ist sehr nett.
+ใจร้าย,gemein,jai rai,Adjektiv,"soziales,A2",4,อย่าใจร้ายกับน้อง,Sei nicht gemein zum Jüngeren.
+ขี้อาย,schüchtern,khi ai,Adjektiv,"soziales,A2",4,เขาขี้อายนิดหน่อย,Er ist etwas schüchtern.
+มั่นใจ,selbstsicher,manchai,Adjektiv,"soziales,A2",4,เธอดูมั่นใจเวลาพูด,Sie wirkt beim Sprechen selbstsicher.
+ซื่อสัตย์,ehrlich,suesat,Adjektiv,"soziales,A2",4,ฉันชอบคนที่ซื่อสัตย์,Ich mag ehrliche Menschen.
+ขยัน,fleißig,khayan,Adjektiv,"soziales,A2",4,เขาเป็นนักเรียนที่ขยันมาก,Er ist ein sehr fleißiger Schüler.
+สุดสัปดาห์,Wochenende,sut sapda,Nomen,"zeit,A2",4,สุดสัปดาห์นี้เราไปต่างจังหวัด,Dieses Wochenende fahren wir aus der Stadt.
+ครึ่ง,Hälfte,khrueng,Nomen,"zeit,A2",4,แบ่งเค้กให้ฉันครึ่งหนึ่ง,Gib mir die Hälfte des Kuchens.
+ช่วง,Zeitraum,chuang,Nomen,"zeit,A2",4,ช่วงนี้ฉันงานเยอะมาก,In diesem Zeitraum habe ich sehr viel Arbeit.
+ลำดับ,Reihenfolge,lamdap,Nomen,"zeit,A2",5,กรุณาพูดตามลำดับ,Bitte sprich der Reihenfolge nach.
+ภายหลัง,später/nachher,phai lang,Adverb,"zeit,A2",5,เราค่อยคุยกันภายหลัง,Wir sprechen später darüber.
+ในที่สุด,schließlich,nai thisut,Adverb,"zeit,A2",5,ในที่สุดเขาก็มาถึง,Schließlich ist er angekommen.
+ประมาณ,ungefähr,praman,Adverb,"zeit,A2",5,ฉันจะถึงประมาณหกโมง,Ich komme ungefähr um sechs an.
+ค่อนข้าง,ziemlich,khon khang,Adverb,"grammatik,A2",5,งานนี้ค่อนข้างยาก,Diese Aufgabe ist ziemlich schwer.
+ทีละ,jeweils/einer nach dem anderen,thi la,Adverb,"grammatik,A2",5,กรุณาเข้าทีละคน,Bitte kommt einer nach dem anderen hinein.
+ต่างกัน,verschieden sein,tang kan,Verb,"grammatik,A2",5,สองคำนี้ต่างกันนิดหน่อย,Die zwei Wörter sind etwas verschieden.
+อีกครั้ง,noch einmal,ik khrang,Adverb,"grammatik,A2",5,คำนี้คืออีกครั้ง,Kannst du das bitte noch einmal sagen?
+ทัน,rechtzeitig schaffen,than,Verb,"grammatik,A2",5,ฉันใช้คำว่าทันบ่อย,"Wir müssen uns beeilen, damit wir rechtzeitig ankommen."
+ภาพยนตร์,Film,phapphayon,Nomen,"medien,A2",5,คำนี้คือภาพยนตร์,Am Wochenende schauen wir einen Film.
+ละคร,Drama/Serie,lakhon,Nomen,"medien,A2",5,คำนี้คือละคร,Sie sieht jeden Abend eine Serie.
+รูปภาพ,Bild,rupphap,Nomen,"medien,A2",5,คำนี้คือรูปภาพ,Abends sprechen wir über Bild.
+หูฟัง,Kopfhörer,hu fang,Nomen,"technik,A2",5,คำนี้คือหูฟัง,Mit Kopfhörern kann ich besser lernen.
+ลำโพง,Lautsprecher,lamphong,Nomen,"technik,A2",5,คำนี้คือลำโพง,Der Lautsprecher ist zu laut eingestellt.
+ปุ่ม,Knopf/Taste,pum,Nomen,"technik,A2",5,คำนี้คือปุ่ม,Drück bitte die richtige Taste.
+คลิก,klicken,khlik,Verb,"technik,A2",5,ฉันใช้คำว่าคลิกบ่อย,Klick bitte auf diesen Link.
+บันทึก,speichern/aufzeichnen,banthuek,Verb,"technik,A2",5,ฉันใช้คำว่าบันทึกบ่อย,"Vergiss nicht, die Datei zu speichern."
+ลบ,löschen,lop,Verb,"technik,A2",5,ฉันใช้คำว่าลบบ่อย,Lösch bitte die alte Version.
+แก้ไข,bearbeiten/korrigieren,kaekhai,Verb,"technik,A2",5,ฉันใช้คำว่าแก้ไขบ่อย,Ich muss den Text noch korrigieren.
+ค้นหา,suchen,khonha,Verb,"technik,A2",5,ฉันใช้คำว่าค้นหาบ่อย,Such bitte die Information im Internet.
+แชร์,teilen,chae,Verb,"technik,A2",5,ฉันใช้คำว่าแชร์บ่อย,Teile den Link mit der Gruppe.
+ฟุตบอล,Fußball,futbon,Nomen,"freizeit,A2",5,คำนี้คือฟุตบอล,Am Wochenende spielen wir Fußball.
+วอลเลย์บอล,Volleyball,wolleibon,Nomen,"freizeit,A2",5,คำนี้คือวอลเลย์บอล,In der Schule spielen sie Volleyball.
+บาสเกตบอล,Basketball,basketbon,Nomen,"freizeit,A2",5,คำนี้คือบาสเกตบอล,Mein Bruder trainiert Basketball.
+ว่ายน้ำ,schwimmen,wai nam,Verb,"freizeit,A2",5,ฉันใช้คำว่าว่ายน้ำบ่อย,Im Sommer gehe ich oft schwimmen.
+เดินเล่น,spazieren,doen len,Verb,"freizeit,A2",5,ฉันใช้คำว่าเดินเล่นบ่อย,Nach dem Essen gehen wir spazieren.
+ปีนเขา,wandern/bergsteigen,pin khao,Verb,"freizeit,A2",5,ฉันใช้คำว่าปีนเขาบ่อย,Im Urlaub gehen wir in den Bergen wandern.
+ตั้งแคมป์,campen,tang khaemp,Verb,"freizeit,A2",5,ฉันใช้คำว่าตั้งแคมป์บ่อย,Im Sommer gehen wir oft campen.
+ตกปลา,angeln,tok pla,Verb,"freizeit,A2",5,ฉันใช้คำว่าตกปลาบ่อย,Mein Vater geht am Wochenende angeln.
+วาดรูป,zeichnen,wat rup,Verb,"freizeit,A2",5,ฉันใช้คำว่าวาดรูปบ่อย,Das Kind zeichnet jeden Nachmittag.
+ระบายสี,ausmalen,rabai si,Verb,"freizeit,A2",5,ฉันใช้คำว่าระบายสีบ่อย,Sie malt das Bild mit Buntstiften aus.
+อ่านหนังสือพิมพ์,Zeitung lesen,an nangsue phim,Verb,"freizeit,A2",5,ฉันใช้คำว่าอ่านหนังสือพิมพ์บ่อย,Mein Opa liest morgens die Zeitung.
+ฟังเพลง,Musik hören,fang phleng,Verb,"freizeit,A2",5,ฉันใช้คำว่าฟังเพลงบ่อย,Beim Arbeiten höre ich gerne Musik.
+เต้นรำ,tanzen,ten ram,Verb,"freizeit,A2",5,ฉันใช้คำว่าเต้นรำบ่อย,Auf der Party tanzen alle zusammen.
+ทำสวน,gärtnern,tham suan,Verb,"freizeit,A2",5,ฉันใช้คำว่าทำสวนบ่อย,Am Sonntag gärtnert meine Mutter im Hof.
+สะสม,sammeln,sasom,Verb,"freizeit,A2",5,ฉันใช้คำว่าสะสมบ่อย,Er sammelt alte Münzen.
+เกม,Spiel,kem,Nomen,"freizeit,A2",5,คำนี้คือเกม,Am Wochenende geht es oft um Spiel.
+ของเล่น,Spielzeug,khong len,Nomen,"freizeit,A2",5,คำนี้คือของเล่น,Am Wochenende geht es oft um Spielzeug.
+เหตุผล,Grund,hetphon,Nomen,"abstrakt,A2",5,คำนี้คือเหตุผล,Im Unterricht diskutieren wir über Grund.
+ผลลัพธ์,Ergebnis,phonlup,Nomen,"abstrakt,A2",5,คำนี้คือผลลัพธ์,Im Unterricht diskutieren wir über Ergebnis.
+ความคิด,Gedanke,khwamkhit,Nomen,"abstrakt,A2",5,คำนี้คือความคิด,Im Unterricht diskutieren wir über Gedanke.
+โอกาส,Gelegenheit,okat,Nomen,"abstrakt,A2",5,คำนี้คือโอกาส,Im Unterricht diskutieren wir über Gelegenheit.
+แผน,Plan,phaen,Nomen,"abstrakt,A2",5,คำนี้คือแผน,Im Unterricht diskutieren wir über Plan.
+เป้าหมาย,Ziel,paomai,Nomen,"abstrakt,A2",5,คำนี้คือเป้าหมาย,Mein Ziel ist ein besseres Thai.
+อนาคต,Zukunft,anakhot,Nomen,"abstrakt,A2",5,คำนี้คืออนาคต,Wir planen für die Zukunft.
+อดีต,Vergangenheit,adit,Nomen,"abstrakt,A2",5,คำนี้คืออดีต,Über die Vergangenheit spricht er selten.
+ปัจจุบัน,Gegenwart,patchuban,Nomen,"abstrakt,A2",5,คำนี้คือปัจจุบัน,Im Moment zählt die Gegenwart.
+ตัวอย่าง,Beispiel,tuayang,Nomen,"abstrakt,A2",5,คำนี้คือตัวอย่าง,Im Unterricht diskutieren wir über Beispiel.
+วิธี,Methode,withi,Nomen,"abstrakt,A2",5,คำนี้คือวิธี,Im Unterricht diskutieren wir über Methode.
+กฎ,Regel,kot,Nomen,"abstrakt,A2",5,คำนี้คือกฎ,Im Unterricht diskutieren wir über Regel.
+สิทธิ,Recht,sitthi,Nomen,"abstrakt,A2",5,คำนี้คือสิทธิ,Im Unterricht diskutieren wir über Recht.
+หน้าที่,Pflicht,nathi,Nomen,"abstrakt,A2",5,คำนี้คือหน้าที่,Im Unterricht diskutieren wir über Pflicht.
+เสียงส่วนใหญ่,Mehrheit,siang suan yai,Nomen,"abstrakt,A2",5,คำนี้คือเสียงส่วนใหญ่,Im Unterricht diskutieren wir über Mehrheit.
+ชนิด,Art/Sorte,chanit,Nomen,"abstrakt,A2",5,คำนี้คือชนิด,Diese Frucht gibt es in vielen Sorten.
+ระดับ,Niveau,radap,Nomen,"abstrakt,A2",5,คำนี้คือระดับ,Im Unterricht diskutieren wir über Niveau.
+ราคาเดิม,Originalpreis,rakha doem,Nomen,"einkaufen,A2",5,คำนี้คือราคาเดิม,Beim Einkaufen achte ich auf Originalpreis.
+โปรโมชั่น,Aktion,pro mo chan,Nomen,"einkaufen,A2",5,คำนี้คือโปรโมชั่น,Beim Einkaufen achte ich auf Aktion.
+คูปอง,Gutschein,khupong,Nomen,"einkaufen,A2",5,คำนี้คือคูปอง,Mit dem Gutschein bekommst du Rabatt.
+บัตรเดบิต,Debitkarte,bat debit,Nomen,"einkaufen,A2",5,คำนี้คือบัตรเดบิต,Ich bezahle heute mit der Debitkarte.
+ผ่อน,in Raten zahlen,phon,Verb,"einkaufen,A2",5,ฉันใช้คำว่าผ่อนบ่อย,Im Geschäft will ich die Ware in Raten zahlen.
+คืนสินค้า,Ware zurückgeben,khuen sinkha,Verb,"einkaufen,A2",5,ฉันใช้คำว่าคืนสินค้าบ่อย,Im Geschäft will ich die Ware Ware zurückgeben.
+แลกเปลี่ยน,umtauschen,laek plian,Verb,"einkaufen,A2",5,ฉันใช้คำว่าแลกเปลี่ยนบ่อย,Im Geschäft will ich die Ware umtauschen.
+วัสดุ,Material,watsadu,Nomen,"einkaufen,A2",5,คำนี้คือวัสดุ,Beim Einkaufen achte ich auf Material.
+ไม้,Holz,mai,Nomen,"material,A2",5,คำนี้คือไม้,Dieses Produkt besteht aus Holz.
+เหล็ก,Eisen,lek,Nomen,"material,A2",5,คำนี้คือเหล็ก,Dieses Produkt besteht aus Eisen.
+ทอง,Gold,thong,Nomen,"material,A2",5,คำนี้คือทอง,Dieses Produkt besteht aus Gold.
+พลาสติก,Plastik,phlastik,Nomen,"material,A2",5,คำนี้คือพลาสติก,Dieses Produkt besteht aus Plastik.
+แก้วน้ำ,Trinkglas,kaeo nam,Nomen,"haushalt,A2",5,คำนี้คือแก้วน้ำ,In der Küche benutze ich Trinkglas.
+กระป๋อง,Dose,krapong,Nomen,"einkaufen,A2",5,คำนี้คือกระป๋อง,Beim Einkaufen achte ich auf Dose.
+คู่,Paar,khu,Nomen,"einkaufen,A2",5,คำนี้คือคู่,Beim Einkaufen achte ich auf Paar.
+โหล,Dutzend,lo,Nomen,"einkaufen,A2",5,คำนี้คือโหล,Beim Einkaufen achte ich auf Dutzend.
+หลาน,Enkel/Neffe/Nichte,lan,Nomen,"familie,A2",5,คำนี้คือหลาน,Am Wochenende besuchen uns unsere Enkel.
+ลุง,Onkel,lung,Nomen,"familie,A2",5,คำนี้คือลุง,In unserer Familie spricht man oft über Onkel.
+ป้า,Tante,pa,Nomen,"familie,A2",5,คำนี้คือป้า,In unserer Familie spricht man oft über Tante.
+เขย,Schwiegersohn,khoei,Nomen,"familie,A2",5,คำนี้คือเขย,In unserer Familie spricht man oft über Schwiegersohn.
+สะใภ้,Schwiegertochter,saphai,Nomen,"familie,A2",5,คำนี้คือสะใภ้,In unserer Familie spricht man oft über Schwiegertochter.
+คู่สมรส,Ehepartner,khu somrot,Nomen,"familie,A2",5,คำนี้คือคู่สมรส,In unserer Familie spricht man oft über Ehepartner.
+ครอบครอง,besitzen,khropkhrong,Verb,"familie,A2",5,ฉันใช้คำว่าครอบครองบ่อย,"Zu Hause versuche ich, besser zu besitzen."
+เลี้ยงดู,aufziehen,liang du,Verb,"familie,A2",5,ฉันใช้คำว่าเลี้ยงดูบ่อย,"Zu Hause versuche ich, besser zu aufziehen."
+คลอด,gebären,khlot,Verb,"familie,A2",5,ฉันใช้คำว่าคลอดบ่อย,"Zu Hause versuche ich, besser zu gebären."
+ตั้งครรภ์,schwanger sein,tang khan,Verb,"familie,A2",5,ฉันใช้คำว่าตั้งครรภ์บ่อย,"Zu Hause versuche ich, besser zu schwanger sein."
+ทารก,Säugling,tharok,Nomen,"familie,A2",5,คำนี้คือทารก,In unserer Familie spricht man oft über Säugling.
+วัยรุ่น,Jugendlicher,wai run,Nomen,"personen,A2",5,คำนี้คือวัยรุ่น,Im Alltag treffe ich häufig Jugendlicher.
+ผู้ใหญ่,Erwachsener,phu yai,Nomen,"personen,A2",5,คำนี้คือผู้ใหญ่,Im Alltag treffe ich häufig Erwachsener.
+ผู้สูงอายุ,Senior,phu sung ayu,Nomen,"personen,A2",5,คำนี้คือผู้สูงอายุ,Im Alltag treffe ich häufig Senior.
+ถอนเงิน,Geld abheben,thon ngoen,Verb,"finanzen,A2",5,ฉันใช้คำว่าถอนเงินบ่อย,Ich hebe am Automaten Geld ab.
+ฝากเงิน,Geld einzahlen,fak ngoen,Verb,"finanzen,A2",5,ฉันใช้คำว่าฝากเงินบ่อย,Sie zahlt jeden Monat Geld ein.
+โอนเงิน,Geld überweisen,on ngoen,Verb,"finanzen,A2",5,ฉันใช้คำว่าโอนเงินบ่อย,Ich überweise das Geld heute noch.
+หนี้,Schuld,ni,Nomen,"finanzen,A2",5,คำนี้คือหนี้,Bei der Bank geht es heute um Schuld.
+ดอกเบี้ย,Zinsen,dok bia,Nomen,"finanzen,A2",5,คำนี้คือดอกเบี้ย,Die Zinsen sind dieses Jahr gestiegen.
+ประหยัด,sparen,prayat,Verb,"finanzen,A2",5,ฉันใช้คำว่าประหยัดบ่อย,Bei der Bank kann ich direkt sparen.
+ฟุ่มเฟือย,verschwenderisch,fum fueai,Adjektiv,"finanzen,A2",5,คำนี้คือฟุ่มเฟือย,Im Moment fühlt sich die Lage eher verschwenderisch an.
+รวย,reich,ruai,Adjektiv,"finanzen,A2",5,คำนี้คือรวย,Im Moment fühlt sich die Lage eher reich an.
+ค่าเช่า,Miete,kha chao,Nomen,"finanzen,A2",5,คำนี้คือค่าเช่า,Die Miete in der Stadt ist teuer.
+ภาษี,Steuer,phasi,Nomen,"finanzen,A2",5,คำนี้คือภาษี,Die Steuer ist dieses Jahr höher.
+หลังคา,Dach,langkha,Nomen,"haus,A2",5,คำนี้คือหลังคา,Zu Hause brauchen wir Dach.
+บันไดเลื่อน,Rolltreppe,bandai luean,Nomen,"orte,A2",5,คำนี้คือบันไดเลื่อน,Nimm die Rolltreppe nach oben.
+ระเบียง,Balkon,rabieng,Nomen,"haus,A2",5,คำนี้คือระเบียง,Zu Hause brauchen wir Balkon.
+รั้ว,Zaun,rua,Nomen,"haus,A2",5,คำนี้คือรั้ว,Zu Hause brauchen wir Zaun.
+ประแจ,Schraubenschlüssel,prachae,Nomen,"werkzeug,A2",5,คำนี้คือประแจ,Für die Reparatur brauche ich Schraubenschlüssel.
+ค้อน,Hammer,khon,Nomen,"werkzeug,A2",5,คำนี้คือค้อน,Für die Reparatur brauche ich Hammer.
+ตะปู,Nagel Metall,tapu,Nomen,"werkzeug,A2",5,คำนี้คือตะปู,Für die Reparatur brauche ich Nagel Metall.
+สกรู,Schraube,sakru,Nomen,"werkzeug,A2",5,คำนี้คือสกรู,Für die Reparatur brauche ich Schraube.
+กาว,Kleber,kao,Nomen,"werkzeug,A2",5,คำนี้คือกาว,Für die Reparatur brauche ich Kleber.
+เชือก,Seil,chueak,Nomen,"werkzeug,A2",5,คำนี้คือเชือก,Für die Reparatur brauche ich Seil.
+สายไฟ,Kabel,sai fai,Nomen,"technik,A2",5,คำนี้คือสายไฟ,Für den Alltag ist Kabel sehr nützlich.
+หลอดไฟ,Glühbirne,lot fai,Nomen,"haus,A2",5,คำนี้คือหลอดไฟ,Zu Hause brauchen wir Glühbirne.
+สวิตช์,Schalter,sawit,Nomen,"haus,A2",5,คำนี้คือสวิตช์,Der Schalter ist neben der Tür.
+เขียง,Schneidebrett,khiang,Nomen,"haushalt,A2",5,คำนี้คือเขียง,In der Küche benutze ich Schneidebrett.
+ตู้แช่แข็ง,Gefrierschrank,tu chae khaeng,Nomen,"haushalt,A2",5,คำนี้คือตู้แช่แข็ง,In der Küche benutze ich Gefrierschrank.
+ผงซักฟอก,Waschmittel,phong sak fok,Nomen,"haushalt,A2",5,คำนี้คือผงซักฟอก,In der Küche benutze ich Waschmittel.
+น้ำยาล้างจาน,Spülmittel,nam ya lang jan,Nomen,"haushalt,A2",5,คำนี้คือน้ำยาล้างจาน,In der Küche benutze ich Spülmittel.
+แปรง,Bürste,praeng,Nomen,"haushalt,A2",5,คำนี้คือแปรง,In der Küche benutze ich Bürste.
+ถัง,Eimer/Fass,thang,Nomen,"haushalt,A2",5,คำนี้คือถัง,Hol bitte einen Eimer mit Wasser.
+ผ้าเช็ดจาน,Geschirrtuch,pha chet jan,Nomen,"haushalt,A2",5,คำนี้คือผ้าเช็ดจาน,In der Küche benutze ich Geschirrtuch.
+ทางเท้า,Gehweg,thang thao,Nomen,"verkehr,A2",5,คำนี้คือทางเท้า,Bitte geh auf dem Gehweg.
+สะพานลอย,Fußgängerbrücke,saphan loi,Nomen,"verkehr,A2",5,คำนี้คือสะพานลอย,Wir überqueren die Straße über die Fußgängerbrücke.
+วงเวียน,Kreisverkehr,wong wian,Nomen,"verkehr,A2",5,คำนี้คือวงเวียน,An diesem Kreisverkehr ist immer viel Verkehr.
+ช้าลง,langsamer werden,cha long,Verb,"verkehr,A2",5,ฉันใช้คำว่าช้าลงบ่อย,Beim Fahren muss man rechtzeitig langsamer werden.
+เร่ง,beschleunigen,reng,Verb,"verkehr,A2",5,ฉันใช้คำว่าเร่งบ่อย,Beim Fahren muss man rechtzeitig beschleunigen.
+เบรก,bremsen,brek,Verb,"verkehr,A2",5,ฉันใช้คำว่าเบรกบ่อย,Brems bitte vor der Kurve.
+ที่นั่ง,Sitzplatz,thi nang,Nomen,"verkehr,A2",5,คำนี้คือที่นั่ง,Unterwegs sehe ich oft Sitzplatz.
+คนขับ,Fahrer,khon khap,Nomen,"verkehr,A2",5,คำนี้คือคนขับ,Unterwegs sehe ich oft Fahrer.
+ใบขับขี่,Führerschein,bai khap khi,Nomen,"verkehr,A2",5,คำนี้คือใบขับขี่,Unterwegs sehe ich oft Führerschein.
+เติมน้ำมัน,tanken,toem nam man,Verb,"verkehr,A2",5,ฉันใช้คำว่าเติมน้ำมันบ่อย,Ich tanke vor der langen Fahrt.
+ปั๊มน้ำมัน,Tankstelle,pam nam man,Nomen,"verkehr,A2",5,คำนี้คือปั๊มน้ำมัน,Die nächste Tankstelle ist zwei Kilometer entfernt.
+ล้อ,Rad,lo,Nomen,"verkehr,A2",5,คำนี้คือล้อ,Unterwegs sehe ich oft Rad.
+ฟ้าร้อง,Donner,fa rong,Nomen,"natur,A2",5,คำนี้คือฟ้าร้อง,Bei Gewitter hört man lauten Donner.
+ฟ้าแลบ,Blitz,fa laep,Nomen,"natur,A2",5,คำนี้คือฟ้าแลบ,Nachts sieht man oft Blitze am Himmel.
+น้ำท่วม,Überschwemmung,nam thuam,Nomen,"natur,A2",5,คำนี้คือน้ำท่วม,Nach dem starken Regen gab es eine Überschwemmung.
+แผ่นดินไหว,Erdbeben,phaendin wai,Nomen,"natur,A2",5,คำนี้คือแผ่นดินไหว,Das Erdbeben hat viele Häuser beschädigt.
+ภัยแล้ง,Dürre,phai laeng,Nomen,"natur,A2",5,คำนี้คือภัยแล้ง,Im Norden gibt es dieses Jahr Dürre.
+คลื่น,Welle,khluen,Nomen,"natur,A2",5,คำนี้คือคลื่น,In der Natur begegnet man oft Welle.
+กระแสลม,Luftströmung,krasae lom,Nomen,"natur,A2",5,คำนี้คือกระแสลม,In der Natur begegnet man oft Luftströmung.
+รุ้ง,Regenbogen,rung,Nomen,"natur,A2",5,คำนี้คือรุ้ง,Nach dem Regen sieht man einen Regenbogen.
+ฤดู,Jahreszeit,rue du,Nomen,"zeit,A2",5,คำนี้คือฤดู,In Thailand gibt es drei Jahreszeiten.
+ฤดูฝน,Regenzeit,rue du fon,Nomen,"zeit,A2",5,คำนี้คือฤดูฝน,In der Regenzeit regnet es fast jeden Tag.
+ฤดูร้อน,heiße Jahreszeit,rue du ron,Nomen,"zeit,A2",5,คำนี้คือฤดูร้อน,In der heißen Jahreszeit ist es sehr heiß.
+ฤดูหนาว,kühle Jahreszeit,rue du nao,Nomen,"zeit,A2",5,คำนี้คือฤดูหนาว,In der kühlen Jahreszeit trage ich eine Jacke.
+พยากรณ์อากาศ,Wettervorhersage,phayakon akat,Nomen,"natur,A2",5,คำนี้คือพยากรณ์อากาศ,Ich schaue morgens immer die Wettervorhersage.
+ชุ่มชื้น,humid,chum chuen,Adjektiv,"wetter,A2",5,คำนี้คือชุ่มชื้น,In dieser Situation klingt humid passend.
+แสงแดด,Sonnenlicht,saeng daet,Nomen,"natur,A2",5,คำนี้คือแสงแดด,In der Natur begegnet man oft Sonnenlicht.
+วิชา,Fach,wicha,Nomen,"bildung,A2",5,คำนี้คือวิชา,In der Schule verwenden wir oft Fach.
+ภาคเรียน,Semester,phak rian,Nomen,"bildung,A2",5,คำนี้คือภาคเรียน,In der Schule verwenden wir oft Semester.
+สมุด,Heft,samut,Nomen,"bildung,A2",5,คำนี้คือสมุด,In der Schule verwenden wir oft Heft.
+ยางลบ,Radiergummi,yang lop,Nomen,"bildung,A2",5,คำนี้คือยางลบ,In der Schule verwenden wir oft Radiergummi.
+ไม้บรรทัด,Lineal,mai bantat,Nomen,"bildung,A2",5,คำนี้คือไม้บรรทัด,In der Schule verwenden wir oft Lineal.
+ครูใหญ่,Schulleiter,khru yai,Nomen,"bildung,A2",5,คำนี้คือครูใหญ่,Der Schulleiter spricht heute mit den Eltern.
+นักวิจัย,Forscher,nak wijai,Nomen,"bildung,A2",5,คำนี้คือนักวิจัย,In der Schule verwenden wir oft Forscher.
+ทุนการศึกษา,Stipendium,thun kansueksa,Nomen,"bildung,A2",5,คำนี้คือทุนการศึกษา,In der Schule verwenden wir oft Stipendium.
+สอบผ่าน,bestehen,sop phan,Verb,"bildung,A2",5,ฉันใช้คำว่าสอบผ่านบ่อย,"Im Kurs lernen wir, korrekt zu bestehen."
+สอบตก,durchfallen,sop tok,Verb,"bildung,A2",5,ฉันใช้คำว่าสอบตกบ่อย,"Im Kurs lernen wir, korrekt zu durchfallen."
+ทบทวน,wiederholen,thopthuan,Verb,"bildung,A2",5,ฉันใช้คำว่าทบทวนบ่อย,"Im Kurs lernen wir, korrekt zu wiederholen."
+ฝึกฝน,üben,fuek fon,Verb,"bildung,A2",5,ฉันใช้คำว่าฝึกฝนบ่อย,"Im Kurs lernen wir, korrekt zu üben."
+จด,notieren,chot,Verb,"bildung,A2",5,ฉันใช้คำว่าจดบ่อย,"Im Kurs lernen wir, korrekt zu notieren."
+ทำบุญ,Verdienst machen,tham bun,Verb,"kultur,A2",5,ฉันใช้คำว่าทำบุญบ่อย,Im Tempel sieht man viele Menschen Verdienst machen.
+ไหว้,grüßen/verehren,wai,Verb,"kultur,A2",5,ฉันใช้คำว่าไหว้บ่อย,In Thailand grüßt man oft mit einem Wai.
+สวดมนต์,beten/chanten,suat mon,Verb,"kultur,A2",5,ฉันใช้คำว่าสวดมนต์บ่อย,Am Abend hört man im Tempel Gebete.
+วันพระ,Buddhistischer Feiertag,wan phra,Nomen,"kultur,A2",5,คำนี้คือวันพระ,Im Tempel lernen wir etwas über Buddhistischer Feiertag.
+เจดีย์,Pagode,chedi,Nomen,"kultur,A2",5,คำนี้คือเจดีย์,Im Tempel lernen wir etwas über Pagode.
+พระพุทธรูป,Buddhastatue,phra phuttharup,Nomen,"kultur,A2",5,คำนี้คือพระพุทธรูป,Im Tempel lernen wir etwas über Buddhastatue.
+นิทรรศการ,Ausstellung,nitthatsakan,Nomen,"kultur,A2",5,คำนี้คือนิทรรศการ,Im Tempel lernen wir etwas über Ausstellung.
+ศิลปะ,Kunst,sinlapa,Nomen,"kultur,A2",5,คำนี้คือศิลปะ,Im Tempel lernen wir etwas über Kunst.
+ภาพวาด,Gemälde,phap wat,Nomen,"kultur,A2",5,คำนี้คือภาพวาด,Im Tempel lernen wir etwas über Gemälde.
+ประวัติศาสตร์,Geschichte Historie,prawattisat,Nomen,"kultur,A2",5,คำนี้คือประวัติศาสตร์,Im Tempel lernen wir etwas über Geschichte Historie.
+สำเนียง,Akzent,samniang,Nomen,"sprache,A2",5,คำนี้คือสำเนียง,Er hat einen klaren Akzent.
+คำศัพท์,Wortschatz,khamsap,Nomen,"sprache,A2",5,คำนี้คือคำศัพท์,Ich wiederhole jeden Tag neuen Wortschatz.
+ไวยากรณ์,Grammatik,waiyakon,Nomen,"sprache,A2",5,คำนี้คือไวยากรณ์,Grammatik braucht Zeit und Übung.
+กฎหมาย,Gesetz,kotmai,Nomen,"gesellschaft,A2",5,คำนี้คือกฎหมาย,Jeder muss das Gesetz respektieren.
