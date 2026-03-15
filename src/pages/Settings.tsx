@@ -29,6 +29,8 @@ export default function Settings() {
   const [learnDirection, setLearnDirection] = useState<LearnDirection>("TH_DE");
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const latestCsvUrl =
+    "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv";
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -150,21 +152,7 @@ export default function Settings() {
     try {
       setIsLoading(true);
       const result = await importCsv(file, { mode: "replace" });
-      if (result.added === 0 && result.duplicates > 0) {
-        setMsg(`⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`);
-      } else if (result.replaced) {
-        setMsg(
-          `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
-            (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
-            (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
-            (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
-        );
-      } else {
-        setMsg(
-          `✅ Importiert: ${result.added} Einträge` +
-            (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
-        );
-      }
+      applyImportMessage(result);
     } catch (err: any) {
       setMsg(`❌ Fehler: ${err?.message ?? String(err)}`);
     } finally {
@@ -189,9 +177,55 @@ export default function Settings() {
     }
   }
 
+  function applyImportMessage(result: {
+    added: number;
+    duplicates: number;
+    replaced: boolean;
+    preservedProgress: number;
+    removed: number;
+  }) {
+    if (result.added === 0 && result.duplicates > 0) {
+      setMsg(`⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`);
+      return;
+    }
+
+    if (result.replaced) {
+      setMsg(
+        `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
+          (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
+          (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
+          (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
+      );
+      return;
+    }
+
+    setMsg(
+      `✅ Importiert: ${result.added} Einträge` +
+        (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
+    );
+  }
+
+  async function importLatestCsvDirectly() {
+    try {
+      setIsLoading(true);
+      const response = await fetch(latestCsvUrl, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Download fehlgeschlagen (${response.status})`);
+      }
+      const csvText = await response.text();
+      const file = new File([csvText], "thai-de-vocab_Ver_2.csv", {
+        type: "text/csv;charset=utf-8",
+      });
+      const result = await importCsv(file, { mode: "replace" });
+      applyImportMessage(result);
+    } catch (err: any) {
+      setMsg(`❌ Direktimport fehlgeschlagen: ${err?.message ?? String(err)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   function downloadLatestCsv() {
-    const latestCsvUrl =
-      "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv";
     window.open(latestCsvUrl, "_blank", "noopener,noreferrer");
   }
 
@@ -454,6 +488,21 @@ export default function Settings() {
                 className="w-full"
               >
                 📥 Export herunterladen
+              </Button>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium block mb-2">Aktuelle CSV direkt importieren</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Lädt die neueste veröffentlichte CSV und importiert sie direkt in die App (ohne Datei-Download).
+              </p>
+              <Button
+                onClick={importLatestCsvDirectly}
+                variant="default"
+                className="w-full"
+                disabled={isLoading}
+              >
+                ⚡ Aktuelle CSV direkt importieren
               </Button>
             </div>
 
