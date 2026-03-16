@@ -34,6 +34,7 @@ import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
 import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
 import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
 import { buildSentenceSegments } from "../features/sentences/transliteration";
+import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Test() {
@@ -284,10 +285,14 @@ export default function Test() {
       setStatus("Lade alle Vokabeln …");
     }
     try {
-      const vocab = (await db.vocab.toArray()).map((entry) => ({
-        ...entry,
-        sourceType: "vocab" as const,
-      }));
+      const { entries: cefrFilteredEntries, activeGate } = applyCefrFirstFilter(
+        await db.vocab.toArray()
+      );
+      const vocab = cefrFilteredEntries
+        .map((entry) => ({
+          ...entry,
+          sourceType: "vocab" as const,
+        }));
       const ids = vocab
         .map((v) => v.id)
         .filter((id): id is number => typeof id === "number");
@@ -296,7 +301,15 @@ export default function Test() {
       setAllVocab(vocab);
 
       if (!silent) {
-        setStatus(vocab.length ? `Geladen: ${vocab.length} Einträge` : "Keine Einträge vorhanden.");
+        if (!vocab.length) {
+          setStatus("Keine Einträge vorhanden.");
+        } else {
+          const gateHint =
+            activeGate === "A1"
+              ? " (CEFR-first aktiv: A2 wird ausgeblendet, bis A1 gelernt ist)"
+              : "";
+          setStatus(`Geladen: ${vocab.length} Einträge${gateHint}`);
+        }
       }
     } catch (e: any) {
       console.error(e);
@@ -333,7 +346,7 @@ export default function Test() {
 
   async function getTestPassedByLesson(): Promise<Record<number, number>> {
     const groupedIdsByLesson: Record<number, number[]> = {};
-    const vocabEntries = await db.vocab.toArray();
+    const { entries: vocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
     for (const vocabEntry of vocabEntries) {
       const lesson = vocabEntry.lesson ?? 0;
       const id = vocabEntry.id;
@@ -1409,9 +1422,11 @@ export default function Test() {
                               <div className="text-xs leading-tight text-muted-foreground">
                                 {segment.thai}
                               </div>
-                              <div className="text-xs italic leading-tight">
-                                {segment.transliteration ?? "?"}
-                              </div>
+                              {segment.transliteration ? (
+                                <div className="text-xs italic leading-tight">
+                                  {segment.transliteration}
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>
@@ -1478,9 +1493,11 @@ export default function Test() {
                               <div className="text-xs leading-tight text-muted-foreground">
                                 {segment.thai}
                               </div>
-                              <div className="text-xs italic leading-tight">
-                                {segment.transliteration ?? "?"}
-                              </div>
+                              {segment.transliteration ? (
+                                <div className="text-xs italic leading-tight">
+                                  {segment.transliteration}
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>

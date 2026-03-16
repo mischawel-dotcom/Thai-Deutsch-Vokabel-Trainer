@@ -200,9 +200,13 @@ export default function Settings() {
     replaced: boolean;
     preservedProgress: number;
     removed: number;
+    invalidRows: number;
   }): string {
     if (result.added === 0 && result.duplicates > 0) {
-      return `⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`;
+      return (
+        `⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})` +
+        (result.invalidRows > 0 ? `, ${result.invalidRows} ungültige Zeilen ignoriert` : "")
+      );
     }
 
     if (result.replaced) {
@@ -210,13 +214,15 @@ export default function Settings() {
         `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
         (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
         (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
-        (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
+        (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "") +
+        (result.invalidRows > 0 ? `, ${result.invalidRows} ungültige Zeilen ignoriert` : "")
       );
     }
 
     return (
       `✅ Importiert: ${result.added} Einträge` +
-      (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
+      (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "") +
+      (result.invalidRows > 0 ? `, ${result.invalidRows} ungültige Zeilen ignoriert` : "")
     );
   }
 
@@ -226,6 +232,7 @@ export default function Settings() {
     replaced: boolean;
     preservedProgress: number;
     removed: number;
+    invalidRows: number;
   }) {
     setMsg(buildImportMessage(result));
   }

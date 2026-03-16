@@ -30,6 +30,7 @@ import {
   type GameEntry,
   type GameQuestion,
 } from "../features/games";
+import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -136,7 +137,10 @@ export default function Games() {
   const loadFilteredPool = useCallback(async (): Promise<GameEntry[]> => {
     const allEntries = source === "numbers"
       ? generatedNumbersPool
-      : toGameEntries("vocab", await db.vocab.toArray());
+      : toGameEntries(
+          "vocab",
+          applyCefrFirstFilter(await db.vocab.toArray()).entries
+        );
 
     let filtered = allEntries;
     if (source !== "numbers" && selectedLesson !== undefined) {
@@ -157,10 +161,13 @@ export default function Games() {
         if (active) setLessons([]);
         return;
       }
-      const lessonKeys = await db.vocab.orderBy("lesson").uniqueKeys();
-      const uniqueLessons = lessonKeys
-        .map((lesson) => Number(lesson))
-        .filter((lesson) => Number.isFinite(lesson) && lesson > 0)
+      const lessonSet = new Set<number>();
+      const { entries: vocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
+      for (const entry of vocabEntries) {
+        const lesson = Number(entry.lesson);
+        if (Number.isFinite(lesson) && lesson > 0) lessonSet.add(lesson);
+      }
+      const uniqueLessons = Array.from(lessonSet)
         .sort((a, b) => a - b);
       if (active) setLessons(uniqueLessons);
     })();

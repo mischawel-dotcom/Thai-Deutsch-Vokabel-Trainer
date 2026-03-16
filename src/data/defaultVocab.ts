@@ -13,10 +13,12 @@ type CsvRow = {
   exampleGerman?: string;
 };
 
-function parseLesson(value: string | number | undefined): number | undefined {
-  if (value === undefined || value === null || value === "") return undefined;
-  const parsed = parseInt(String(value), 10);
-  return Number.isFinite(parsed) ? parsed : undefined;
+function parseStrictLesson(value: string | number | undefined): number | null {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const raw = String(value).trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function splitTags(value: string | undefined): string[] | undefined {
@@ -27,10 +29,19 @@ function splitTags(value: string | undefined): string[] | undefined {
   return tags.length > 0 ? tags : undefined;
 }
 
+function hasCefrTag(tags: string[] | undefined): boolean {
+  if (!tags || tags.length === 0) return false;
+  const lowered = tags.map((tag) => tag.trim().toLowerCase());
+  return lowered.includes("a1") || lowered.includes("a2");
+}
+
 function normalizeEntry(row: CsvRow): VocabEntry | null {
   const thai = (row.thai ?? "").trim();
   const german = (row.german ?? "").trim();
   if (!thai || !german) return null;
+  const lesson = parseStrictLesson(row.lesson);
+  const tags = splitTags(row.tags);
+  if (lesson === null || !hasCefrTag(tags)) return null;
 
   const now = Date.now();
   return {
@@ -38,8 +49,8 @@ function normalizeEntry(row: CsvRow): VocabEntry | null {
     german,
     transliteration: (row.transliteration ?? "").trim() || undefined,
     pos: (row.pos ?? "").trim() || undefined,
-    lesson: parseLesson(row.lesson),
-    tags: splitTags(row.tags),
+    lesson,
+    tags,
     exampleThai: (row.exampleThai ?? "").trim() || undefined,
     exampleGerman: (row.exampleGerman ?? "").trim() || undefined,
     createdAt: now,
@@ -72,9 +83,16 @@ function createDefaultVocab(): VocabEntry[] {
     );
   }
 
-  return (parsed.data ?? [])
+  const normalizedEntries = (parsed.data ?? [])
     .map(normalizeEntry)
     .filter((entry): entry is VocabEntry => entry !== null);
+
+  const invalidCount = (parsed.data ?? []).length - normalizedEntries.length;
+  if (invalidCount > 0) {
+    console.warn(`[DEFAULT_VOCAB] Ignored ${invalidCount} invalid CSV row(s).`);
+  }
+
+  return normalizedEntries;
 }
 
 export const DEFAULT_VOCAB: VocabEntry[] = createDefaultVocab();
