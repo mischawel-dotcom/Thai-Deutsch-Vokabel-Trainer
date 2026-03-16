@@ -14,14 +14,8 @@ function buildSentenceKey(
 
 export async function ensureDefaultSentencesSeeded(): Promise<void> {
   const existing = await db.sentencesVocab.toArray();
-  const existingKeys = new Set(
-    existing.map((entry) =>
-      buildSentenceKey(entry.thai, entry.german, entry.lesson, entry.rangeStart, entry.rangeEnd)
-    )
-  );
-
   const now = Date.now();
-  const missing = DEFAULT_SENTENCE_BLOCKS.flatMap((block) =>
+  const desiredDefaults = DEFAULT_SENTENCE_BLOCKS.flatMap((block) =>
     block.sentences
       .map((sentence) => ({
         thai: sentence.thai,
@@ -36,26 +30,67 @@ export async function ensureDefaultSentencesSeeded(): Promise<void> {
         createdAt: now,
         updatedAt: now,
       }))
-      .filter(
-        (entry) =>
-          !existingKeys.has(
-            buildSentenceKey(
-              entry.thai,
-              entry.german,
-              entry.lesson,
-              entry.rangeStart,
-              entry.rangeEnd
-            )
-          )
+  );
+
+  const existingKeys = new Set(
+    existing.map((entry) =>
+      buildSentenceKey(entry.thai, entry.german, entry.lesson, entry.rangeStart, entry.rangeEnd)
+    )
+  );
+  const desiredKeys = new Set(
+    desiredDefaults.map((entry) =>
+      buildSentenceKey(entry.thai, entry.german, entry.lesson, entry.rangeStart, entry.rangeEnd)
+    )
+  );
+
+  const missing = desiredDefaults.filter(
+    (entry) =>
+      !existingKeys.has(
+        buildSentenceKey(
+          entry.thai,
+          entry.german,
+          entry.lesson,
+          entry.rangeStart,
+          entry.rangeEnd
+        )
       )
   );
 
-  if (missing.length === 0) return;
+  const idsToRemove = existing
+    .filter((entry) => {
+      const tags = entry.tags ?? [];
+      const isManagedDefault =
+        tags.includes("Sentences") &&
+        tags.includes(`L${entry.lesson}`) &&
+        tags.includes(`R${entry.rangeStart}-${entry.rangeEnd}`);
+      if (!isManagedDefault) return false;
+      const key = buildSentenceKey(
+        entry.thai,
+        entry.german,
+        entry.lesson,
+        entry.rangeStart,
+        entry.rangeEnd
+      );
+      return !desiredKeys.has(key);
+    })
+    .map((entry) => entry.id)
+    .filter((id): id is number => typeof id === "number");
 
-  const insertedIds = await db.sentencesVocab.bulkAdd(missing, { allKeys: true });
-  const normalizedIds = insertedIds
-    .map((id) => Number(id))
-    .filter((id): id is number => Number.isFinite(id) && id > 0);
-  await ensureProgressForSentenceEntries(normalizedIds);
+  if (missing.length === 0 && idsToRemove.length === 0) return;
+
+  if (idsToRemove.length > 0) {
+    await db.transaction("rw", db.sentencesVocab, db.sentencesProgress, async () => {
+      await db.sentencesVocab.bulkDelete(idsToRemove);
+      await db.sentencesProgress.bulkDelete(idsToRemove);
+    });
+  }
+
+  if (missing.length > 0) {
+    const insertedIds = await db.sentencesVocab.bulkAdd(missing, { allKeys: true });
+    const normalizedIds = insertedIds
+      .map((id) => Number(id))
+      .filter((id): id is number => Number.isFinite(id) && id > 0);
+    await ensureProgressForSentenceEntries(normalizedIds);
+  }
 }
 
