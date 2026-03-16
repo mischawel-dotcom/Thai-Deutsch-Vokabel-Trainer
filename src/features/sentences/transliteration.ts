@@ -58,8 +58,8 @@ export function buildSentenceSegments(
       end += 1;
     }
     const unknownChunk = text.slice(cursor, end);
-    // Fallback: keep unknown Thai fragment readable instead of showing "?" in UI.
-    segments.push({ thai: unknownChunk, transliteration: unknownChunk });
+    // Unknown fragment fallback: keep Thai token visible, but do not fake a transliteration.
+    segments.push({ thai: unknownChunk, transliteration: undefined });
     cursor = end;
   }
 

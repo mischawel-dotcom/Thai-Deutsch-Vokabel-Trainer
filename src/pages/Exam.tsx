@@ -23,6 +23,7 @@ import {
   type ExamState,
 } from "../lib/sessionTypes";
 import { usePersistedSession } from "../hooks/usePersistedSession";
+import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
 
 export default function Exam() {
   const [state, setState] = useState<ExamState>("selection");
@@ -141,7 +142,7 @@ export default function Exam() {
 
   async function loadVocab() {
     try {
-      const allVocab = await db.vocab.toArray();
+      const { entries: allVocab } = applyCefrFirstFilter(await db.vocab.toArray());
       const allNumbers = await db.numbersVocab.toArray();
 
       setVocabByLesson(groupEntriesByLesson(allVocab));

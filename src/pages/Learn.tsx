@@ -12,6 +12,7 @@ import { LessonConfigDialog } from "../features/learn/components/LessonConfigDia
 import { EndSessionConfirmDialog } from "../features/learn/components/EndSessionConfirmDialog";
 import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
 import { buildSentenceSegments } from "../features/sentences/transliteration";
+import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
 import {
   Dialog,
   DialogContent,
@@ -154,7 +155,10 @@ export default function Learn() {
     setError("");
     try {
       // Nur Metadaten: alle Vokabeln zählen ohne Inhalte zu laden
-      const count = await db.vocab.count();
+      const { entries: practiceVocabEntries, activeGate } = applyCefrFirstFilter(
+        await db.vocab.toArray()
+      );
+      const count = practiceVocabEntries.length;
       if (count === 0) {
         setStatus("Keine Einträge vorhanden.");
         setAllLessons([]);
@@ -163,14 +167,14 @@ export default function Learn() {
 
       // Count + learnedCount pro Lektion
       const lessonsMap = new Map<number, { count: number; learnedCount: number }>();
-      await db.vocab.each((v) => {
+      for (const v of practiceVocabEntries) {
         if (v.lesson !== undefined && v.lesson > 0) {
           const current = lessonsMap.get(v.lesson) ?? { count: 0, learnedCount: 0 };
           current.count += 1;
           if (v.viewed) current.learnedCount += 1;
           lessonsMap.set(v.lesson, current);
         }
-      });
+      }
 
       const lessons = Array.from(lessonsMap.entries())
         .sort((a, b) => a[0] - b[0])
@@ -187,7 +191,7 @@ export default function Learn() {
       setNumbersMeta({ count: numbersCount, learnedCount: numbersLearnedCount });
 
       const groupedIdsByLesson: Record<number, number[]> = {};
-      for (const vocabEntry of await db.vocab.toArray()) {
+      for (const vocabEntry of practiceVocabEntries) {
         const lesson = vocabEntry.lesson ?? 0;
         const id = vocabEntry.id;
         if (!Number.isFinite(lesson) || lesson <= 0 || typeof id !== "number") continue;
@@ -226,8 +230,12 @@ export default function Learn() {
         unlockedBlockCount: new Set(unlockedSentenceEntries.map(blockKey)).size,
       });
 
-      if (!lessons.length) {
+      if (activeGate === "A1") {
+        setStatus("CEFR-first aktiv: Erst A1 lernen, dann A2.");
+      } else if (!lessons.length) {
         setStatus(numbersCount > 0 ? "" : "Keine Lektionen vorhanden.");
+      } else {
+        setStatus("");
       }
     } catch (e: any) {
       console.error(e);
@@ -243,10 +251,13 @@ export default function Learn() {
     }
 
     try {
-      const cards = (await db.vocab.where("lesson").equals(lessonNum).toArray()).map((card) => ({
-        ...card,
-        sourceType: "vocab" as const,
-      }));
+      const { entries: practiceVocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
+      const cards = practiceVocabEntries
+        .filter((card) => card.lesson === lessonNum)
+        .map((card) => ({
+          ...card,
+          sourceType: "vocab" as const,
+        }));
       lessonCacheRef.set(lessonNum, cards);
       return cards;
     } catch (e) {
@@ -361,13 +372,29 @@ export default function Learn() {
           .map((p) => p.entryId)
           .filter((id): id is number => typeof id === "number");
 
-        let cards = (await db.vocab.bulkGet(dueIds)).filter(
+        const dueCards = (await db.vocab.bulkGet(dueIds)).filter(
           (v): v is VocabEntry => v !== undefined
         );
+        const { entries: allPracticeEntries, activeGate } = applyCefrFirstFilter(
+          await db.vocab.toArray()
+        );
+        const allowedIds = new Set(
+          allPracticeEntries
+            .map((entry) => entry.id)
+            .filter((id): id is number => typeof id === "number")
+        );
+        let cards = dueCards.filter((entry) => {
+          const id = entry.id;
+          return typeof id === "number" && allowedIds.has(id);
+        });
         cards = cards.slice(0, targetLimit);
 
         if (cards.length === 0) {
-          setStatus("Keine fälligen Karten verfügbar.");
+          if (activeGate === "A1") {
+            setStatus("Keine fälligen A1-Karten verfügbar (CEFR-first aktiv).");
+          } else {
+            setStatus("Keine fälligen Karten verfügbar.");
+          }
         } else {
           dispatchSession({
             type: "SET",
@@ -434,7 +461,7 @@ export default function Learn() {
 
   async function getTestPassedByLesson(): Promise<Record<number, number>> {
     const groupedIdsByLesson: Record<number, number[]> = {};
-    const vocabEntries = await db.vocab.toArray();
+    const { entries: vocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
     for (const vocabEntry of vocabEntries) {
       const lesson = vocabEntry.lesson ?? 0;
       const id = vocabEntry.id;

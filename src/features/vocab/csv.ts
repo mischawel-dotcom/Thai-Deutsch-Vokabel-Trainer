@@ -29,12 +29,27 @@ export type ImportCsvResult = {
   replaced: boolean;
   preservedProgress: number;
   removed: number;
+  invalidRows: number;
 };
 
 function buildEntryKey(entry: Pick<VocabEntry, "thai" | "transliteration">): string {
   const safeThai = entry.thai.trim();
   const safeTransliteration = (entry.transliteration ?? "").trim().toLowerCase();
   return `${safeThai}__${safeTransliteration}`;
+}
+
+function parseStrictLesson(value: string | number | undefined): number | null {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const raw = String(value).trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+function hasCefrTag(tags: string[]): boolean {
+  const lowered = tags.map((tag) => tag.trim().toLowerCase());
+  return lowered.includes("a1") || lowered.includes("a2");
 }
 
 export async function importCsv(file: File, options: ImportCsvOptions = {}): Promise<ImportCsvResult> {
@@ -51,23 +66,39 @@ export async function importCsv(file: File, options: ImportCsvOptions = {}): Pro
   }
 
   const now = Date.now();
-  const preparedEntries: VocabEntry[] = (parsed.data ?? [])
-    .map(r => ({
-      thai: (r.thai ?? "").trim(),
-      german: (r.german ?? "").trim(),
-      transliteration: (r.transliteration ?? "").trim() || undefined,
-      pos: (r.pos ?? "").trim() || undefined,
-      lesson: r.lesson ? parseInt(String(r.lesson), 10) || undefined : undefined,
-      tags: (r.tags ?? "")
-        .split(",")
-        .map(x => x.trim())
-        .filter(Boolean),
-      exampleThai: (r.exampleThai ?? "").trim() || undefined,
-      exampleGerman: (r.exampleGerman ?? "").trim() || undefined,
+  let invalidRows = 0;
+  const preparedEntries: VocabEntry[] = [];
+  for (const row of parsed.data ?? []) {
+    const thai = (row.thai ?? "").trim();
+    const german = (row.german ?? "").trim();
+    if (!thai || !german) {
+      invalidRows += 1;
+      continue;
+    }
+
+    const tags = (row.tags ?? "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    const lesson = parseStrictLesson(row.lesson);
+    if (lesson === null || !hasCefrTag(tags)) {
+      invalidRows += 1;
+      continue;
+    }
+
+    preparedEntries.push({
+      thai,
+      german,
+      transliteration: (row.transliteration ?? "").trim() || undefined,
+      pos: (row.pos ?? "").trim() || undefined,
+      lesson,
+      tags,
+      exampleThai: (row.exampleThai ?? "").trim() || undefined,
+      exampleGerman: (row.exampleGerman ?? "").trim() || undefined,
       createdAt: now,
       updatedAt: now,
-    }))
-    .filter(e => e.thai && e.german);
+    });
+  }
 
   // Always de-duplicate the incoming CSV payload itself.
   const uniqueByKey = new Map<string, VocabEntry>();
@@ -169,6 +200,7 @@ export async function importCsv(file: File, options: ImportCsvOptions = {}): Pro
       replaced: true,
       preservedProgress: preservedCount,
       removed: removedCount,
+      invalidRows,
     };
   }
 
@@ -184,6 +216,7 @@ export async function importCsv(file: File, options: ImportCsvOptions = {}): Pro
       replaced: false,
       preservedProgress: 0,
       removed: 0,
+      invalidRows,
     };
   }
 
@@ -206,6 +239,7 @@ export async function importCsv(file: File, options: ImportCsvOptions = {}): Pro
     replaced: false,
     preservedProgress: 0,
     removed: 0,
+    invalidRows,
   };
 }
 

@@ -528,8 +528,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "ผีเสื้อ",
       },
       {
-        thai: "เราแยกขยะเพื่อสิ่งแวดล้อม",
-        german: "Wir trennen Müll für die Umwelt.",
+        thai: "เราเก็บขยะและช่วยสิ่งแวดล้อม",
+        german: "Wir sammeln Müll und helfen der Umwelt.",
         sourceThaiWord: "สิ่งแวดล้อม",
       },
       {
@@ -660,8 +660,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "ฝากเงิน",
       },
       {
-        thai: "เราอยากประหยัดค่าเช่า",
-        german: "Wir möchten bei der Miete sparen.",
+        thai: "เราประหยัดค่าเช่า",
+        german: "Wir sparen bei der Miete.",
         sourceThaiWord: "ประหยัด",
       },
       {
@@ -721,9 +721,9 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "สวัสดี",
       },
       {
-        thai: "ฉันมาจากเยอรมนี",
-        german: "Ich komme aus Deutschland.",
-        sourceThaiWord: "ฉัน",
+        thai: "ฉันมาจากประเทศไทย",
+        german: "Ich komme aus Thailand.",
+        sourceThaiWord: "ประเทศไทย",
       },
       {
         thai: "ยินดีที่ได้รู้จัก",
@@ -754,8 +754,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "ห้องน้ำ",
       },
       {
-        thai: "ฉันจะไปสถานีรถไฟได้อย่างไร",
-        german: "Wie komme ich zum Bahnhof?",
+        thai: "สถานีรถไฟอยู่ที่ไหน",
+        german: "Wo ist der Bahnhof?",
         sourceThaiWord: "สถานีรถไฟ",
       },
       {
@@ -764,8 +764,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "ตั๋ว",
       },
       {
-        thai: "ป้ายรถเมล์ที่ใกล้ที่สุดอยู่ที่ไหน",
-        german: "Wo ist die nächste Bushaltestelle?",
+        thai: "ป้ายรถเมล์อยู่ที่ไหน",
+        german: "Wo ist die Bushaltestelle?",
         sourceThaiWord: "ป้ายรถเมล์",
       },
       {
@@ -830,8 +830,8 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "หมอ",
       },
       {
-        thai: "ร้านขายยาที่ใกล้ที่สุดอยู่ที่ไหน",
-        german: "Wo ist die nächste Apotheke?",
+        thai: "มีร้านขายยาอยู่ที่ไหน",
+        german: "Wo ist eine Apotheke?",
         sourceThaiWord: "ร้านขายยา",
       },
       {
@@ -853,9 +853,9 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "ราคาเท่าไหร่",
       },
       {
-        thai: "อันนี้แพงเกินไป",
-        german: "Das ist zu teuer.",
-        sourceThaiWord: "แพง",
+        thai: "กางเกงแพงมาก",
+        german: "Die Hose ist sehr teuer.",
+        sourceThaiWord: "กางเกง",
       },
       {
         thai: "มีเงินทอนไหม",

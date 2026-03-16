@@ -284,7 +284,42 @@ export default function App() {
             console.log(`[App Init] Added ${toAdd.length} missing default vocab entries`);
           }
         } else {
-          console.log("[App Init] Custom CSV source active, skipping default vocab sync.");
+          console.log("[App Init] Custom CSV source active, skipping default vocab overwrite sync.");
+
+          // Safety migration:
+          // If a device is stuck on an older/varying dataset (e.g. stale PWA state),
+          // ensure at least the embedded default baseline is present.
+          const currentCount = await db.vocab.count();
+          if (currentCount < expectedCount) {
+            const existingKeys = new Set(
+              (await db.vocab.toArray()).map((entry) =>
+                buildDefaultVocabKey(entry.thai, entry.transliteration)
+              )
+            );
+            const missingDefaults = DEFAULT_VOCAB.filter(
+              (entry) =>
+                !existingKeys.has(
+                  buildDefaultVocabKey(entry.thai, entry.transliteration)
+                )
+            );
+
+            if (missingDefaults.length > 0) {
+              const now = Date.now();
+              const toAdd = missingDefaults.map((entry) => ({
+                ...entry,
+                createdAt: now,
+                updatedAt: now,
+              }));
+              const insertedIds = await db.vocab.bulkAdd(toAdd, { allKeys: true });
+              const normalizedIds = insertedIds
+                .map((id) => Number(id))
+                .filter((id): id is number => Number.isFinite(id) && id > 0);
+              await ensureProgressForEntries(normalizedIds);
+              console.log(
+                `[App Init] Custom source fallback added ${toAdd.length} missing defaults (${currentCount} -> ${currentCount + toAdd.length})`
+              );
+            }
+          }
         }
 
         // Numbers world init + migration (separate from normal vocab)
