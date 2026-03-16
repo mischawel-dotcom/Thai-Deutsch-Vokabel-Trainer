@@ -66,31 +66,8 @@ function isRoute(value: string): value is Route {
   return ROUTES.includes(value as Route);
 }
 
-function readPersistedRoute(): Route | null {
-  try {
-    const fromSession = sessionStorage.getItem("lastRoute");
-    if (fromSession && isRoute(fromSession)) return fromSession;
-  } catch {
-    // ignore
-  }
-
-  try {
-    const fromLocal = localStorage.getItem("lastRoute");
-    if (fromLocal && isRoute(fromLocal)) return fromLocal;
-  } catch {
-    // ignore
-  }
-
-  return null;
-}
-
 function getInitialRoute(): Route {
-  if (typeof window === "undefined") return "home";
-
-  const hash = window.location.hash.replace("#", "");
-  if (isRoute(hash)) return hash;
-
-  return readPersistedRoute() ?? "home";
+  return "home";
 }
 
 function getInitialDarkMode(): boolean {
@@ -635,14 +612,9 @@ export default function App() {
       const hash = window.location.hash.replace("#", "");
       if (isRoute(hash)) {
         setRoute(hash);
-        return;
       }
-
-      const persisted = readPersistedRoute();
-      if (persisted) setRoute(persisted);
     };
 
-    applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, []);
