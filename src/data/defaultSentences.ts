@@ -665,7 +665,7 @@ export const DEFAULT_SENTENCE_BLOCKS: SentenceBlock[] = [
         sourceThaiWord: "ประหยัด",
       },
       {
-        thai: "ฉันใช้ค้อนกับตะปู",
+        thai: "ฉันใช้ค้อนและตะปู",
         german: "Ich benutze Hammer und Nagel.",
         sourceThaiWord: "ค้อน",
       },

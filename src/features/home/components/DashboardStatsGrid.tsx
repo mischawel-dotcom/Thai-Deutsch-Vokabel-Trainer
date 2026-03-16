@@ -14,6 +14,9 @@ type DashboardStatsGridProps = {
   numbersMasteredFive: number;
   numbersExamPassed: boolean;
   numbersExamBestScore: number | null;
+  sentenceUnlocked: number;
+  sentenceTotal: number;
+  sentenceUnlockedLearned: number;
   onNavigate?: (route: Route) => void;
   onOpenStreak: () => void;
 };
@@ -30,6 +33,9 @@ export function DashboardStatsGrid({
   numbersMasteredFive,
   numbersExamPassed,
   numbersExamBestScore,
+  sentenceUnlocked,
+  sentenceTotal,
+  sentenceUnlockedLearned,
   onNavigate,
   onOpenStreak,
 }: DashboardStatsGridProps) {
@@ -154,6 +160,33 @@ export function DashboardStatsGrid({
               : `📝 Zahlenexamen offen${
                   numbersExamBestScore !== null ? ` (Bestscore ${numbersExamBestScore}%)` : ""
                 }`}
+          </p>
+        </div>
+      </Card>
+
+      <Card
+        className="p-6 cursor-pointer hover:bg-accent transition-colors order-6 md:order-none"
+        onClick={() => {
+          localStorage.setItem("openSentenceLearnSession", "true");
+          onNavigate?.("learn");
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Satzlektionen</p>
+            <p className="text-3xl font-bold mt-2">💬</p>
+          </div>
+          <div className="text-4xl">🗣️</div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          Direkt zu Satzlernen
+        </p>
+        <div className="mt-3 space-y-1">
+          <p className="text-xs text-muted-foreground">
+            Freigeschaltet: {sentenceUnlocked}/{sentenceTotal}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Gelernt: {sentenceUnlockedLearned}/{sentenceUnlocked}
           </p>
         </div>
       </Card>

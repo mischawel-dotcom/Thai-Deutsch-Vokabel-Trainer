@@ -3,8 +3,6 @@ import {
   DashboardStatsGrid,
   StreakDialog,
   LessonProgressSection,
-  NumbersQuickAccessCard,
-  SentencesQuickAccessCard,
   QuickActionsSection,
   MotivationCard,
   useHomeDashboardData,
@@ -30,11 +28,6 @@ export default function Home({ onNavigate }: HomeProps) {
     sentenceTotal,
     sentenceUnlocked,
     sentenceUnlockedLearned,
-    sentenceBlockTotal,
-    sentenceBlockUnlocked,
-    sentenceNextBlockLabel,
-    sentenceNextBlockCurrentPassed,
-    sentenceNextBlockThreshold,
     streakStats,
     progress,
     dailyGoalReached,
@@ -68,6 +61,9 @@ export default function Home({ onNavigate }: HomeProps) {
         numbersMasteredFive={numbersMasteredFive}
         numbersExamPassed={numbersExamPassed}
         numbersExamBestScore={numbersExamBestScore}
+        sentenceUnlocked={sentenceUnlocked}
+        sentenceTotal={sentenceTotal}
+        sentenceUnlockedLearned={sentenceUnlockedLearned}
         onNavigate={onNavigate}
         onOpenStreak={() => setStreakDialogOpen(true)}
       />
@@ -89,19 +85,6 @@ export default function Home({ onNavigate }: HomeProps) {
       />
 
       <QuickActionsSection dueCount={dueCount} onNavigate={onNavigate} />
-
-      <NumbersQuickAccessCard onNavigate={onNavigate} />
-      <SentencesQuickAccessCard
-        onNavigate={onNavigate}
-        sentenceTotal={sentenceTotal}
-        sentenceUnlocked={sentenceUnlocked}
-        sentenceUnlockedLearned={sentenceUnlockedLearned}
-        sentenceBlockTotal={sentenceBlockTotal}
-        sentenceBlockUnlocked={sentenceBlockUnlocked}
-        sentenceNextBlockLabel={sentenceNextBlockLabel}
-        sentenceNextBlockCurrentPassed={sentenceNextBlockCurrentPassed}
-        sentenceNextBlockThreshold={sentenceNextBlockThreshold}
-      />
 
       <MotivationCard dueCount={dueCount} />
     </div>
