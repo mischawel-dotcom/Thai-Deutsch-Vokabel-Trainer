@@ -2,12 +2,13 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/Thai-Deutsch-Vokabel-Trainer/icons/icon-192.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a" />
     <meta name="description" content="Lerne Thai-Vokabeln mit SRS (Spaced Repetition System)" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
@@ -30,9 +31,25 @@
             return;
           }
 
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(reg => console.log('✅ Service Worker registered'))
-            .catch(err => console.log('❌ Service Worker registration failed:', err));
+          const basePath = location.pathname.startsWith('/Thai-Deutsch-Vokabel-Trainer/')
+            ? '/Thai-Deutsch-Vokabel-Trainer/'
+            : '/';
+          const swVersion = '2026-02-26-1';
+          const swUrl = `${basePath}service-worker.js?v=${swVersion}`;
+
+          // Cleanup previous registrations on different scopes (legacy root scope, etc).
+          navigator.serviceWorker.getRegistrations()
+            .then(regs => Promise.all(
+              regs
+                .filter(reg => reg.scope.indexOf(basePath) === -1)
+                .map(reg => reg.unregister())
+            ))
+            .catch(() => {})
+            .finally(() => {
+              navigator.serviceWorker.register(swUrl, { scope: basePath })
+                .then(() => console.log('✅ Service Worker registered'))
+                .catch(err => console.log('❌ Service Worker registration failed:', err));
+            });
         });
       }
     </script>

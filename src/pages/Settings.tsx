@@ -29,8 +29,11 @@ export default function Settings() {
   const [learnDirection, setLearnDirection] = useState<LearnDirection>("TH_DE");
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const latestCsvUrl =
-    "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv";
+  const [vocabCount, setVocabCount] = useState<number>(0);
+  const latestCsvUrls = [
+    "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv",
+    "https://cdn.jsdelivr.net/gh/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer@main/data/thai-de-vocab_Ver_2.csv",
+  ];
 
   // Load daily limit from localStorage
   useEffect(() => {
@@ -77,6 +80,19 @@ export default function Settings() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
+  }, []);
+
+  async function refreshVocabCount() {
+    try {
+      const count = await db.vocab.count();
+      setVocabCount(count);
+    } catch {
+      // ignore count read errors in UI
+    }
+  }
+
+  useEffect(() => {
+    void refreshVocabCount();
   }, []);
 
   function saveDailyLimit() {
@@ -153,6 +169,7 @@ export default function Settings() {
       setIsLoading(true);
       const result = await importCsv(file, { mode: "replace" });
       applyImportMessage(result);
+      await refreshVocabCount();
     } catch (err: any) {
       setMsg(`❌ Fehler: ${err?.message ?? String(err)}`);
     } finally {
@@ -177,6 +194,32 @@ export default function Settings() {
     }
   }
 
+  function buildImportMessage(result: {
+    added: number;
+    duplicates: number;
+    replaced: boolean;
+    preservedProgress: number;
+    removed: number;
+  }): string {
+    if (result.added === 0 && result.duplicates > 0) {
+      return `⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`;
+    }
+
+    if (result.replaced) {
+      return (
+        `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
+        (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
+        (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
+        (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
+      );
+    }
+
+    return (
+      `✅ Importiert: ${result.added} Einträge` +
+      (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
+    );
+  }
+
   function applyImportMessage(result: {
     added: number;
     duplicates: number;
@@ -184,40 +227,72 @@ export default function Settings() {
     preservedProgress: number;
     removed: number;
   }) {
-    if (result.added === 0 && result.duplicates > 0) {
-      setMsg(`⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})`);
-      return;
+    setMsg(buildImportMessage(result));
+  }
+
+  function validateDownloadedCsv(csvText: string): number {
+    const normalized = csvText.replace(/^\uFEFF/, "");
+    const lines = normalized
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) {
+      throw new Error("CSV ist leer oder unvollständig");
     }
 
-    if (result.replaced) {
-      setMsg(
-        `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
-          (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
-          (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
-          (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "")
-      );
-      return;
+    const header = lines[0].toLowerCase();
+    if (!header.includes("thai") || !header.includes("german")) {
+      throw new Error("CSV-Header ungültig (erwarte mindestens thai/german)");
     }
 
-    setMsg(
-      `✅ Importiert: ${result.added} Einträge` +
-        (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "")
-    );
+    const rowCount = lines.length - 1;
+    if (rowCount < 1000) {
+      throw new Error(`CSV scheint veraltet oder unvollständig (${rowCount} Zeilen)`);
+    }
+
+    return rowCount;
   }
 
   async function importLatestCsvDirectly() {
     try {
       setIsLoading(true);
-      const response = await fetch(latestCsvUrl, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`Download fehlgeschlagen (${response.status})`);
+      const cacheBust = Date.now();
+      const errors: string[] = [];
+
+      for (const baseUrl of latestCsvUrls) {
+        const separator = baseUrl.includes("?") ? "&" : "?";
+        const url = `${baseUrl}${separator}cb=${cacheBust}`;
+
+        try {
+          const response = await fetch(url, {
+            cache: "no-store",
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+          });
+          if (!response.ok) {
+            errors.push(`${baseUrl} -> HTTP ${response.status}`);
+            continue;
+          }
+
+          const csvText = await response.text();
+          const rowCount = validateDownloadedCsv(csvText);
+          const file = new File([csvText], "thai-de-vocab_Ver_2.csv", {
+            type: "text/csv;charset=utf-8",
+          });
+          const result = await importCsv(file, { mode: "replace" });
+          const baseMessage = buildImportMessage(result).replace(/^✅\s*/, "");
+          setMsg(`✅ Direktimport erfolgreich (${rowCount} Zeilen): ${baseMessage}`);
+          await refreshVocabCount();
+          return;
+        } catch (sourceError: any) {
+          errors.push(`${baseUrl} -> ${sourceError?.message ?? String(sourceError)}`);
+        }
       }
-      const csvText = await response.text();
-      const file = new File([csvText], "thai-de-vocab_Ver_2.csv", {
-        type: "text/csv;charset=utf-8",
-      });
-      const result = await importCsv(file, { mode: "replace" });
-      applyImportMessage(result);
+
+      throw new Error(`Alle Quellen fehlgeschlagen: ${errors.join(" | ")}`);
     } catch (err: any) {
       setMsg(`❌ Direktimport fehlgeschlagen: ${err?.message ?? String(err)}`);
     } finally {
@@ -226,7 +301,8 @@ export default function Settings() {
   }
 
   function downloadLatestCsv() {
-    window.open(latestCsvUrl, "_blank", "noopener,noreferrer");
+    const url = `${latestCsvUrls[0]}?cb=${Date.now()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
 
@@ -272,6 +348,7 @@ export default function Settings() {
       }));
       await db.vocab.bulkAdd(entries);
       localStorage.removeItem("vocabDataSource");
+      await refreshVocabCount();
       
       setMsg("✅ Datenbank zurückgesetzt. Nur Standard-Vokabeln enthalten.");
       setTimeout(() => setMsg(""), 3000);
@@ -570,6 +647,9 @@ export default function Settings() {
         {/* CSV Import/Export */}
         <Card className="p-4 space-y-4">
           <h3 className="font-semibold text-lg">Vokabeln verwalten</h3>
+          <p className="text-xs text-muted-foreground">
+            DB aktuell: <span className="font-semibold">{vocabCount}</span> Vokabeln
+          </p>
 
           <div className="space-y-3">
             <div>
