@@ -13,13 +13,13 @@
     <link rel="manifest" href="/Thai-Deutsch-Vokabel-Trainer/manifest.json" />
     
     <title>Thai–Deutsch Vokabeltrainer</title>
-    <script type="module" crossorigin src="/Thai-Deutsch-Vokabel-Trainer/assets/index-CFJgLn4F.js"></script>
+    <script type="module" crossorigin src="/Thai-Deutsch-Vokabel-Trainer/assets/index-BGN5fObG.js"></script>
     <link rel="modulepreload" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/rolldown-runtime-y2wrX6ue.js">
     <link rel="modulepreload" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/icons-vendor-D7usVfZy.js">
     <link rel="modulepreload" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/react-vendor-BXhlGoOM.js">
     <link rel="modulepreload" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/ui-vendor-DWTP5Mer.js">
     <link rel="modulepreload" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/db-vendor-CHTJOe2d.js">
-    <link rel="stylesheet" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/index-CNrGhekI.css">
+    <link rel="stylesheet" crossorigin href="/Thai-Deutsch-Vokabel-Trainer/assets/index-CXCNPZ8d.css">
   </head>
   <body>
     <div id="root"></div>
@@ -36,9 +36,25 @@
             return;
           }
 
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(reg => console.log('✅ Service Worker registered'))
-            .catch(err => console.log('❌ Service Worker registration failed:', err));
+          const basePath = location.pathname.startsWith('/Thai-Deutsch-Vokabel-Trainer/')
+            ? '/Thai-Deutsch-Vokabel-Trainer/'
+            : '/';
+          const swVersion = '2026-02-26-1';
+          const swUrl = `${basePath}service-worker.js?v=${swVersion}`;
+
+          // Cleanup previous registrations on different scopes (legacy root scope, etc).
+          navigator.serviceWorker.getRegistrations()
+            .then(regs => Promise.all(
+              regs
+                .filter(reg => reg.scope.indexOf(basePath) === -1)
+                .map(reg => reg.unregister())
+            ))
+            .catch(() => {})
+            .finally(() => {
+              navigator.serviceWorker.register(swUrl, { scope: basePath })
+                .then(() => console.log('✅ Service Worker registered'))
+                .catch(err => console.log('❌ Service Worker registration failed:', err));
+            });
         });
       }
     </script>
