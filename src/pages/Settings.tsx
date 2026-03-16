@@ -300,6 +300,125 @@ export default function Settings() {
     }
   }
 
+  async function getLessonEntryIds(lesson: number): Promise<number[]> {
+    const entries = await db.vocab.where("lesson").equals(lesson).toArray();
+    return entries
+      .map((entry) => entry.id)
+      .filter((id): id is number => typeof id === "number");
+  }
+
+  async function debugSetLessonReadyForExam(lesson: number) {
+    try {
+      setIsLoading(true);
+      const targetLessons = [1, 2, 3, 4, 5].filter((item) => item <= lesson);
+      const idsByLesson = await Promise.all(
+        targetLessons.map(async (item) => [item, await getLessonEntryIds(item)] as const)
+      );
+      const allIds = idsByLesson.flatMap(([, ids]) => ids);
+      if (allIds.length === 0) {
+        setMsg(`⚠️ Keine Karten in Lektion 1-${lesson} gefunden`);
+        setTimeout(() => setMsg(""), 2500);
+        return;
+      }
+
+      await ensureProgressForEntries(allIds);
+      const now = Date.now();
+      const futureDue = now + 1000 * 60 * 60 * 24 * 30;
+
+      await db.transaction("rw", db.vocab, db.progress, async () => {
+        for (const [targetLesson, ids] of idsByLesson) {
+          if (ids.length === 0) continue;
+
+          await db.vocab.where("lesson").equals(targetLesson).modify((entry) => {
+            entry.viewed = true;
+            entry.updatedAt = now;
+          });
+
+          const currentRows = await db.progress.bulkGet(ids);
+          const patchedRows = ids.map((entryId, idx) => {
+            const row = currentRows[idx];
+            return {
+              entryId,
+              ease: row?.ease ?? 2.5,
+              intervalDays: row?.intervalDays ?? 1,
+              repetitions: 5,
+              lastReviewed: now,
+              lastGrade: 2 as const,
+              dueAt: futureDue,
+              updatedAt: now,
+            };
+          });
+          await db.progress.bulkPut(patchedRows);
+        }
+      });
+
+      setMsg(`✅ Lektion 1-${lesson}: alle Karten als im Test bestanden markiert`);
+      setTimeout(() => setMsg(""), 2000);
+      window.location.reload();
+    } catch (err: any) {
+      setMsg(`❌ Debug-Fehler L${lesson}: ${err?.message ?? String(err)}`);
+      setTimeout(() => setMsg(""), 3000);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function debugSetLessonExamPassed(lesson: number) {
+    localStorage.setItem(`lessonExamScore_${lesson}`, "85");
+    setMsg(`✅ Lektion ${lesson}: Examen mit 85% gesetzt`);
+    setTimeout(() => setMsg(""), 2000);
+    window.location.reload();
+  }
+
+  async function debugResetLesson(lesson: number) {
+    try {
+      setIsLoading(true);
+      const ids = await getLessonEntryIds(lesson);
+      if (ids.length === 0) {
+        localStorage.removeItem(`lessonExamScore_${lesson}`);
+        setMsg(`✅ Lektion ${lesson}: Exam-Status zurückgesetzt`);
+        setTimeout(() => setMsg(""), 2000);
+        window.location.reload();
+        return;
+      }
+
+      await ensureProgressForEntries(ids);
+      const now = Date.now();
+
+      await db.transaction("rw", db.vocab, db.progress, async () => {
+        await db.vocab.where("lesson").equals(lesson).modify((entry) => {
+          entry.viewed = false;
+          entry.updatedAt = now;
+        });
+
+        const currentRows = await db.progress.bulkGet(ids);
+        const resetRows = ids.map((entryId, idx) => {
+          const row = currentRows[idx];
+          return {
+            entryId,
+            ease: row?.ease ?? 2.5,
+            intervalDays: 0,
+            repetitions: 0,
+            dueAt: now,
+            updatedAt: now,
+          };
+        });
+        await db.progress.bulkPut(resetRows);
+      });
+
+      localStorage.removeItem(`lessonExamScore_${lesson}`);
+      localStorage.removeItem(`lessonProgress_${lesson}`);
+      setMsg(`✅ Lektion ${lesson}: Fortschritt + Exam zurückgesetzt`);
+      setTimeout(() => setMsg(""), 2000);
+      window.location.reload();
+    } catch (err: any) {
+      setMsg(`❌ Debug-Reset L${lesson} fehlgeschlagen: ${err?.message ?? String(err)}`);
+      setTimeout(() => setMsg(""), 3000);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <PageShell title="Einstellungen">
       <div className="space-y-6">
@@ -565,23 +684,19 @@ export default function Settings() {
         <Card className="p-4 space-y-4 bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
           <h3 className="font-semibold text-lg text-purple-900 dark:text-purple-100">🛠️ Entwickler Debug</h3>
           <p className="text-xs text-purple-800 dark:text-purple-200">
-            Setze Lektionen-Fortschritt zum schnellen Testen (100% = Exam erforderlich)
+            Setzt Lektionen-Fortschritt direkt in der Datenbank (kumulativ: L3 setzt L1-L3).
           </p>
           
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((lesson) => (
               <Button 
                 key={lesson}
-                onClick={() => {
-                  localStorage.setItem(`lessonProgress_${lesson}`, "100");
-                  setMsg(`✅ Lektion ${lesson} auf 100% gesetzt`);
-                  setTimeout(() => setMsg(""), 2000);
-                  window.location.reload();
-                }}
+                onClick={() => void debugSetLessonReadyForExam(lesson)}
+                disabled={isLoading}
                 variant="outline"
                 className="text-xs h-auto py-2 bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
               >
-                L{lesson} → 100%
+                L1-L{lesson} → Test bestanden
               </Button>
             ))}
           </div>
@@ -593,12 +708,10 @@ export default function Settings() {
                 onClick={() => {
                   const lesson = prompt("Lektion (1-5):", "1");
                   if (lesson && [1,2,3,4,5].includes(Number(lesson))) {
-                    localStorage.setItem(`lessonExamScore_${lesson}`, "85");
-                    setMsg(`✅ Lektion ${lesson} Exam mit 85% bestanden`);
-                    setTimeout(() => setMsg(""), 2000);
-                    window.location.reload();
+                    debugSetLessonExamPassed(Number(lesson));
                   }
                 }}
+                disabled={isLoading}
                 variant="outline"
                 className="text-xs bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
               >
@@ -608,13 +721,10 @@ export default function Settings() {
                 onClick={() => {
                   const lesson = prompt("Lektion (1-5):", "1");
                   if (lesson && [1,2,3,4,5].includes(Number(lesson))) {
-                    localStorage.removeItem(`lessonExamScore_${lesson}`);
-                    localStorage.removeItem(`lessonProgress_${lesson}`);
-                    setMsg(`✅ Lektion ${lesson} komplett zurückgesetzt`);
-                    setTimeout(() => setMsg(""), 2000);
-                    window.location.reload();
+                    void debugResetLesson(Number(lesson));
                   }
                 }}
+                disabled={isLoading}
                 variant="outline"
                 className="text-xs bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
               >

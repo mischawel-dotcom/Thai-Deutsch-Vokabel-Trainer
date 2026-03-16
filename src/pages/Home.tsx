@@ -4,6 +4,7 @@ import {
   StreakDialog,
   LessonProgressSection,
   NumbersQuickAccessCard,
+  SentencesQuickAccessCard,
   QuickActionsSection,
   MotivationCard,
   useHomeDashboardData,
@@ -26,6 +27,14 @@ export default function Home({ onNavigate }: HomeProps) {
     numbersMasteredFive,
     numbersExamPassed,
     numbersExamBestScore,
+    sentenceTotal,
+    sentenceUnlocked,
+    sentenceUnlockedLearned,
+    sentenceBlockTotal,
+    sentenceBlockUnlocked,
+    sentenceNextBlockLabel,
+    sentenceNextBlockCurrentPassed,
+    sentenceNextBlockThreshold,
     streakStats,
     progress,
     dailyGoalReached,
@@ -37,7 +46,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">236</div>
+      <div className="text-3xl font-bold text-red-600">289</div>
       
       {/* Welcome Header */}
       <div>
@@ -82,6 +91,17 @@ export default function Home({ onNavigate }: HomeProps) {
       <QuickActionsSection dueCount={dueCount} onNavigate={onNavigate} />
 
       <NumbersQuickAccessCard onNavigate={onNavigate} />
+      <SentencesQuickAccessCard
+        onNavigate={onNavigate}
+        sentenceTotal={sentenceTotal}
+        sentenceUnlocked={sentenceUnlocked}
+        sentenceUnlockedLearned={sentenceUnlockedLearned}
+        sentenceBlockTotal={sentenceBlockTotal}
+        sentenceBlockUnlocked={sentenceBlockUnlocked}
+        sentenceNextBlockLabel={sentenceNextBlockLabel}
+        sentenceNextBlockCurrentPassed={sentenceNextBlockCurrentPassed}
+        sentenceNextBlockThreshold={sentenceNextBlockThreshold}
+      />
 
       <MotivationCard dueCount={dueCount} />
     </div>

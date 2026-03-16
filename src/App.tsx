@@ -17,9 +17,14 @@ const Exam = lazy(() => import("./pages/Exam"));
 const Games = lazy(() => import("./pages/Games"));
 const Settings = lazy(() => import("./pages/Settings"));
 import { db } from "./db/db";
-import { ensureProgressForEntries, ensureProgressForNumberEntries } from "./db/srs";
+import {
+  ensureProgressForEntries,
+  ensureProgressForNumberEntries,
+  ensureProgressForSentenceEntries,
+} from "./db/srs";
 import { DEFAULT_VOCAB } from "./data/defaultVocab";
 import { DEFAULT_NUMBERS } from "./data/defaultNumbers";
+import { DEFAULT_SENTENCE_BLOCKS } from "./data/defaultSentences";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -42,6 +47,16 @@ function buildDefaultVocabKey(thai: string, transliteration?: string): string {
 
 function buildDefaultNumberKey(arabic: number, thaiWord: string, thaiDigit: string): string {
   return `${arabic}__${thaiWord.trim()}__${thaiDigit.trim()}`;
+}
+
+function buildDefaultSentenceKey(
+  thai: string,
+  german: string,
+  lesson: number,
+  rangeStart: number,
+  rangeEnd: number
+): string {
+  return `${thai.trim()}__${german.trim()}__${lesson}__${rangeStart}__${rangeEnd}`;
 }
 
 const VOCAB_DATA_SOURCE_KEY = "vocabDataSource";
@@ -378,6 +393,154 @@ export default function App() {
             .filter((id): id is number => Number.isFinite(id) && id > 0);
           await ensureProgressForNumberEntries(normalizedIds);
           console.log(`[App Init] Added ${toAdd.length} missing default number entries`);
+        }
+
+        // Sentence world init + migration (separate from normal vocab)
+        const defaultSentenceEntries = DEFAULT_SENTENCE_BLOCKS.flatMap((block) =>
+          block.sentences.map((sentence) => ({
+            thai: sentence.thai,
+            german: sentence.german,
+            lesson: block.lesson,
+            rangeStart: block.rangeStart,
+            rangeEnd: block.rangeEnd,
+            unlockThresholdTestPassed: block.unlockThresholdTestPassed,
+            sourceThaiWord: sentence.sourceThaiWord,
+            tags: ["Sentences", `L${block.lesson}`, `R${block.rangeStart}-${block.rangeEnd}`],
+            viewed: false,
+            createdAt: 0,
+            updatedAt: 0,
+          }))
+        );
+        const sentenceCount = await db.sentencesVocab.count();
+        const expectedSentenceCount = defaultSentenceEntries.length;
+        if (sentenceCount === 0) {
+          const now = Date.now();
+          const sentenceEntries = defaultSentenceEntries.map((entry) => ({
+            ...entry,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          await db.sentencesVocab.bulkAdd(sentenceEntries);
+          const sentenceIds = (await db.sentencesVocab.toCollection().primaryKeys()) as number[];
+          await ensureProgressForSentenceEntries(sentenceIds);
+          console.log(
+            `✅ [App Init] Default sentences loaded: ${expectedSentenceCount} entries`
+          );
+        } else {
+          const sentenceProgressCount = await db.sentencesProgress.count();
+          if (sentenceProgressCount < sentenceCount) {
+            const ids = (await db.sentencesVocab.toCollection().primaryKeys()) as number[];
+            await ensureProgressForSentenceEntries(ids);
+            console.log(
+              `[App Init] Sentence progress repaired: ${sentenceProgressCount} -> ${ids.length}`
+            );
+          }
+        }
+
+        const existingSentences = await db.sentencesVocab.toArray();
+        const defaultSentencesByKey = new Map(
+          defaultSentenceEntries.map((entry) => [
+            buildDefaultSentenceKey(
+              entry.thai,
+              entry.german,
+              entry.lesson,
+              entry.rangeStart,
+              entry.rangeEnd
+            ),
+            entry,
+          ])
+        );
+        const existingSentencesByKey = new Map<string, typeof existingSentences>();
+        for (const entry of existingSentences) {
+          const key = buildDefaultSentenceKey(
+            entry.thai,
+            entry.german,
+            entry.lesson,
+            entry.rangeStart,
+            entry.rangeEnd
+          );
+          const list = existingSentencesByKey.get(key);
+          if (list) list.push(entry);
+          else existingSentencesByKey.set(key, [entry]);
+        }
+
+        const sentenceIdsToRemove: number[] = [];
+        const sentenceIdsToEnsureProgress = new Set<number>();
+        for (const [key, defaultsEntry] of defaultSentencesByKey.entries()) {
+          const matches = existingSentencesByKey.get(key) ?? [];
+          if (matches.length === 0) continue;
+
+          const canonical = matches[0];
+          if (canonical.id != null) {
+            await db.sentencesVocab.update(canonical.id, {
+              thai: defaultsEntry.thai,
+              german: defaultsEntry.german,
+              lesson: defaultsEntry.lesson,
+              rangeStart: defaultsEntry.rangeStart,
+              rangeEnd: defaultsEntry.rangeEnd,
+              unlockThresholdTestPassed: defaultsEntry.unlockThresholdTestPassed,
+              sourceThaiWord: defaultsEntry.sourceThaiWord,
+              tags: defaultsEntry.tags,
+              updatedAt: Date.now(),
+            });
+            sentenceIdsToEnsureProgress.add(canonical.id);
+          }
+
+          for (const duplicate of matches) {
+            if (duplicate.id == null || duplicate.id === canonical.id) continue;
+            sentenceIdsToRemove.push(duplicate.id);
+          }
+        }
+
+        if (sentenceIdsToRemove.length > 0) {
+          await db.transaction("rw", db.sentencesVocab, db.sentencesProgress, async () => {
+            await db.sentencesVocab.bulkDelete(sentenceIdsToRemove);
+            await db.sentencesProgress.bulkDelete(sentenceIdsToRemove);
+          });
+          console.log(`[App Init] Removed ${sentenceIdsToRemove.length} duplicate default sentences`);
+        }
+
+        if (sentenceIdsToEnsureProgress.size > 0) {
+          await ensureProgressForSentenceEntries(Array.from(sentenceIdsToEnsureProgress));
+        }
+
+        const existingSentenceKeys = new Set(
+          (await db.sentencesVocab.toArray()).map((entry) =>
+            buildDefaultSentenceKey(
+              entry.thai,
+              entry.german,
+              entry.lesson,
+              entry.rangeStart,
+              entry.rangeEnd
+            )
+          )
+        );
+        const missingDefaultSentences = defaultSentenceEntries.filter(
+          (entry) =>
+            !existingSentenceKeys.has(
+              buildDefaultSentenceKey(
+                entry.thai,
+                entry.german,
+                entry.lesson,
+                entry.rangeStart,
+                entry.rangeEnd
+              )
+            )
+        );
+
+        if (missingDefaultSentences.length > 0) {
+          const now = Date.now();
+          const toAdd = missingDefaultSentences.map((entry) => ({
+            ...entry,
+            createdAt: now,
+            updatedAt: now,
+          }));
+          const insertedIds = await db.sentencesVocab.bulkAdd(toAdd, { allKeys: true });
+          const normalizedIds = insertedIds
+            .map((id) => Number(id))
+            .filter((id): id is number => Number.isFinite(id) && id > 0);
+          await ensureProgressForSentenceEntries(normalizedIds);
+          console.log(`[App Init] Added ${toAdd.length} missing default sentence entries`);
         }
       } catch (err) {
         console.error("Failed to load default vocab:", err);

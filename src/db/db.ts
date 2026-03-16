@@ -29,6 +29,21 @@ export type NumberEntry = {
   updatedAt: number;
 };
 
+export type SentenceEntry = {
+  id?: number;
+  thai: string;
+  german: string;
+  lesson: number;
+  rangeStart: number;
+  rangeEnd: number;
+  unlockThresholdTestPassed: number;
+  sourceThaiWord?: string;
+  tags?: string[];
+  viewed?: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type SrsProgress = {
   entryId: number;
   ease: number;
@@ -45,6 +60,8 @@ class AppDB extends Dexie {
   progress!: Dexie.Table<SrsProgress, number>;
   numbersVocab!: Dexie.Table<NumberEntry, number>;
   numbersProgress!: Dexie.Table<SrsProgress, number>;
+  sentencesVocab!: Dexie.Table<SentenceEntry, number>;
+  sentencesProgress!: Dexie.Table<SrsProgress, number>;
 
   constructor() {
     // Updated to v4 to force clean slate after fixing duplication bug
@@ -82,10 +99,22 @@ class AppDB extends Dexie {
       numbersProgress: "entryId, dueAt, lastReviewed, updatedAt",
     });
 
+    // Version 8: Add separate sentence learning tables
+    this.version(8).stores({
+      vocab: "++id, thai, german, lesson, viewed, createdAt, updatedAt",
+      progress: "entryId, dueAt, lastReviewed, updatedAt",
+      numbersVocab: "++id, arabic, thaiWord, thaiDigit, lesson, viewed, createdAt, updatedAt",
+      numbersProgress: "entryId, dueAt, lastReviewed, updatedAt",
+      sentencesVocab: "++id, thai, german, lesson, rangeStart, rangeEnd, viewed, createdAt, updatedAt",
+      sentencesProgress: "entryId, dueAt, lastReviewed, updatedAt",
+    });
+
     this.vocab = this.table("vocab");
     this.progress = this.table("progress");
     this.numbersVocab = this.table("numbersVocab");
     this.numbersProgress = this.table("numbersProgress");
+    this.sentencesVocab = this.table("sentencesVocab");
+    this.sentencesProgress = this.table("sentencesProgress");
   }
 }
 
