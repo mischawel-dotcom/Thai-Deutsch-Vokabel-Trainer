@@ -1218,20 +1218,20 @@ export default function Learn() {
 
           {/* Navigation + Aktionen */}
           <div className="fixed inset-x-0 bottom-0 z-10 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-            <div className="mx-auto w-full max-w-2xl rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
+            <div className="mx-auto w-full max-w-xs rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur sm:max-w-md md:max-w-2xl">
               <div className="space-y-2">
                 {/* Markieren als gesehen */}
                 {current.sourceType !== "numbers_info" ? (
                   <Button
                     onClick={markCurrentAsViewed}
                     size="sm"
-                    className={`w-full h-11 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
+                    className={`w-full h-11 text-sm font-medium rounded-lg border transition-colors ${
                       current.viewed
-                        ? "bg-red-600 hover:bg-red-700 text-white"
-                        : "bg-green-600 hover:bg-green-700 text-white"
+                        ? "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/50"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
                     }`}
                   >
-                    {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
+                    {current.viewed ? "Als ungelernt markieren" : "Als gelernt markieren"}
                   </Button>
                 ) : null}
 
@@ -1241,17 +1241,17 @@ export default function Learn() {
                     onClick={goPrev}
                     disabled={sessionState.currentIndex === 0}
                     variant="outline"
-                    className="h-11 px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                    className="h-11 px-5 border-transparent bg-background text-foreground hover:bg-muted disabled:opacity-50"
                   >
-                    ⬅️ Zurück
+                    Zurück
                   </Button>
 
                   <Button
                     onClick={goNext}
                     disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
-                    className="h-11 px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                    className="h-11 px-5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
-                    Weiter ➡️
+                    Weiter
                   </Button>
                 </div>
 
