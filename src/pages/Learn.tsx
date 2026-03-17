@@ -774,7 +774,6 @@ export default function Learn() {
     0
   );
   const thaiLang = "th-TH";
-  const germanLang = "de-DE";
   const getSpeakableText = (
     text: string,
     sourceType?: "vocab" | "numbers" | "numbers_info" | "sentences"
@@ -1069,21 +1068,44 @@ export default function Learn() {
               {current.sourceType !== "numbers_info" ? (
                 <>
                   {/* Thai mit Ton */}
-                  <div className="space-y-2">
-                    <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">{current.thai}</div>
-
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)}
+                  {current.sourceType === "vocab" ? (
+                    <div className="flex flex-col items-center justify-center gap-2 py-1">
+                      <div className="text-4xl sm:text-5xl font-semibold text-center leading-snug">
+                        {current.thai}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)
+                        }
                         title="Thai Wort vorlesen"
-                        className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                        aria-label="Thai Wort vorlesen"
+                        className="text-3xl leading-none hover:opacity-80 active:opacity-60 transition-opacity"
                       >
-                        🔊 Thai sprechen
-                      </Button>
+                        🔊
+                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">
+                        {current.thai}
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)
+                          }
+                          title="Thai Wort vorlesen"
+                          aria-label="Thai Wort vorlesen"
+                          className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                        >
+                          🔊 Thai sprechen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Trennlinie */}
                   <div className="border-t my-3" />
@@ -1109,23 +1131,30 @@ export default function Learn() {
                     ) : null
                   ) : current.transliteration ? (
                     <div className="text-center">
-                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                      <div className="text-base sm:text-lg text-muted-foreground italic">
+                        {current.transliteration}
+                      </div>
                     </div>
                   ) : null}
 
                   {/* Trennlinie */}
                   <div className="border-t my-3" />
 
-                  {/* Deutsch (bei Satzkarten ohne Audio) */}
+                  {/* Deutsch */}
                   <div className="space-y-2">
                     <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{current.german}</div>
 
-                    {current.sourceType !== "sentences" ? (
+                    {current.sourceType === "numbers" ? (
                       <div className="flex flex-wrap justify-center gap-2">
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() => void speak(getSpeakableText(current.german, current.sourceType), germanLang)}
+                          onClick={() =>
+                            void speak(
+                              getSpeakableText(current.german, current.sourceType),
+                              "de-DE"
+                            )
+                          }
                           title="Deutsche Übersetzung vorlesen"
                           className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
                         >
@@ -1163,14 +1192,16 @@ export default function Learn() {
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         <span className="text-muted-foreground">DE:</span>
                         <span>{current.exampleGerman}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => void speak(current.exampleGerman!, germanLang)}
-                          title="Beispiel Deutsch vorlesen"
-                        >
-                          🔊
-                        </Button>
+                        {current.sourceType === "numbers" ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => void speak(current.exampleGerman!, "de-DE")}
+                            title="Beispiel Deutsch vorlesen"
+                          >
+                            🔊
+                          </Button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
