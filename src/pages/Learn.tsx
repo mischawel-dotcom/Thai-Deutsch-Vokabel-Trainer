@@ -1170,38 +1170,44 @@ export default function Learn() {
               {current.sourceType !== "numbers_info" && (current.exampleThai || current.exampleGerman) ? (
                 <>
                   <div className="border-t my-3" />
-                  <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                  <div className="rounded-md border bg-muted/30 p-3 text-base sm:text-lg space-y-3">
                     <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
 
                     {current.exampleThai ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-muted-foreground">TH:</span>
-                        <span>{current.exampleThai}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => void speak(current.exampleThai!, thaiLang)}
-                          title="Beispiel Thai vorlesen"
-                        >
-                          🔊
-                        </Button>
+                      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2 pt-1">
+                        <span className="text-muted-foreground font-medium mt-0.5">TH:</span>
+                        <div className="flex items-start">
+                          <span className="leading-relaxed break-words">{current.exampleThai}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => void speak(current.exampleThai!, thaiLang)}
+                            title="Beispiel Thai vorlesen"
+                            className="ml-4 -mt-0.5"
+                          >
+                            🔊
+                          </Button>
+                        </div>
                       </div>
                     ) : null}
 
                     {current.exampleGerman ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-muted-foreground">DE:</span>
-                        <span>{current.exampleGerman}</span>
-                        {current.sourceType === "numbers" ? (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => void speak(current.exampleGerman!, "de-DE")}
-                            title="Beispiel Deutsch vorlesen"
-                          >
-                            🔊
-                          </Button>
-                        ) : null}
+                      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2">
+                        <span className="text-muted-foreground font-medium">DE:</span>
+                        <div className="flex items-start">
+                          <span className="leading-relaxed break-words">{current.exampleGerman}</span>
+                          {current.sourceType === "numbers" ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => void speak(current.exampleGerman!, "de-DE")}
+                              title="Beispiel Deutsch vorlesen"
+                              className="ml-4 -mt-0.5"
+                            >
+                              🔊
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
                     ) : null}
                   </div>
