@@ -781,6 +781,11 @@ export default function Learn() {
     if (sourceType !== "numbers" && sourceType !== "numbers_info") return text;
     return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
   };
+  const getNumberDisplayText = (text: string) => {
+    const match = text.match(/\(([^)]+)\)\s*$/);
+    if (match && match[1]) return match[1].trim();
+    return text.trim();
+  };
 
   return (
     <PageShell title="Lernen">
@@ -876,17 +881,17 @@ export default function Learn() {
                   Zurück
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="w-full space-y-2 px-1">
                 <Button
                   onClick={startNumbersBasicsSession}
-                  className="h-12 px-6 text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70"
+                  className="h-12 w-full text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70 justify-center"
                   title="Grundlagen Thai-Zahlen als Infokarten starten"
                 >
                   📘 Grundlagen Thai-Zahlen
                 </Button>
                 <Button
                   onClick={openNumbersDialog}
-                  className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="h-12 w-full text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white justify-center"
                   title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
                 >
                   🔢 Zahlenlektion{" "}
@@ -1068,8 +1073,14 @@ export default function Learn() {
               {current.sourceType !== "numbers_info" ? (
                 <>
                   {/* Thai mit Ton */}
-                  {current.sourceType === "vocab" ? (
-                    <div className="flex flex-col items-center justify-center gap-2 py-1">
+                  {current.sourceType === "vocab" || current.sourceType === "numbers" ? (
+                    <div
+                      className={`flex flex-col items-center justify-center gap-2 ${
+                        current.sourceType === "numbers"
+                          ? "py-3 min-h-[9.5rem] sm:min-h-[10.5rem]"
+                          : "py-1"
+                      }`}
+                    >
                       <div className="text-4xl sm:text-5xl font-semibold text-center leading-snug">
                         {current.thai}
                       </div>
@@ -1141,27 +1152,24 @@ export default function Learn() {
                   <div className="border-t my-3" />
 
                   {/* Deutsch */}
-                  <div className="space-y-2">
-                    <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{current.german}</div>
-
-                    {current.sourceType === "numbers" ? (
-                      <div className="flex flex-wrap justify-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void speak(
-                              getSpeakableText(current.german, current.sourceType),
-                              "de-DE"
-                            )
-                          }
-                          title="Deutsche Übersetzung vorlesen"
-                          className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
-                        >
-                          🔊 Deutsch sprechen
-                        </Button>
-                      </div>
-                    ) : null}
+                  <div
+                    className={`space-y-2 ${
+                      current.sourceType === "numbers"
+                        ? "min-h-[7.5rem] sm:min-h-[8.5rem] flex items-center justify-center"
+                        : ""
+                    }`}
+                  >
+                    <div
+                      className={`font-semibold text-center leading-snug text-blue-600 dark:text-blue-400 ${
+                        current.sourceType === "numbers"
+                          ? "text-3xl sm:text-4xl"
+                          : "text-2xl sm:text-3xl"
+                      }`}
+                    >
+                      {current.sourceType === "numbers"
+                        ? getNumberDisplayText(current.german)
+                        : current.german}
+                    </div>
                   </div>
                 </>
               ) : null}
@@ -1196,17 +1204,6 @@ export default function Learn() {
                         <span className="text-muted-foreground font-medium">DE:</span>
                         <div className="flex items-start">
                           <span className="leading-relaxed break-words">{current.exampleGerman}</span>
-                          {current.sourceType === "numbers" ? (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => void speak(current.exampleGerman!, "de-DE")}
-                              title="Beispiel Deutsch vorlesen"
-                              className="ml-4 -mt-0.5"
-                            >
-                              🔊
-                            </Button>
-                          ) : null}
                         </div>
                       </div>
                     ) : null}

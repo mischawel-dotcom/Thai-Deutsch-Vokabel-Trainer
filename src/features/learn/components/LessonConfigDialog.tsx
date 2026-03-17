@@ -84,14 +84,14 @@ export function LessonConfigDialog({
             variant="outline"
             onPointerDown={blurActiveInput}
             onClick={() => onOpenChange(false)}
-            className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+            className="h-11"
           >
             Abbrechen
           </Button>
           <Button
             onPointerDown={blurActiveInput}
             onClick={onStart}
-            className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+            className="h-11 bg-violet-500 hover:bg-violet-600 text-white"
           >
             Starten
           </Button>

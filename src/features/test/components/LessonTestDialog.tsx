@@ -145,16 +145,16 @@ export function LessonTestDialog({
             variant="outline"
             onPointerDown={blurActiveInput}
             onClick={() => onOpenChange(false)}
-            className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
+            className="h-11 bg-black hover:bg-black/90 text-white border-black"
           >
             Abbrechen
           </Button>
           <Button
             onPointerDown={blurActiveInput}
             onClick={onStart}
-            className="h-11 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-blue-600 hover:bg-blue-700 text-white"
+            className="h-11 bg-violet-500 hover:bg-violet-600 text-white"
           >
-            Test starten
+            Starten
           </Button>
         </DialogFooter>
       </DialogContent>
