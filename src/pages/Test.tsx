@@ -263,6 +263,11 @@ export default function Test() {
     return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
   };
   const isNumberSessionCard = current?.sourceType === "numbers" || current?.sourceType === "numbers_generated";
+  const isVocabSessionCard = sessionMode === "vocab" || current?.sourceType === "vocab";
+  const frontIsThai = frontLang === "th-TH";
+  const backIsThai = backLang === "th-TH";
+  const showBackAudioButton = !(isVocabSessionCard && backLang === "de-DE");
+  const showGermanExampleAudio = !isVocabSessionCard;
   const showCurrentCardTransliteration = isNumberSessionCard
     ? showNumberTransliteration
     : showTransliteration;
@@ -1393,7 +1398,11 @@ export default function Test() {
           </div>
 
           {/* Testkarte */}
-          <Card className="mx-auto mt-3 flex w-full min-h-0 max-w-xs flex-col overflow-y-auto border border-slate-200/70 bg-background p-3 shadow-xl dark:border-slate-800/70 sm:max-w-md sm:p-5 md:max-w-2xl md:p-7 max-h-[calc(100dvh-16rem)] sm:max-h-[calc(100dvh-18rem)]">
+          <Card
+            className={`mx-auto mt-3 flex w-full min-h-0 max-w-xs flex-col overflow-y-auto p-3 shadow-xl sm:max-w-md sm:p-5 md:max-w-2xl md:p-7 max-h-[calc(100dvh-16rem)] sm:max-h-[calc(100dvh-18rem)] ${
+              isVocabSessionCard ? "justify-center pt-5 pb-5 sm:pt-7 sm:pb-7 md:pt-9 md:pb-9" : ""
+            }`}
+          >
             <div className="w-full space-y-4">
               <div className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed">
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
@@ -1425,7 +1434,15 @@ export default function Test() {
                     </span>
                   </div>
 
-                  <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">
+                  <div
+                    className={`font-semibold text-center leading-snug ${
+                      isVocabSessionCard
+                        ? frontIsThai
+                          ? "text-4xl sm:text-5xl"
+                          : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
+                        : "text-3xl sm:text-4xl"
+                    }`}
+                  >
                     {frontText}
                   </div>
 
@@ -1453,7 +1470,13 @@ export default function Test() {
                       ) : null
                     ) : current.transliteration ? (
                       <div className="text-center">
-                        <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                        <div
+                          className={`text-muted-foreground italic ${
+                            isVocabSessionCard ? "text-base sm:text-lg" : "text-sm"
+                          }`}
+                        >
+                          {current.transliteration}
+                        </div>
                       </div>
                     ) : null
                   ) : null}
@@ -1462,7 +1485,11 @@ export default function Test() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                      className={`transition-all duration-150 ${
+                        isVocabSessionCard
+                          ? "h-10 border border-transparent bg-background text-foreground shadow-none hover:bg-muted"
+                          : "shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 bg-slate-400 hover:bg-slate-500 text-white"
+                      }`}
                       onClick={(ev) => {
                         ev.stopPropagation();
                         void handleSpeak(getSpeakableText(frontText), frontLang, "front");
@@ -1480,7 +1507,11 @@ export default function Test() {
                     <Button
                       ref={flipButtonRef}
                       onClick={flipCard}
-                      className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                      className={`${
+                        isVocabSessionCard
+                          ? "w-full h-11 text-sm font-medium rounded-lg border transition-colors bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                          : "w-full h-12 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
+                      }`}
                       aria-label="Karte umdrehen um Rückseite zu sehen"
                     >
                       👉 Karte umdrehen
@@ -1498,7 +1529,17 @@ export default function Test() {
                     </span>
                   </div>
 
-                  <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug">{backText}</div>
+                  <div
+                    className={`font-semibold text-center leading-snug ${
+                      isVocabSessionCard
+                        ? backIsThai
+                          ? "text-4xl sm:text-5xl"
+                          : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
+                        : "text-2xl sm:text-3xl"
+                    }`}
+                  >
+                    {backText}
+                  </div>
 
                   {showCurrentCardTransliteration && direction === "DE_TH" ? (
                     current.sourceType === "sentences" ||
@@ -1524,75 +1565,121 @@ export default function Test() {
                       ) : null
                     ) : current.transliteration ? (
                       <div className="text-center">
-                        <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                        <div
+                          className={`text-muted-foreground italic ${
+                            isVocabSessionCard ? "text-base sm:text-lg" : "text-sm"
+                          }`}
+                        >
+                          {current.transliteration}
+                        </div>
                       </div>
                     ) : null
                   ) : null}
 
-                  <div className="flex flex-wrap justify-center gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        void handleSpeak(getSpeakableText(backText), backLang, "back");
-                      }}
-                      title="Vorlesen"
-                      aria-label={`Rückseite vorlesen: ${backText}`}
-                      disabled={isSpeaking}
-                      aria-busy={isSpeaking && speakingKey === "back"}
-                    >
-                      {isSpeaking && speakingKey === "back" ? "🔊 Spricht…" : "🔊 Vorlesen"}
-                    </Button>
-                  </div>
+                  {showBackAudioButton ? (
+                    <div className="flex flex-wrap justify-center gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className={`transition-all duration-150 ${
+                          isVocabSessionCard
+                            ? "h-10 border border-transparent bg-background text-foreground shadow-none hover:bg-muted"
+                            : "shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 bg-slate-400 hover:bg-slate-500 text-white"
+                        }`}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          void handleSpeak(getSpeakableText(backText), backLang, "back");
+                        }}
+                        title="Vorlesen"
+                        aria-label={`Rückseite vorlesen: ${backText}`}
+                        disabled={isSpeaking}
+                        aria-busy={isSpeaking && speakingKey === "back"}
+                      >
+                        {isSpeaking && speakingKey === "back" ? "🔊 Spricht…" : "🔊 Vorlesen"}
+                      </Button>
+                    </div>
+                  ) : null}
 
                   {/* Beispiele (falls vorhanden) */}
                   {current.exampleThai || current.exampleGerman ? (
                     <>
                       <div className="border-t my-3" />
-                      <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                      <div
+                        className={`rounded-md border bg-muted/30 p-3 ${
+                          isVocabSessionCard ? "text-base sm:text-lg space-y-3" : "text-xs space-y-2"
+                        }`}
+                      >
                         <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
                         
                         {current.exampleThai ? (
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <span className="text-muted-foreground">TH:</span>
-                            <span>{current.exampleThai}</span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                void handleSpeak(current.exampleThai!, "th-TH", "example-th");
-                              }}
-                              title="Beispiel Thai vorlesen"
-                              aria-label={`Thai Beispiel vorlesen: ${current.exampleThai}`}
-                              disabled={isSpeaking}
-                              aria-busy={isSpeaking && speakingKey === "example-th"}
+                          <div
+                            className={
+                              isVocabSessionCard
+                                ? "grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2 pt-1"
+                                : "flex flex-wrap items-center justify-center gap-2"
+                            }
+                          >
+                            <span
+                              className={`text-muted-foreground ${
+                                isVocabSessionCard ? "font-medium mt-0.5" : ""
+                              }`}
                             >
-                              {isSpeaking && speakingKey === "example-th" ? "⏳" : "🔊"}
-                            </Button>
+                              TH:
+                            </span>
+                            <div className="flex items-end">
+                              <span className="leading-relaxed break-words">{current.exampleThai}</span>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  void handleSpeak(current.exampleThai!, "th-TH", "example-th");
+                                }}
+                                title="Beispiel Thai vorlesen"
+                                aria-label={`Thai Beispiel vorlesen: ${current.exampleThai}`}
+                                disabled={isSpeaking}
+                                aria-busy={isSpeaking && speakingKey === "example-th"}
+                                className={
+                                  isVocabSessionCard ? "ml-4 h-8 w-8 self-end p-0 leading-none -mb-0.5" : ""
+                                }
+                              >
+                                {isSpeaking && speakingKey === "example-th" ? "⏳" : "🔊"}
+                              </Button>
+                            </div>
                           </div>
                         ) : null}
 
                         {current.exampleGerman ? (
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <span className="text-muted-foreground">DE:</span>
-                            <span>{current.exampleGerman}</span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                void handleSpeak(current.exampleGerman!, "de-DE", "example-de");
-                              }}
-                              title="Beispiel Deutsch vorlesen"
-                              aria-label={`Deutsches Beispiel vorlesen: ${current.exampleGerman}`}
-                              disabled={isSpeaking}
-                              aria-busy={isSpeaking && speakingKey === "example-de"}
-                            >
-                              {isSpeaking && speakingKey === "example-de" ? "⏳" : "🔊"}
-                            </Button>
+                          <div
+                            className={
+                              isVocabSessionCard
+                                ? "grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2"
+                                : "flex flex-wrap items-center justify-center gap-2"
+                            }
+                          >
+                            <span className={`text-muted-foreground ${isVocabSessionCard ? "font-medium" : ""}`}>
+                              DE:
+                            </span>
+                            <div className="flex items-start">
+                              <span className="leading-relaxed break-words">{current.exampleGerman}</span>
+                              {showGermanExampleAudio ? (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    void handleSpeak(current.exampleGerman!, "de-DE", "example-de");
+                                  }}
+                                  title="Beispiel Deutsch vorlesen"
+                                  aria-label={`Deutsches Beispiel vorlesen: ${current.exampleGerman}`}
+                                  disabled={isSpeaking}
+                                  aria-busy={isSpeaking && speakingKey === "example-de"}
+                                  className={isVocabSessionCard ? "ml-4 -mt-0.5" : ""}
+                                >
+                                  {isSpeaking && speakingKey === "example-de" ? "⏳" : "🔊"}
+                                </Button>
+                              ) : null}
+                            </div>
                           </div>
                         ) : null}
                       </div>
@@ -1625,12 +1712,14 @@ export default function Test() {
               <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
                 <Button
                   onClick={() => gradeAnswerHook(false)}
-                  variant="destructive"
+                  variant={isVocabSessionCard ? "outline" : "destructive"}
                   size="sm"
                   disabled={!flipped}
-                  className={`h-11 flex-1 shadow-lg transition-all duration-150 ${
+                  className={`h-11 flex-1 transition-colors ${
                     flipped
-                      ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
+                      ? isVocabSessionCard
+                        ? "rounded-lg border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 dark:hover:text-rose-300"
+                        : "shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
                       : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
                   }`}
                   aria-label="Antwort als falsch markieren"
@@ -1639,12 +1728,14 @@ export default function Test() {
                 </Button>
                 <Button
                   onClick={() => gradeAnswerHook(true)}
-                  variant="default"
+                  variant={isVocabSessionCard ? "outline" : "default"}
                   size="sm"
                   disabled={!flipped}
-                  className={`h-11 flex-1 shadow-lg transition-all duration-150 ${
+                  className={`h-11 flex-1 transition-colors ${
                     flipped
-                      ? "hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
+                      ? isVocabSessionCard
+                        ? "rounded-lg border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300"
+                        : "shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
                       : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
                   }`}
                   aria-label="Antwort als richtig markieren"
