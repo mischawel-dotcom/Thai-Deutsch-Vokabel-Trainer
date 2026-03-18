@@ -870,6 +870,20 @@ export default function Test() {
     setConfirmAction("end");
   }
 
+  function goBackToTests() {
+    dispatchSession({
+      type: "set",
+      payload: {
+        sessionActive: false,
+        currentId: null,
+        flipped: false,
+      },
+    });
+    setSessionMode(null);
+    setTestEntryView("hub");
+    setStatus("Test abgeschlossen.");
+  }
+
   function executeConfirmAction() {
     if (confirmAction === "restart") {
       if (queue.length > 0) {
@@ -922,6 +936,7 @@ export default function Test() {
     ? Math.round((queue.length > 0 ? (doneIds.size / queue.length) * 100 : 0))
     : Math.round((cardStreak / 5) * 100);
   const statusIsWarning = status.startsWith("Keine ");
+  const showStatusMessage = !finished && Boolean(status);
 
   // ===== Render =====
   return (
@@ -929,7 +944,7 @@ export default function Test() {
       {/* Status / Fehler */}
       {status || error ? (
         <div className="space-y-2" role="status" aria-live="polite">
-          {status ? (
+          {showStatusMessage ? (
             <p
               className={
                 statusIsWarning
@@ -951,7 +966,7 @@ export default function Test() {
       {/* Test-Einstieg */}
       {!sessionActive && testEntryView === "hub" ? (
         <Card className="p-4 space-y-3">
-          <div className="text-sm font-semibold text-muted-foreground">🧪 Testbereich wählen</div>
+          <div className="text-sm font-semibold text-muted-foreground">🧪 Test wählen</div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Button
               onClick={() => setTestEntryView("vocab")}
@@ -1246,18 +1261,22 @@ export default function Test() {
       {/* Fertig */}
       {finished ? (
         <Card className="p-6 text-center">
-          <div className="text-2xl font-semibold">🎉 Fertig!</div>
+          <div className="text-2xl font-semibold">Test abgeschlossen</div>
           <p className="mt-2 text-sm text-muted-foreground">
             {isSentenceSession ? (
-              <>Du hast alle Satzkarten in diesem Durchlauf beantwortet.</>
+              <>Alle Satzkarten in diesem Durchlauf wurden beantwortet.</>
             ) : (
-              <>
-                Alle ausgewählten Karten wurden mindestens <b>5× hintereinander</b> richtig beantwortet.
-              </>
+              <>Alle ausgewählten Karten wurden erfolgreich abgeschlossen.</>
             )}
           </p>
-          <div className="mt-4">
-            <Button onClick={restartSessionConfirm}>Noch einmal (Session neu starten)</Button>
+          <p className="mt-1 text-xs text-muted-foreground">Karten im Durchlauf: {queue.length}</p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button variant="outline" onClick={goBackToTests}>
+              Zurück zu Tests
+            </Button>
+            <Button variant="outline" onClick={restartSessionConfirm}>
+              Session neu starten
+            </Button>
           </div>
         </Card>
       ) : null}
@@ -1265,11 +1284,12 @@ export default function Test() {
       {/* Keine Session */}
       {!sessionActive ? (
         <div className="space-y-2">
-          <p className="text-center text-sm text-muted-foreground">
-            {testEntryView === "vocab"
-              ? "Wähle einen Vokabeltest. Richtung und Optionen konfigurierst du im jeweiligen Startdialog."
-              : "Wähle oben einen Testbereich: Vokabeln, Zahlen oder Sätze."}
-          </p>
+          {testEntryView === "vocab" ? (
+            <p className="text-center text-sm text-muted-foreground">
+              Wähle einen Vokabeltest. Richtung und Optionen konfigurierst du im jeweiligen
+              Startdialog.
+            </p>
+          ) : null}
           {testEntryView === "vocab" ? (
             <div className="flex flex-col items-center gap-2">
             <Button
