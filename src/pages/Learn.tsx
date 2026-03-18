@@ -17,6 +17,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -155,9 +156,7 @@ export default function Learn() {
     setError("");
     try {
       // Nur Metadaten: alle Vokabeln zählen ohne Inhalte zu laden
-      const { entries: practiceVocabEntries, activeGate } = applyCefrFirstFilter(
-        await db.vocab.toArray()
-      );
+      const { entries: practiceVocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
       const count = practiceVocabEntries.length;
       if (count === 0) {
         setStatus("Keine Einträge vorhanden.");
@@ -230,9 +229,7 @@ export default function Learn() {
         unlockedBlockCount: new Set(unlockedSentenceEntries.map(blockKey)).size,
       });
 
-      if (activeGate === "A1") {
-        setStatus("CEFR-first aktiv: Erst A1 lernen, dann A2.");
-      } else if (!lessons.length) {
+      if (!lessons.length) {
         setStatus(numbersCount > 0 ? "" : "Keine Lektionen vorhanden.");
       } else {
         setStatus("");
@@ -911,10 +908,10 @@ export default function Learn() {
                   Zurück
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="w-full space-y-2 px-1">
                 <Button
                   onClick={() => void openSentenceDialog("regular")}
-                  className="h-12 px-6 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="h-12 w-full text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white justify-center"
                   title={`Satzlernen starten (${sentencesMeta.unlockedLearnedCount}/${sentencesMeta.unlockedCount} gelernt)`}
                   disabled={sentencesMeta.unlockedCount <= 0}
                 >
@@ -925,7 +922,7 @@ export default function Learn() {
                 </Button>
                 <Button
                   onClick={() => void startSentenceSession([6], true)}
-                  className="h-12 px-6 text-base font-medium bg-cyan-600 hover:bg-cyan-700 text-white"
+                  className="h-12 w-full text-base font-medium bg-cyan-600 hover:bg-cyan-700 text-white justify-center"
                   title="Wichtige Sätze lernen"
                 >
                   🧭 Wichtige Sätze lernen
@@ -1367,22 +1364,31 @@ export default function Learn() {
               </div>
             </div>
 
-            <Button
-              className="w-full"
-              onClick={() => {
-                  const selectedLessons = sentenceLessonOptions
-                    .filter((option) => option.enabled && sentenceSelectedLessons[option.lesson])
-                    .map((option) => option.lesson);
-                  if (selectedLessons.length === 0) {
-                    setStatus("Bitte mindestens eine freigeschaltete Lektion auswählen.");
-                    return;
-                  }
-                  void startSentenceSession(selectedLessons, sentenceIncludeViewed);
-                  setSentenceDialogOpen(false);
-              }}
-            >
-              Satzlernen starten
-            </Button>
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => setSentenceDialogOpen(false)}
+                className="h-11"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                className="h-11 bg-violet-500 hover:bg-violet-600 text-white"
+                onClick={() => {
+                    const selectedLessons = sentenceLessonOptions
+                      .filter((option) => option.enabled && sentenceSelectedLessons[option.lesson])
+                      .map((option) => option.lesson);
+                    if (selectedLessons.length === 0) {
+                      setStatus("Bitte mindestens eine freigeschaltete Lektion auswählen.");
+                      return;
+                    }
+                    void startSentenceSession(selectedLessons, sentenceIncludeViewed);
+                    setSentenceDialogOpen(false);
+                }}
+              >
+                Satzlernen starten
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
