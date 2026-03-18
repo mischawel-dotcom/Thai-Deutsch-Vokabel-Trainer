@@ -264,6 +264,10 @@ export default function Test() {
   };
   const isNumberSessionCard = current?.sourceType === "numbers" || current?.sourceType === "numbers_generated";
   const isVocabSessionCard = sessionMode === "vocab" || current?.sourceType === "vocab";
+  const isSentenceSessionCard =
+    sessionMode === "sentences_regular" || sessionMode === "sentences_important";
+  const useVocabLikeTestButtons =
+    isVocabSessionCard || isNumberSessionCard || isSentenceSessionCard;
   const frontIsThai = frontLang === "th-TH";
   const backIsThai = backLang === "th-TH";
   const showBackAudioButton = !(isVocabSessionCard && backLang === "de-DE");
@@ -1508,7 +1512,7 @@ export default function Test() {
                       ref={flipButtonRef}
                       onClick={flipCard}
                       className={`${
-                        isVocabSessionCard
+                        useVocabLikeTestButtons
                           ? "w-full h-11 text-sm font-medium rounded-lg border transition-colors bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
                           : "w-full h-12 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
                       }`}
@@ -1712,12 +1716,12 @@ export default function Test() {
               <div className="flex gap-2 justify-center" role="group" aria-label="Karte bewerten">
                 <Button
                   onClick={() => gradeAnswerHook(false)}
-                  variant={isVocabSessionCard ? "outline" : "destructive"}
+                  variant={useVocabLikeTestButtons ? "outline" : "destructive"}
                   size="sm"
                   disabled={!flipped}
                   className={`h-11 flex-1 transition-colors ${
                     flipped
-                      ? isVocabSessionCard
+                      ? useVocabLikeTestButtons
                         ? "rounded-lg border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-950/50 dark:hover:text-rose-300"
                         : "shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-red-600 hover:bg-red-700 text-white"
                       : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
@@ -1728,12 +1732,12 @@ export default function Test() {
                 </Button>
                 <Button
                   onClick={() => gradeAnswerHook(true)}
-                  variant={isVocabSessionCard ? "outline" : "default"}
+                  variant={useVocabLikeTestButtons ? "outline" : "default"}
                   size="sm"
                   disabled={!flipped}
                   className={`h-11 flex-1 transition-colors ${
                     flipped
-                      ? isVocabSessionCard
+                      ? useVocabLikeTestButtons
                         ? "rounded-lg border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300"
                         : "shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 bg-green-600 hover:bg-green-700 text-white"
                       : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
@@ -1804,7 +1808,7 @@ export default function Test() {
       />
 
       <Dialog open={sentenceModeDialogOpen} onOpenChange={setSentenceModeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-xs sm:max-w-md">
           <DialogHeader>
             <DialogTitle>💬 Sätze testen</DialogTitle>
           </DialogHeader>
@@ -1825,7 +1829,7 @@ export default function Test() {
                 void openSentenceTestDialog();
               }}
               size="lg"
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800"
+              className="w-full h-11 text-sm font-medium rounded-lg border transition-colors bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
               title="Satztest L1-L5 mit Filter starten"
             >
               💬 Satztest
@@ -1836,11 +1840,21 @@ export default function Test() {
                 void startSentenceImportantTestDirect();
               }}
               size="lg"
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
+              className="w-full h-11 text-sm font-medium rounded-lg border transition-colors bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/50"
               title="Wichtige Sätze direkt testen"
             >
               🧭 Wichtige Sätze testen
             </Button>
+            </div>
+            <div className="pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11 border-transparent bg-background text-foreground hover:bg-muted"
+                onClick={() => setSentenceModeDialogOpen(false)}
+              >
+                Zurück
+              </Button>
             </div>
           </div>
         </DialogContent>
