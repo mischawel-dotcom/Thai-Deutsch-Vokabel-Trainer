@@ -253,6 +253,13 @@ export default function Test() {
 
   const backText = useMemo(() => {
     if (!current) return "";
+    if (
+      direction === "TH_DE" &&
+      (current.sourceType === "numbers" || current.sourceType === "numbers_generated")
+    ) {
+      const arabicMatch = current.german.match(/\(([^)]*)\)\s*$/);
+      return arabicMatch?.[1]?.trim() || current.german;
+    }
     return direction === "TH_DE" ? current.german : current.thai;
   }, [current, direction]);
 
