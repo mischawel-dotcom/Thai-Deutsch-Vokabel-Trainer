@@ -90,7 +90,12 @@ export function buildExamQuestions(
       german: labels.german,
       correctAnswer,
       options: shuffledOptions,
-      questionText: isThaiToDeutsch ? labels.thai : labels.german,
+      questionText:
+        domain === "numbers" && !isThaiToDeutsch
+          ? String((entry as NumberEntry).arabic)
+          : isThaiToDeutsch
+            ? labels.thai
+            : labels.german,
     };
   });
 
