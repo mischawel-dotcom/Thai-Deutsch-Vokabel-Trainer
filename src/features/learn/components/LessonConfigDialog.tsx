@@ -17,6 +17,8 @@ type LessonConfigDialogProps = {
   selectedLessonLearnedCount: number;
   cardLimit: string;
   onCardLimitChange: (value: string) => void;
+  emptySelectionHint?: string;
+  onStartWithViewed?: () => void;
   onStart: () => void;
 };
 
@@ -36,6 +38,8 @@ export function LessonConfigDialog({
   selectedLessonLearnedCount,
   cardLimit,
   onCardLimitChange,
+  emptySelectionHint,
+  onStartWithViewed,
   onStart,
 }: LessonConfigDialogProps) {
   return (
@@ -77,6 +81,21 @@ export function LessonConfigDialog({
               Standard: dein tägliches Lernziel. Leer = alle verfügbaren Karten der Lektion.
             </p>
           </div>
+
+          {emptySelectionHint ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200 space-y-2">
+              <p>{emptySelectionHint}</p>
+              {onStartWithViewed ? (
+                <Button
+                  onPointerDown={blurActiveInput}
+                  onClick={onStartWithViewed}
+                  className="h-10 w-full text-sm font-medium rounded-lg border transition-colors bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                >
+                  Gelernte Karten einschließen und starten
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-row">

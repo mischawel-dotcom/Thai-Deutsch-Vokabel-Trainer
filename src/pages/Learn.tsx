@@ -658,8 +658,10 @@ export default function Learn() {
     setIncludeViewed,
     cardLimit,
     setCardLimit,
+    emptySelectionHint,
     openLessonDialog,
     startSession,
+    startSessionWithViewed,
   } = useLearnLessonFlow({
     loadLesson,
     onStartSession: (cards) => {
@@ -1297,6 +1299,8 @@ export default function Learn() {
         selectedLessonLearnedCount={selectedLessonLearnedCount}
         cardLimit={cardLimit}
         onCardLimitChange={setCardLimit}
+        emptySelectionHint={emptySelectionHint}
+        onStartWithViewed={!includeViewed ? () => void startSessionWithViewed() : undefined}
         onStart={() => void startSession()}
       />
 
