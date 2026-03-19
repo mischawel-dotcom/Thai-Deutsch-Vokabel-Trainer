@@ -17,6 +17,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -155,9 +156,7 @@ export default function Learn() {
     setError("");
     try {
       // Nur Metadaten: alle Vokabeln zählen ohne Inhalte zu laden
-      const { entries: practiceVocabEntries, activeGate } = applyCefrFirstFilter(
-        await db.vocab.toArray()
-      );
+      const { entries: practiceVocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
       const count = practiceVocabEntries.length;
       if (count === 0) {
         setStatus("Keine Einträge vorhanden.");
@@ -230,9 +229,7 @@ export default function Learn() {
         unlockedBlockCount: new Set(unlockedSentenceEntries.map(blockKey)).size,
       });
 
-      if (activeGate === "A1") {
-        setStatus("CEFR-first aktiv: Erst A1 lernen, dann A2.");
-      } else if (!lessons.length) {
+      if (!lessons.length) {
         setStatus(numbersCount > 0 ? "" : "Keine Lektionen vorhanden.");
       } else {
         setStatus("");
@@ -661,8 +658,10 @@ export default function Learn() {
     setIncludeViewed,
     cardLimit,
     setCardLimit,
+    emptySelectionHint,
     openLessonDialog,
     startSession,
+    startSessionWithViewed,
   } = useLearnLessonFlow({
     loadLesson,
     onStartSession: (cards) => {
@@ -774,13 +773,17 @@ export default function Learn() {
     0
   );
   const thaiLang = "th-TH";
-  const germanLang = "de-DE";
   const getSpeakableText = (
     text: string,
     sourceType?: "vocab" | "numbers" | "numbers_info" | "sentences"
   ) => {
     if (sourceType !== "numbers" && sourceType !== "numbers_info") return text;
     return text.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  };
+  const getNumberDisplayText = (text: string) => {
+    const match = text.match(/\(([^)]+)\)\s*$/);
+    if (match && match[1]) return match[1].trim();
+    return text.trim();
   };
 
   return (
@@ -877,17 +880,17 @@ export default function Learn() {
                   Zurück
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="w-full space-y-2 px-1">
                 <Button
                   onClick={startNumbersBasicsSession}
-                  className="h-12 px-6 text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70"
+                  className="h-12 w-full text-base font-medium bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-100 dark:hover:bg-indigo-900/70 justify-center"
                   title="Grundlagen Thai-Zahlen als Infokarten starten"
                 >
                   📘 Grundlagen Thai-Zahlen
                 </Button>
                 <Button
                   onClick={openNumbersDialog}
-                  className="h-12 px-6 text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="h-12 w-full text-base font-medium bg-indigo-600 hover:bg-indigo-700 text-white justify-center"
                   title={`Zahlenlektion starten (${numbersMeta.learnedCount}/${numbersMeta.count} gelernt)`}
                 >
                   🔢 Zahlenlektion{" "}
@@ -907,10 +910,10 @@ export default function Learn() {
                   Zurück
                 </Button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="w-full space-y-2 px-1">
                 <Button
                   onClick={() => void openSentenceDialog("regular")}
-                  className="h-12 px-6 text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="h-12 w-full text-base font-medium bg-emerald-600 hover:bg-emerald-700 text-white justify-center"
                   title={`Satzlernen starten (${sentencesMeta.unlockedLearnedCount}/${sentencesMeta.unlockedCount} gelernt)`}
                   disabled={sentencesMeta.unlockedCount <= 0}
                 >
@@ -921,7 +924,7 @@ export default function Learn() {
                 </Button>
                 <Button
                   onClick={() => void startSentenceSession([6], true)}
-                  className="h-12 px-6 text-base font-medium bg-cyan-600 hover:bg-cyan-700 text-white"
+                  className="h-12 w-full text-base font-medium bg-cyan-600 hover:bg-cyan-700 text-white justify-center"
                   title="Wichtige Sätze lernen"
                 >
                   🧭 Wichtige Sätze lernen
@@ -1069,21 +1072,50 @@ export default function Learn() {
               {current.sourceType !== "numbers_info" ? (
                 <>
                   {/* Thai mit Ton */}
-                  <div className="space-y-2">
-                    <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">{current.thai}</div>
-
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)}
+                  {current.sourceType === "vocab" || current.sourceType === "numbers" ? (
+                    <div
+                      className={`flex flex-col items-center justify-center gap-2 ${
+                        current.sourceType === "numbers"
+                          ? "py-3 min-h-[9.5rem] sm:min-h-[10.5rem]"
+                          : "py-1"
+                      }`}
+                    >
+                      <div className="text-4xl sm:text-5xl font-semibold text-center leading-snug">
+                        {current.thai}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)
+                        }
                         title="Thai Wort vorlesen"
-                        className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                        aria-label="Thai Wort vorlesen"
+                        className="text-3xl leading-none hover:opacity-80 active:opacity-60 transition-opacity"
                       >
-                        🔊 Thai sprechen
-                      </Button>
+                        🔊
+                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">
+                        {current.thai}
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)
+                          }
+                          title="Thai Wort vorlesen"
+                          aria-label="Thai Wort vorlesen"
+                          className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
+                        >
+                          🔊 Thai sprechen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Trennlinie */}
                   <div className="border-t my-3" />
@@ -1109,30 +1141,34 @@ export default function Learn() {
                     ) : null
                   ) : current.transliteration ? (
                     <div className="text-center">
-                      <div className="text-sm text-muted-foreground italic">{current.transliteration}</div>
+                      <div className="text-base sm:text-lg text-muted-foreground italic">
+                        {current.transliteration}
+                      </div>
                     </div>
                   ) : null}
 
                   {/* Trennlinie */}
                   <div className="border-t my-3" />
 
-                  {/* Deutsch (bei Satzkarten ohne Audio) */}
-                  <div className="space-y-2">
-                    <div className="text-2xl sm:text-3xl font-semibold text-center leading-snug text-blue-600 dark:text-blue-400">{current.german}</div>
-
-                    {current.sourceType !== "sentences" ? (
-                      <div className="flex flex-wrap justify-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => void speak(getSpeakableText(current.german, current.sourceType), germanLang)}
-                          title="Deutsche Übersetzung vorlesen"
-                          className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
-                        >
-                          🔊 Deutsch sprechen
-                        </Button>
-                      </div>
-                    ) : null}
+                  {/* Deutsch */}
+                  <div
+                    className={`space-y-2 ${
+                      current.sourceType === "numbers"
+                        ? "min-h-[7.5rem] sm:min-h-[8.5rem] flex items-center justify-center"
+                        : ""
+                    }`}
+                  >
+                    <div
+                      className={`font-semibold text-center leading-snug text-blue-600 dark:text-blue-400 ${
+                        current.sourceType === "numbers"
+                          ? "text-3xl sm:text-4xl"
+                          : "text-2xl sm:text-3xl"
+                      }`}
+                    >
+                      {current.sourceType === "numbers"
+                        ? getNumberDisplayText(current.german)
+                        : current.german}
+                    </div>
                   </div>
                 </>
               ) : null}
@@ -1141,36 +1177,33 @@ export default function Learn() {
               {current.sourceType !== "numbers_info" && (current.exampleThai || current.exampleGerman) ? (
                 <>
                   <div className="border-t my-3" />
-                  <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                  <div className="rounded-md border bg-muted/30 p-3 text-base sm:text-lg space-y-3">
                     <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
 
                     {current.exampleThai ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-muted-foreground">TH:</span>
-                        <span>{current.exampleThai}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => void speak(current.exampleThai!, thaiLang)}
-                          title="Beispiel Thai vorlesen"
-                        >
-                          🔊
-                        </Button>
+                      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2 pt-1">
+                        <span className="text-muted-foreground font-medium mt-0.5">TH:</span>
+                        <div className="flex items-start">
+                          <span className="leading-relaxed break-words">{current.exampleThai}</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => void speak(current.exampleThai!, thaiLang)}
+                            title="Beispiel Thai vorlesen"
+                            className="ml-4 -mt-0.5"
+                          >
+                            🔊
+                          </Button>
+                        </div>
                       </div>
                     ) : null}
 
                     {current.exampleGerman ? (
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        <span className="text-muted-foreground">DE:</span>
-                        <span>{current.exampleGerman}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => void speak(current.exampleGerman!, germanLang)}
-                          title="Beispiel Deutsch vorlesen"
-                        >
-                          🔊
-                        </Button>
+                      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2">
+                        <span className="text-muted-foreground font-medium">DE:</span>
+                        <div className="flex items-start">
+                          <span className="leading-relaxed break-words">{current.exampleGerman}</span>
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -1181,20 +1214,20 @@ export default function Learn() {
 
           {/* Navigation + Aktionen */}
           <div className="fixed inset-x-0 bottom-0 z-10 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-            <div className="mx-auto w-full max-w-2xl rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur">
+            <div className="mx-auto w-full max-w-xs rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur sm:max-w-md md:max-w-2xl">
               <div className="space-y-2">
                 {/* Markieren als gesehen */}
                 {current.sourceType !== "numbers_info" ? (
                   <Button
                     onClick={markCurrentAsViewed}
                     size="sm"
-                    className={`w-full h-11 text-sm font-semibold shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150 rounded-lg ${
+                    className={`w-full h-11 text-sm font-medium rounded-lg border transition-colors ${
                       current.viewed
-                        ? "bg-red-600 hover:bg-red-700 text-white"
-                        : "bg-green-600 hover:bg-green-700 text-white"
+                        ? "bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/50"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
                     }`}
                   >
-                    {current.viewed ? "↩️ Markiere als ungelernt" : "✅ Markiere als gelernt"}
+                    {current.viewed ? "Als ungelernt markieren" : "Als gelernt markieren"}
                   </Button>
                 ) : null}
 
@@ -1204,17 +1237,17 @@ export default function Learn() {
                     onClick={goPrev}
                     disabled={sessionState.currentIndex === 0}
                     variant="outline"
-                    className="h-11 px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                    className="h-11 px-5 border-transparent bg-background text-foreground hover:bg-muted disabled:opacity-50"
                   >
-                    ⬅️ Zurück
+                    Zurück
                   </Button>
 
                   <Button
                     onClick={goNext}
                     disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
-                    className="h-11 px-4 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:shadow-none"
+                    className="h-11 px-5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
-                    Weiter ➡️
+                    Weiter
                   </Button>
                 </div>
 
@@ -1266,6 +1299,8 @@ export default function Learn() {
         selectedLessonLearnedCount={selectedLessonLearnedCount}
         cardLimit={cardLimit}
         onCardLimitChange={setCardLimit}
+        emptySelectionHint={emptySelectionHint}
+        onStartWithViewed={!includeViewed ? () => void startSessionWithViewed() : undefined}
         onStart={() => void startSession()}
       />
 
@@ -1333,22 +1368,31 @@ export default function Learn() {
               </div>
             </div>
 
-            <Button
-              className="w-full"
-              onClick={() => {
-                  const selectedLessons = sentenceLessonOptions
-                    .filter((option) => option.enabled && sentenceSelectedLessons[option.lesson])
-                    .map((option) => option.lesson);
-                  if (selectedLessons.length === 0) {
-                    setStatus("Bitte mindestens eine freigeschaltete Lektion auswählen.");
-                    return;
-                  }
-                  void startSentenceSession(selectedLessons, sentenceIncludeViewed);
-                  setSentenceDialogOpen(false);
-              }}
-            >
-              Satzlernen starten
-            </Button>
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => setSentenceDialogOpen(false)}
+                className="h-11"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                className="h-11 bg-violet-500 hover:bg-violet-600 text-white"
+                onClick={() => {
+                    const selectedLessons = sentenceLessonOptions
+                      .filter((option) => option.enabled && sentenceSelectedLessons[option.lesson])
+                      .map((option) => option.lesson);
+                    if (selectedLessons.length === 0) {
+                      setStatus("Bitte mindestens eine freigeschaltete Lektion auswählen.");
+                      return;
+                    }
+                    void startSentenceSession(selectedLessons, sentenceIncludeViewed);
+                    setSentenceDialogOpen(false);
+                }}
+              >
+                Satzlernen starten
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

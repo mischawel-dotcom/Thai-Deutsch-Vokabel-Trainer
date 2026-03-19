@@ -3,9 +3,6 @@ import {
   DashboardStatsGrid,
   StreakDialog,
   LessonProgressSection,
-  NumbersQuickAccessCard,
-  SentencesQuickAccessCard,
-  QuickActionsSection,
   MotivationCard,
   useHomeDashboardData,
   useHomeLessonNavigation,
@@ -30,11 +27,6 @@ export default function Home({ onNavigate }: HomeProps) {
     sentenceTotal,
     sentenceUnlocked,
     sentenceUnlockedLearned,
-    sentenceBlockTotal,
-    sentenceBlockUnlocked,
-    sentenceNextBlockLabel,
-    sentenceNextBlockCurrentPassed,
-    sentenceNextBlockThreshold,
     streakStats,
     progress,
     dailyGoalReached,
@@ -46,7 +38,7 @@ export default function Home({ onNavigate }: HomeProps) {
 
     <div className="space-y-6">
       {/* Version-Check Indicator */}
-      <div className="text-3xl font-bold text-red-600">289</div>
+      <div className="text-3xl font-bold text-red-600">323</div>
       
       {/* Welcome Header */}
       <div>
@@ -68,6 +60,9 @@ export default function Home({ onNavigate }: HomeProps) {
         numbersMasteredFive={numbersMasteredFive}
         numbersExamPassed={numbersExamPassed}
         numbersExamBestScore={numbersExamBestScore}
+        sentenceUnlocked={sentenceUnlocked}
+        sentenceTotal={sentenceTotal}
+        sentenceUnlockedLearned={sentenceUnlockedLearned}
         onNavigate={onNavigate}
         onOpenStreak={() => setStreakDialogOpen(true)}
       />
@@ -86,21 +81,6 @@ export default function Home({ onNavigate }: HomeProps) {
         lessonTotalCounts={lessonTotalCounts}
         lessonTestPassedCounts={lessonTestPassedCounts}
         onLessonClick={handleLessonClick}
-      />
-
-      <QuickActionsSection dueCount={dueCount} onNavigate={onNavigate} />
-
-      <NumbersQuickAccessCard onNavigate={onNavigate} />
-      <SentencesQuickAccessCard
-        onNavigate={onNavigate}
-        sentenceTotal={sentenceTotal}
-        sentenceUnlocked={sentenceUnlocked}
-        sentenceUnlockedLearned={sentenceUnlockedLearned}
-        sentenceBlockTotal={sentenceBlockTotal}
-        sentenceBlockUnlocked={sentenceBlockUnlocked}
-        sentenceNextBlockLabel={sentenceNextBlockLabel}
-        sentenceNextBlockCurrentPassed={sentenceNextBlockCurrentPassed}
-        sentenceNextBlockThreshold={sentenceNextBlockThreshold}
       />
 
       <MotivationCard dueCount={dueCount} />

@@ -17,6 +17,8 @@ type LessonConfigDialogProps = {
   selectedLessonLearnedCount: number;
   cardLimit: string;
   onCardLimitChange: (value: string) => void;
+  emptySelectionHint?: string;
+  onStartWithViewed?: () => void;
   onStart: () => void;
 };
 
@@ -36,6 +38,8 @@ export function LessonConfigDialog({
   selectedLessonLearnedCount,
   cardLimit,
   onCardLimitChange,
+  emptySelectionHint,
+  onStartWithViewed,
   onStart,
 }: LessonConfigDialogProps) {
   return (
@@ -77,6 +81,21 @@ export function LessonConfigDialog({
               Standard: dein tägliches Lernziel. Leer = alle verfügbaren Karten der Lektion.
             </p>
           </div>
+
+          {emptySelectionHint ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200 space-y-2">
+              <p>{emptySelectionHint}</p>
+              {onStartWithViewed ? (
+                <Button
+                  onPointerDown={blurActiveInput}
+                  onClick={onStartWithViewed}
+                  className="h-10 w-full text-sm font-medium rounded-lg border transition-colors bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-950/50"
+                >
+                  Gelernte Karten einschließen und starten
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-row">
@@ -84,14 +103,14 @@ export function LessonConfigDialog({
             variant="outline"
             onPointerDown={blurActiveInput}
             onClick={() => onOpenChange(false)}
-            className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+            className="h-11"
           >
             Abbrechen
           </Button>
           <Button
             onPointerDown={blurActiveInput}
             onClick={onStart}
-            className="h-11 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+            className="h-11 bg-violet-500 hover:bg-violet-600 text-white"
           >
             Starten
           </Button>
