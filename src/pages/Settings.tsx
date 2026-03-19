@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { importCsv, exportCsv } from "../features/vocab/csv";
+import { useState } from "react";
+import { getLastBackupTime } from "../features/vocab/backup";
 import { db } from "../db/db";
-import { ensureProgressForEntries } from "../db/srs";
-import { DEFAULT_VOCAB } from "../data/defaultVocab";
 import { listVoices, hasThaiVoice } from "../features/tts";
+import { useSettingsDataHandlers } from "../features/settings/hooks/useSettingsDataHandlers";
+import { useSettingsMaintenance } from "../features/settings/hooks/useSettingsMaintenance";
+import { useSettingsPreferences } from "../features/settings/hooks/useSettingsPreferences";
+import { useSettingsPwaInstall } from "../features/settings/hooks/useSettingsPwaInstall";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,72 +17,74 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-type LearnDirection = "TH_DE" | "DE_TH";
+type SettingsSectionId =
+  | "learn"
+  | "install"
+  | "vocab"
+  | "backup"
+  | "danger"
+  | "debugLesson"
+  | "voice"
+  | "pwaDebug";
 
 export default function Settings() {
   const [msg, setMsg] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [dailyLimit, setDailyLimit] = useState<number>(10);
-  const [inputValue, setInputValue] = useState<string>("10");
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
-  const [debugInfo, setDebugInfo] = useState<string>("");
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [learnDirection, setLearnDirection] = useState<LearnDirection>("TH_DE");
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [activeSection, setActiveSection] = useState<SettingsSectionId | null>(null);
   const [vocabCount, setVocabCount] = useState<number>(0);
+  const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
+  const [renderNow] = useState<number>(() => Date.now());
   const latestCsvUrls = [
     "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv",
     "https://cdn.jsdelivr.net/gh/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer@main/data/thai-de-vocab_Ver_2.csv",
   ];
-
-  // Load daily limit from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("dailyLimit");
-    if (saved) {
-      const num = parseInt(saved, 10);
-      if (!isNaN(num) && num > 0) {
-        setDailyLimit(num);
-        setInputValue(String(num));
-      }
-    }
-
-    // Load learnDirection from localStorage
-    const savedDirection = localStorage.getItem("learnDirection");
-    if (savedDirection === "TH_DE" || savedDirection === "DE_TH") {
-      setLearnDirection(savedDirection);
-    }
-
-    // Load soundEnabled from localStorage
-    const savedSoundEnabled = localStorage.getItem("soundEnabled");
-    if (savedSoundEnabled === "false") {
-      setSoundEnabled(false);
-    }
-
-    // Listen for PWA install prompt
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallButton(true);
-      setDebugInfo("✅ beforeinstallprompt Event empfangen!");
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    // Check if already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (isStandalone) {
-      setShowInstallButton(false);
-      setDebugInfo("ℹ️ App ist bereits installiert (standalone mode)");
-    } else {
-      setDebugInfo("⏳ Warte auf beforeinstallprompt Event...");
-    }
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    };
-  }, []);
+  const settingsSections: Array<{
+    id: SettingsSectionId;
+    title: string;
+    description: string;
+  }> = [
+    {
+      id: "learn",
+      title: "Lern-Einstellungen",
+      description: "Tagesziel, Lernrichtung und Sound-Einstellungen.",
+    },
+    {
+      id: "install",
+      title: "Als App installieren",
+      description: "PWA-Installation auf Android, iOS und Desktop.",
+    },
+    {
+      id: "vocab",
+      title: "Vokabeln verwalten",
+      description: "CSV Import/Export und Direktimport der aktuellen CSV.",
+    },
+    {
+      id: "backup",
+      title: "Backup & Restore",
+      description: "Komplette App-Daten sichern und wiederherstellen.",
+    },
+    {
+      id: "danger",
+      title: "Datenbank-Wartung",
+      description: "Zurücksetzen oder Lernfortschritt reparieren.",
+    },
+    {
+      id: "debugLesson",
+      title: "Entwickler-Debug",
+      description: "Lektionsfortschritt und Exam-Status für Tests setzen.",
+    },
+    {
+      id: "voice",
+      title: "Text-to-Speech Debug",
+      description: "Verfügbare Stimmen und Thai-Unterstützung prüfen.",
+    },
+    {
+      id: "pwaDebug",
+      title: "PWA Debug Info",
+      description: "Installations- und Laufzeitstatus der PWA ansehen.",
+    },
+  ];
 
   async function refreshVocabCount() {
     try {
@@ -91,228 +95,80 @@ export default function Settings() {
     }
   }
 
-  useEffect(() => {
-    void refreshVocabCount();
-  }, []);
+  function refreshBackupTime() {
+    setLastBackupTime(getLastBackupTime());
+  }
 
-  function saveDailyLimit() {
-    const num = parseInt(inputValue, 10);
-    if (isNaN(num) || num <= 0) {
-      setMsg("❌ Bitte geben Sie eine Zahl größer als 0 ein");
-      setTimeout(() => setMsg(""), 3000);
-      return;
+  function openSection(section: SettingsSectionId) {
+    setActiveSection(section);
+    if (section === "vocab" || section === "danger") {
+      void refreshVocabCount();
     }
-    
-    // Visual feedback: Button zeigt "Gespeichert"
-    setIsSaving(true);
-    setDailyLimit(num);
-    localStorage.setItem("dailyLimit", String(num));
-    setMsg(`✅ Tägliches Limit gespeichert: ${num} Karten`);
-    
-    // Reset nach 1.5 Sekunden
-    setTimeout(() => {
-      setIsSaving(false);
-      setMsg("");
-    }, 1500);
-  }
-
-
-  function toggleSoundEnabled() {
-    const newValue = !soundEnabled;
-    setSoundEnabled(newValue);
-    localStorage.setItem("soundEnabled", String(newValue));
-    setMsg(newValue ? "✅ Sound aktiviert" : "✅ Sound deaktiviert");
-    setTimeout(() => setMsg(""), 3000);
-  }
-
-  async function installApp() {
-    if (!deferredPrompt) {
-      setMsg("⚠️ Installation nicht verfügbar. Öffnen Sie die App im Browser.");
-      setTimeout(() => setMsg(""), 3000);
-      return;
-    }
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === "accepted") {
-      setMsg("✅ App wird installiert...");
-      setShowInstallButton(false);
-    } else {
-      setMsg("ℹ️ Installation abgebrochen");
-    }
-    
-    setDeferredPrompt(null);
-    setTimeout(() => setMsg(""), 3000);
-  }
-
-  function resetDailyLimit() {
-    setDailyLimit(10);
-    setInputValue("10");
-    localStorage.setItem("dailyLimit", "10");
-    setMsg("✅ Limit zurückgesetzt auf 10");
-    setTimeout(() => setMsg(""), 3000);
-  }
-
-  function changeLearnDirection(direction: LearnDirection) {
-    setLearnDirection(direction);
-    localStorage.setItem("learnDirection", direction);
-    const dirText = direction === "TH_DE" ? "Thai → Deutsch" : "Deutsch → Thai";
-    setMsg(`✅ Lernrichtung: ${dirText}`);
-    setTimeout(() => setMsg(""), 3000);
-  }
-
-  async function onImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setIsLoading(true);
-      const result = await importCsv(file, { mode: "replace" });
-      applyImportMessage(result);
-      await refreshVocabCount();
-    } catch (err: any) {
-      setMsg(`❌ Fehler: ${err?.message ?? String(err)}`);
-    } finally {
-      setIsLoading(false);
-      e.target.value = "";
+    if (section === "backup") {
+      refreshBackupTime();
     }
   }
 
-  async function onExport() {
-    try {
-      const blob = await exportCsv();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "thai-de-vocab.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-      setMsg("✅ Export erfolgreich");
-      setTimeout(() => setMsg(""), 2000);
-    } catch (err: any) {
-      setMsg(`❌ Export-Fehler: ${err?.message ?? String(err)}`);
-    }
+  const {
+    onImport,
+    onExport,
+    onBackupExport,
+    onBackupImport,
+    importLatestCsvDirectly,
+    downloadLatestCsv,
+  } = useSettingsDataHandlers({
+    setMsg,
+    setIsLoading,
+    refreshVocabCount,
+    refreshBackupTime,
+    latestCsvUrls,
+  });
+  const {
+    dailyLimit,
+    inputValue,
+    setInputValue,
+    isSaving,
+    learnDirection,
+    soundEnabled,
+    saveDailyLimit,
+    resetDailyLimit,
+    changeLearnDirection,
+    toggleSoundEnabled,
+  } = useSettingsPreferences({ setMsg });
+  const { deferredPrompt, showInstallButton, debugInfo, installApp } = useSettingsPwaInstall({
+    setMsg,
+  });
+  const {
+    resetDatabase,
+    repairProgressRecords,
+    debugSetLessonReadyForExam,
+    debugSetLessonExamPassed,
+    debugResetLesson,
+  } = useSettingsMaintenance({
+    setMsg,
+    setIsLoading,
+    refreshVocabCount,
+  });
+
+  function formatBackupTime(timestamp: number | null): string {
+    if (!timestamp) return "Noch kein Backup gespeichert";
+    return new Date(timestamp).toLocaleString("de-DE", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   }
 
-  function buildImportMessage(result: {
-    added: number;
-    duplicates: number;
-    replaced: boolean;
-    preservedProgress: number;
-    removed: number;
-    invalidRows: number;
-  }): string {
-    if (result.added === 0 && result.duplicates > 0) {
-      return (
-        `⚠️ Import ersetzt Alt-Daten, aber Datei enthält nur Duplikate (${result.duplicates})` +
-        (result.invalidRows > 0 ? `, ${result.invalidRows} ungültige Zeilen ignoriert` : "")
-      );
+  function getBackupReminderText(timestamp: number | null): string | null {
+    if (!timestamp) {
+      return "Noch kein Backup vorhanden. Erstelle ein Backup, bevor du App-Daten löschst, das Gerät wechselst oder die App neu installierst.";
     }
-
-    if (result.replaced) {
-      return (
-        `✅ Alt-Daten ersetzt: ${result.added} Einträge importiert` +
-        (result.preservedProgress > 0 ? `, Lernfortschritt für ${result.preservedProgress} bestehende Karten behalten` : "") +
-        (result.removed > 0 ? `, ${result.removed} alte Karten entfernt` : "") +
-        (result.duplicates > 0 ? `, ${result.duplicates} Datei-Duplikate verworfen` : "") +
-        (result.invalidRows > 0 ? `, ${result.invalidRows} ungültige Zeilen ignoriert` : "")
-      );
+    const ageMs = renderNow - timestamp;
+    const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+    if (ageDays >= 14) {
+      return `Dein letztes Backup ist ${ageDays} Tage alt. Für mehr Sicherheit bitte ein neues Backup erstellen.`;
     }
-
-    return (
-      `✅ Importiert: ${result.added} Einträge` +
-      (result.duplicates > 0 ? `, ${result.duplicates} Duplikate übersprungen` : "") +
-      (result.invalidRows > 0 ? `, ${result.invalidRows} ungültige Zeilen ignoriert` : "")
-    );
+    return null;
   }
-
-  function applyImportMessage(result: {
-    added: number;
-    duplicates: number;
-    replaced: boolean;
-    preservedProgress: number;
-    removed: number;
-    invalidRows: number;
-  }) {
-    setMsg(buildImportMessage(result));
-  }
-
-  function validateDownloadedCsv(csvText: string): number {
-    const normalized = csvText.replace(/^\uFEFF/, "");
-    const lines = normalized
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (lines.length < 2) {
-      throw new Error("CSV ist leer oder unvollständig");
-    }
-
-    const header = lines[0].toLowerCase();
-    if (!header.includes("thai") || !header.includes("german")) {
-      throw new Error("CSV-Header ungültig (erwarte mindestens thai/german)");
-    }
-
-    const rowCount = lines.length - 1;
-    if (rowCount < 1000) {
-      throw new Error(`CSV scheint veraltet oder unvollständig (${rowCount} Zeilen)`);
-    }
-
-    return rowCount;
-  }
-
-  async function importLatestCsvDirectly() {
-    try {
-      setIsLoading(true);
-      const cacheBust = Date.now();
-      const errors: string[] = [];
-
-      for (const baseUrl of latestCsvUrls) {
-        const separator = baseUrl.includes("?") ? "&" : "?";
-        const url = `${baseUrl}${separator}cb=${cacheBust}`;
-
-        try {
-          const response = await fetch(url, {
-            cache: "no-store",
-            headers: {
-              "Cache-Control": "no-cache",
-              Pragma: "no-cache",
-            },
-          });
-          if (!response.ok) {
-            errors.push(`${baseUrl} -> HTTP ${response.status}`);
-            continue;
-          }
-
-          const csvText = await response.text();
-          const rowCount = validateDownloadedCsv(csvText);
-          const file = new File([csvText], "thai-de-vocab_Ver_2.csv", {
-            type: "text/csv;charset=utf-8",
-          });
-          const result = await importCsv(file, { mode: "replace" });
-          const baseMessage = buildImportMessage(result).replace(/^✅\s*/, "");
-          setMsg(`✅ Direktimport erfolgreich (${rowCount} Zeilen): ${baseMessage}`);
-          await refreshVocabCount();
-          return;
-        } catch (sourceError: any) {
-          errors.push(`${baseUrl} -> ${sourceError?.message ?? String(sourceError)}`);
-        }
-      }
-
-      throw new Error(`Alle Quellen fehlgeschlagen: ${errors.join(" | ")}`);
-    } catch (err: any) {
-      setMsg(`❌ Direktimport fehlgeschlagen: ${err?.message ?? String(err)}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function downloadLatestCsv() {
-    const url = `${latestCsvUrls[0]}?cb=${Date.now()}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
-
 
   async function showVoiceDebug() {
     try {
@@ -328,193 +184,23 @@ export default function Settings() {
           .map((v) => `${v.lang} — ${v.name}${v.default ? " (default)" : ""}`)
           .join("\n")
       );
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      alert(e?.message ?? String(e));
+      alert(e instanceof Error ? e.message : String(e));
     }
   }
 
-  async function resetDatabase() {
-    if (!window.confirm("⚠️ WARNUNG: Dies löscht ALLE Vokabeln und Lernfortschritt!\n\nNur die Standard-Vokabeln (38) bleiben erhalten.\n\nWirklich fortfahren?")) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // Delete all vocab
-      await db.vocab.clear();
-      // Delete all progress
-      await db.progress.clear();
-      
-      // Reload default vocab
-      const now = Date.now();
-      const entries = DEFAULT_VOCAB.map(v => ({
-        ...v,
-        createdAt: now,
-        updatedAt: now,
-      }));
-      await db.vocab.bulkAdd(entries);
-      localStorage.removeItem("vocabDataSource");
-      await refreshVocabCount();
-      
-      setMsg("✅ Datenbank zurückgesetzt. Nur Standard-Vokabeln enthalten.");
-      setTimeout(() => setMsg(""), 3000);
-    } catch (err: any) {
-      setMsg(`❌ Fehler beim Zurücksetzen: ${err?.message ?? String(err)}`);
-    } finally {
-      setIsLoading(false);
-    }
+  function getSectionTitle(section: SettingsSectionId | null): string {
+    return settingsSections.find((item) => item.id === section)?.title ?? "Einstellungen";
   }
 
-  async function repairProgressRecords() {
-    try {
-      setIsLoading(true);
-      const vocab = await db.vocab.toArray();
-      const ids = vocab
-        .map((entry) => entry.id)
-        .filter((id): id is number => typeof id === "number");
-      await ensureProgressForEntries(ids);
-      const progressCount = await db.progress.count();
-      setMsg(`✅ Reparatur abgeschlossen: ${progressCount} Fortschritts-Einträge geprüft`);
-      setTimeout(() => setMsg(""), 3000);
-    } catch (err: any) {
-      setMsg(`❌ Fehler bei Reparatur: ${err?.message ?? String(err)}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function getLessonEntryIds(lesson: number): Promise<number[]> {
-    const entries = await db.vocab.where("lesson").equals(lesson).toArray();
-    return entries
-      .map((entry) => entry.id)
-      .filter((id): id is number => typeof id === "number");
-  }
-
-  async function debugSetLessonReadyForExam(lesson: number) {
-    try {
-      setIsLoading(true);
-      const targetLessons = [1, 2, 3, 4, 5].filter((item) => item <= lesson);
-      const idsByLesson = await Promise.all(
-        targetLessons.map(async (item) => [item, await getLessonEntryIds(item)] as const)
-      );
-      const allIds = idsByLesson.flatMap(([, ids]) => ids);
-      if (allIds.length === 0) {
-        setMsg(`⚠️ Keine Karten in Lektion 1-${lesson} gefunden`);
-        setTimeout(() => setMsg(""), 2500);
-        return;
-      }
-
-      await ensureProgressForEntries(allIds);
-      const now = Date.now();
-      const futureDue = now + 1000 * 60 * 60 * 24 * 30;
-
-      await db.transaction("rw", db.vocab, db.progress, async () => {
-        for (const [targetLesson, ids] of idsByLesson) {
-          if (ids.length === 0) continue;
-
-          await db.vocab.where("lesson").equals(targetLesson).modify((entry) => {
-            entry.viewed = true;
-            entry.updatedAt = now;
-          });
-
-          const currentRows = await db.progress.bulkGet(ids);
-          const patchedRows = ids.map((entryId, idx) => {
-            const row = currentRows[idx];
-            return {
-              entryId,
-              ease: row?.ease ?? 2.5,
-              intervalDays: row?.intervalDays ?? 1,
-              repetitions: 5,
-              lastReviewed: now,
-              lastGrade: 2 as const,
-              dueAt: futureDue,
-              updatedAt: now,
-            };
-          });
-          await db.progress.bulkPut(patchedRows);
-        }
-      });
-
-      setMsg(`✅ Lektion 1-${lesson}: alle Karten als im Test bestanden markiert`);
-      setTimeout(() => setMsg(""), 2000);
-      window.location.reload();
-    } catch (err: any) {
-      setMsg(`❌ Debug-Fehler L${lesson}: ${err?.message ?? String(err)}`);
-      setTimeout(() => setMsg(""), 3000);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function debugSetLessonExamPassed(lesson: number) {
-    localStorage.setItem(`lessonExamScore_${lesson}`, "85");
-    setMsg(`✅ Lektion ${lesson}: Examen mit 85% gesetzt`);
-    setTimeout(() => setMsg(""), 2000);
-    window.location.reload();
-  }
-
-  async function debugResetLesson(lesson: number) {
-    try {
-      setIsLoading(true);
-      const ids = await getLessonEntryIds(lesson);
-      if (ids.length === 0) {
-        localStorage.removeItem(`lessonExamScore_${lesson}`);
-        setMsg(`✅ Lektion ${lesson}: Exam-Status zurückgesetzt`);
-        setTimeout(() => setMsg(""), 2000);
-        window.location.reload();
-        return;
-      }
-
-      await ensureProgressForEntries(ids);
-      const now = Date.now();
-
-      await db.transaction("rw", db.vocab, db.progress, async () => {
-        await db.vocab.where("lesson").equals(lesson).modify((entry) => {
-          entry.viewed = false;
-          entry.updatedAt = now;
-        });
-
-        const currentRows = await db.progress.bulkGet(ids);
-        const resetRows = ids.map((entryId, idx) => {
-          const row = currentRows[idx];
-          return {
-            entryId,
-            ease: row?.ease ?? 2.5,
-            intervalDays: 0,
-            repetitions: 0,
-            dueAt: now,
-            updatedAt: now,
-          };
-        });
-        await db.progress.bulkPut(resetRows);
-      });
-
-      localStorage.removeItem(`lessonExamScore_${lesson}`);
-      localStorage.removeItem(`lessonProgress_${lesson}`);
-      setMsg(`✅ Lektion ${lesson}: Fortschritt + Exam zurückgesetzt`);
-      setTimeout(() => setMsg(""), 2000);
-      window.location.reload();
-    } catch (err: any) {
-      setMsg(`❌ Debug-Reset L${lesson} fehlgeschlagen: ${err?.message ?? String(err)}`);
-      setTimeout(() => setMsg(""), 3000);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  return (
-    <PageShell title="Einstellungen">
-      <div className="space-y-6">
-        {/* Daily Limit Setting */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-lg">Lern-Einstellungen</h3>
-          
+  function renderSectionContent(section: SettingsSectionId | null) {
+    switch (section) {
+      case "learn":
+        return (
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium">
-                Tägliches Lernziel
-              </label>
+              <label className="text-sm font-medium">Tägliches Lernziel</label>
               <p className="text-xs text-muted-foreground mb-2">
                 Maximale Karten, die täglich als "Heute fällig" angezeigt werden (Standard: 10)
               </p>
@@ -527,60 +213,63 @@ export default function Settings() {
                   className="w-full sm:w-32 px-3 py-2 border rounded-md border-input bg-background text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   placeholder="z.B. 10"
                 />
-                <Button 
-                  onClick={saveDailyLimit} 
+                <Button
+                  onClick={saveDailyLimit}
                   className="w-full sm:flex-1 bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
                   disabled={isSaving}
                   variant={isSaving ? "default" : "default"}
                 >
                   {isSaving ? "✓ Gespeichert" : "Speichern"}
                 </Button>
-                <Button 
-                  onClick={resetDailyLimit} 
+                <Button
+                  onClick={resetDailyLimit}
                   variant="default"
                   className="w-full sm:flex-1 bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
                 >
                   Zurücksetzen
                 </Button>
               </div>
-              {isSaving && (
+              {isSaving ? (
                 <div className="mt-2 p-2 bg-green-100 dark:bg-green-900 border border-green-300 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200 animate-in fade-in duration-200">
                   ✓ Erfolgreich gespeichert!
                 </div>
-              )}
+              ) : null}
               <p className="text-xs text-muted-foreground mt-2">
                 Aktuell eingestellt: <span className="font-semibold">{dailyLimit}</span> Karten
               </p>
             </div>
 
-            {/* Lernrichtung */}
             <div className="pt-4 border-t">
-              <label className="text-sm font-medium block mb-2">
-                Lernrichtung (für Tests)
-              </label>
+              <label className="text-sm font-medium block mb-2">Lernrichtung (für Tests)</label>
               <p className="text-xs text-muted-foreground mb-3">
                 Standardrichtung für neue Abfragen
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button 
+                <Button
                   onClick={() => changeLearnDirection("TH_DE")}
                   variant={learnDirection === "TH_DE" ? "default" : "outline"}
-                  className={learnDirection === "TH_DE" ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow" : ""}
+                  className={
+                    learnDirection === "TH_DE"
+                      ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
+                      : ""
+                  }
                 >
                   🇹🇭 Thai → Deutsch
                 </Button>
-                <Button 
+                <Button
                   onClick={() => changeLearnDirection("DE_TH")}
                   variant={learnDirection === "DE_TH" ? "default" : "outline"}
-                  className={learnDirection === "DE_TH" ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow" : ""}
+                  className={
+                    learnDirection === "DE_TH"
+                      ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
+                      : ""
+                  }
                 >
                   🇩🇪 Deutsch → Thai
                 </Button>
               </div>
             </div>
 
-
-            {/* Sound Toggle */}
             <div className="pt-4 border-t">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -596,19 +285,14 @@ export default function Settings() {
               </p>
             </div>
           </div>
-        </Card>
-
-        {/* PWA Installation */}
-        <Card className="p-4 space-y-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-          <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-100">📱 Als App installieren</h3>
-
+        );
+      case "install":
+        return (
           <div className="space-y-3">
             {showInstallButton ? (
               <>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Installieren Sie die App auf Ihrem Gerät für schnelleren Zugriff.
-                </p>
-                <Button 
+                <p className="text-sm">Installieren Sie die App auf Ihrem Gerät für schnelleren Zugriff.</p>
+                <Button
                   onClick={installApp}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   size="lg"
@@ -617,243 +301,235 @@ export default function Settings() {
                 </Button>
               </>
             ) : (
-              <>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  So installieren Sie die App auf Ihrem Gerät:
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="bg-white dark:bg-slate-800 p-3 rounded">
-                    <strong>🤖 Android (Chrome):</strong>
-                    <ol className="list-decimal ml-4 mt-1 space-y-1">
-                      <li>Öffnen Sie das Browser-Menü (⋮)</li>
-                      <li>Tippen Sie auf "Zum Startbildschirm hinzufügen"</li>
-                      <li>Bestätigen Sie mit "Hinzufügen"</li>
-                    </ol>
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-3 rounded">
-                    <strong>🍎 iOS (Safari):</strong>
-                    <ol className="list-decimal ml-4 mt-1 space-y-1">
-                      <li>Tippen Sie auf den Teilen-Button (⎙)</li>
-                      <li>Scrollen Sie zu "Zum Home-Bildschirm"</li>
-                      <li>Tippen Sie auf "Hinzufügen"</li>
-                    </ol>
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-3 rounded">
-                    <strong>💻 Desktop (Chrome/Edge):</strong>
-                    <ol className="list-decimal ml-4 mt-1 space-y-1">
-                      <li>Klicken Sie auf das ⊕ Symbol in der Adressleiste</li>
-                      <li>Oder: Menü → "App installieren"</li>
-                    </ol>
-                  </div>
+              <div className="space-y-2 text-sm">
+                <div className="bg-muted/40 p-3 rounded">
+                  <strong>🤖 Android (Chrome):</strong>
+                  <ol className="list-decimal ml-4 mt-1 space-y-1">
+                    <li>Browser-Menü (⋮) öffnen</li>
+                    <li>"Zum Startbildschirm hinzufügen" wählen</li>
+                    <li>Mit "Hinzufügen" bestätigen</li>
+                  </ol>
                 </div>
-              </>
+                <div className="bg-muted/40 p-3 rounded">
+                  <strong>🍎 iOS (Safari):</strong>
+                  <ol className="list-decimal ml-4 mt-1 space-y-1">
+                    <li>Teilen-Button (⎙) tippen</li>
+                    <li>"Zum Home-Bildschirm" wählen</li>
+                    <li>Mit "Hinzufügen" bestätigen</li>
+                  </ol>
+                </div>
+                <div className="bg-muted/40 p-3 rounded">
+                  <strong>💻 Desktop (Chrome/Edge):</strong>
+                  <ol className="list-decimal ml-4 mt-1 space-y-1">
+                    <li>⊕ in der Adressleiste nutzen</li>
+                    <li>oder Menü → "App installieren"</li>
+                  </ol>
+                </div>
+              </div>
             )}
           </div>
-        </Card>
-
-        {/* CSV Import/Export */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-lg">Vokabeln verwalten</h3>
-          <p className="text-xs text-muted-foreground">
-            DB aktuell: <span className="font-semibold">{vocabCount}</span> Vokabeln
-          </p>
-
+        );
+      case "vocab":
+        return (
           <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              DB aktuell: <span className="font-semibold">{vocabCount}</span> Vokabeln
+            </p>
             <div>
               <label className="text-sm font-medium block mb-2">CSV Import</label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Lade neue Vokabeln aus einer CSV-Datei. Duplikate werden automatisch erkannt.
-              </p>
               {isLoading ? (
                 <p className="text-sm text-muted-foreground">⏳ Lade Vokabeln...</p>
               ) : (
-                <input 
-                  type="file" 
-                  accept=".csv,text/csv" 
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
                   onChange={onImport}
-                  className="block w-full text-sm text-slate-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100
-                    dark:file:bg-blue-900 dark:file:text-blue-200
-                    dark:hover:file:bg-blue-800"
+                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800"
                 />
               )}
             </div>
-
-            <div>
-              <label className="text-sm font-medium block mb-2">CSV Export</label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Speichere alle Vokabeln als CSV-Datei.
-              </p>
-              <Button 
-                onClick={onExport} 
-                variant="outline"
-                className="w-full"
-              >
-                📥 Export herunterladen
-              </Button>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium block mb-2">Aktuelle CSV direkt importieren</label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Lädt die neueste veröffentlichte CSV und importiert sie direkt in die App (ohne Datei-Download).
-              </p>
-              <Button
-                onClick={importLatestCsvDirectly}
-                variant="default"
-                className="w-full"
-                disabled={isLoading}
-              >
-                ⚡ Aktuelle CSV direkt importieren
-              </Button>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium block mb-2">Aktuelle CSV herunterladen</label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Lädt die neueste veröffentlichte CSV direkt von GitHub. Nützlich für PWA-Installationen auf dem Handy.
-              </p>
-              <Button onClick={downloadLatestCsv} variant="outline" className="w-full">
-                🌐 Aktuelle CSV herunterladen
-              </Button>
-            </div>
-
-            <div className="pt-2 border-t">
-              <p className="text-xs text-muted-foreground">
-                <strong>CSV Format:</strong> <code className="bg-muted px-2 py-1 rounded">
-                  thai, german, transliteration, pos, tags, lesson, exampleThai, exampleGerman
-                </code>
-              </p>
-            </div>
+            <Button onClick={onExport} variant="outline" className="w-full">
+              📥 Export herunterladen
+            </Button>
+            <Button
+              onClick={importLatestCsvDirectly}
+              variant="default"
+              className="w-full"
+              disabled={isLoading}
+            >
+              ⚡ Aktuelle CSV direkt importieren
+            </Button>
+            <Button onClick={downloadLatestCsv} variant="outline" className="w-full">
+              🌐 Aktuelle CSV herunterladen
+            </Button>
           </div>
-        </Card>
-
-        {/* Database Management */}
-        <Card className="p-4 space-y-4 border-red-200 dark:border-red-800">
-          <h3 className="font-semibold text-lg text-red-700 dark:text-red-400">⚠️ Gefährliche Aktion</h3>
-
+        );
+      case "backup":
+        return (
           <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Sichert Vokabeln, Zahlen, Sätze, Lernfortschritte und wichtige Einstellungen.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Letztes Backup: <span className="font-semibold">{formatBackupTime(lastBackupTime)}</span>
+            </p>
+            {getBackupReminderText(lastBackupTime) ? (
+              <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                {getBackupReminderText(lastBackupTime)}
+              </div>
+            ) : null}
+            <Button onClick={onBackupExport} variant="outline" className="w-full" disabled={isLoading}>
+              💾 Komplettes Backup herunterladen
+            </Button>
             <div>
-              <label className="text-sm font-medium block mb-2">Datenbank zurücksetzen</label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Löscht alle importierten Vokabeln und deinen Lernfortschritt. Nur die Standard-Vokabeln (38) bleiben erhalten.
-              </p>
-              <Button 
-                onClick={resetDatabase}
+              <label className="text-sm font-medium block mb-2">Restore durchführen</label>
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={onBackupImport}
                 disabled={isLoading}
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
-              >
-                🗑️ Alle Daten löschen
-              </Button>
-            </div>
-            <div className="pt-2 border-t">
-              <label className="text-sm font-medium block mb-2">Lernfortschritt reparieren</label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Erstellt fehlende Fortschritts-Einträge für vorhandene Vokabeln, ohne Vokabeln zu löschen.
-              </p>
-              <Button
-                onClick={repairProgressRecords}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full"
-              >
-                🔧 Fortschritt reparieren
-              </Button>
+                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-900 dark:file:text-emerald-200 dark:hover:file:bg-emerald-800"
+              />
             </div>
           </div>
-        </Card>
-
-        {/* Developer Debug - Lesson Progress Cheater */}
-        <Card className="p-4 space-y-4 bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
-          <h3 className="font-semibold text-lg text-purple-900 dark:text-purple-100">🛠️ Entwickler Debug</h3>
-          <p className="text-xs text-purple-800 dark:text-purple-200">
-            Setzt Lektionen-Fortschritt direkt in der Datenbank (kumulativ: L3 setzt L1-L3).
-          </p>
-          
-          <div className="grid grid-cols-5 gap-2">
-            {[1, 2, 3, 4, 5].map((lesson) => (
-              <Button 
-                key={lesson}
-                onClick={() => void debugSetLessonReadyForExam(lesson)}
-                disabled={isLoading}
-                variant="outline"
-                className="text-xs h-auto py-2 bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
-              >
-                L1-L{lesson} → Test bestanden
-              </Button>
-            ))}
+        );
+      case "danger":
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Löscht Daten oder repariert fehlende Fortschritts-Einträge.
+            </p>
+            <Button
+              onClick={resetDatabase}
+              disabled={isLoading}
+              className="w-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              🗑️ Alle Daten löschen
+            </Button>
+            <Button
+              onClick={repairProgressRecords}
+              disabled={isLoading}
+              variant="outline"
+              className="w-full"
+            >
+              🔧 Fortschritt reparieren
+            </Button>
           </div>
-
-          <div>
-            <label className="text-sm font-medium block mb-2">Exam-Score setzen (85%+ = bestanden)</label>
+        );
+      case "debugLesson":
+        return (
+          <div className="space-y-3">
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 5].map((lesson) => (
+                <Button
+                  key={lesson}
+                  onClick={() => void debugSetLessonReadyForExam(lesson)}
+                  disabled={isLoading}
+                  variant="outline"
+                  className="text-xs h-auto py-2"
+                >
+                  L1-L{lesson}
+                </Button>
+              ))}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button 
+              <Button
                 onClick={() => {
                   const lesson = prompt("Lektion (1-5):", "1");
-                  if (lesson && [1,2,3,4,5].includes(Number(lesson))) {
+                  if (lesson && [1, 2, 3, 4, 5].includes(Number(lesson))) {
                     debugSetLessonExamPassed(Number(lesson));
                   }
                 }}
                 disabled={isLoading}
                 variant="outline"
-                className="text-xs bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+                className="text-xs"
               >
                 85% Bestanden
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   const lesson = prompt("Lektion (1-5):", "1");
-                  if (lesson && [1,2,3,4,5].includes(Number(lesson))) {
+                  if (lesson && [1, 2, 3, 4, 5].includes(Number(lesson))) {
                     void debugResetLesson(Number(lesson));
                   }
                 }}
                 disabled={isLoading}
                 variant="outline"
-                className="text-xs bg-purple-100 dark:bg-purple-900 hover:bg-purple-200 dark:hover:bg-purple-800"
+                className="text-xs"
               >
                 Komplett Reset
               </Button>
             </div>
           </div>
-        </Card>
-
-        {/* Voice Debug */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-lg">🔊 Text-to-Speech Debug</h3>
-          <p className="text-xs text-muted-foreground">
-            Zeige alle verfügbaren Sprach-Stimmen und prüfe auf Thai-Unterstützung.
-          </p>
-          <Button 
-            onClick={showVoiceDebug}
-            variant="outline"
-            className="w-full"
-          >
-            Stimmen Debug
-          </Button>
-        </Card>
-
-        {/* PWA Debug Info */}
-        <Card className="p-4 space-y-4 bg-slate-50 dark:bg-slate-900">
-          <h3 className="font-semibold text-lg">🔧 PWA Debug Info</h3>
-          <div className="text-xs space-y-2">
+        );
+      case "voice":
+        return (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Zeigt verfügbare Sprachstimmen und prüft Thai-Unterstützung.
+            </p>
+            <Button onClick={showVoiceDebug} variant="outline" className="w-full">
+              Stimmen Debug
+            </Button>
+          </div>
+        );
+      case "pwaDebug":
+        return (
+          <div className="space-y-2 text-xs">
             <p className="font-mono bg-slate-100 dark:bg-slate-800 p-2 rounded">
               {debugInfo || "Keine Informationen verfügbar"}
             </p>
             <p className="text-muted-foreground">
-              Service Worker: {('serviceWorker' in navigator) ? '✅ Unterstützt' : '❌ Nicht unterstützt'}
+              Service Worker: {"serviceWorker" in navigator ? "✅ Unterstützt" : "❌ Nicht unterstützt"}
             </p>
             <p className="text-muted-foreground">
-              beforeinstallprompt: {deferredPrompt ? '✅ Verfügbar' : '❌ Nicht verfügbar'}
+              beforeinstallprompt: {deferredPrompt ? "✅ Verfügbar" : "❌ Nicht verfügbar"}
             </p>
             <p className="text-muted-foreground">
-              Display Mode: {window.matchMedia('(display-mode: standalone)').matches ? '📱 Standalone (installiert)' : '🌐 Browser'}
+              Display Mode:{" "}
+              {window.matchMedia("(display-mode: standalone)").matches
+                ? "📱 Standalone (installiert)"
+                : "🌐 Browser"}
             </p>
           </div>
-        </Card>
+        );
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <PageShell title="Einstellungen">
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Bereiche</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Öffne einen Bereich per Klick, um die jeweiligen Einstellungen in einem Dialog zu bearbeiten.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {settingsSections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => openSection(section.id)}
+                className="text-left rounded-xl border bg-card p-4 hover:bg-accent/40 transition-colors"
+              >
+                <div className="font-medium">{section.title}</div>
+                <div className="text-xs text-muted-foreground mt-1">{section.description}</div>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setShowHelpDialog(true)}
+              className="text-left rounded-xl border bg-card p-4 hover:bg-accent/40 transition-colors"
+            >
+              <div className="font-medium">Benutzer-Anleitung</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Übersicht aller App-Funktionen mit Hinweisen zu Lernen, Test, Exam und Spiele.
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Status Message */}
         {msg && (
@@ -865,21 +541,27 @@ export default function Settings() {
             {msg}
           </Card>
         )}
-
-        {/* Help Button */}
-        <Card className="p-4 space-y-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-          <p className="text-xs text-blue-800 dark:text-blue-200">
-            Hinweis: Das Zahlenmodul ist getrennt vom normalen Vokabelmodul. SRS-Fortschritt (DB-Karten) und Generator-Modi werden getrennt behandelt.
-          </p>
-          <Button 
-            onClick={() => setShowHelpDialog(true)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            size="lg"
-          >
-            Benutzer-Anleitung
-          </Button>
-        </Card>
       </div>
+
+      <Dialog open={activeSection !== null} onOpenChange={(open) => setActiveSection(open ? activeSection : null)}>
+        <DialogContent
+          className="max-w-2xl max-h-[80vh] overflow-y-auto"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>{getSectionTitle(activeSection)}</DialogTitle>
+            <DialogDescription>
+              Passe diesen Bereich an. Änderungen werden wie bisher direkt gespeichert bzw. ausgeführt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pr-2 space-y-4">
+            {renderSectionContent(activeSection)}
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setActiveSection(null)}>
+              ← Zurück
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
