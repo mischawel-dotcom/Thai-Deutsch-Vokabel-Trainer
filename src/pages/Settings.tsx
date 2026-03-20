@@ -616,6 +616,7 @@ export default function Settings() {
               <ul className="space-y-2 text-sm">
                 <li><strong>Modi:</strong> Blitzrunde, 4er-Quiz, Hör-Spiel und Zahlenspiel</li>
                 <li><strong>Setup-Dialog:</strong> Modus antippen, dann Richtung, Fragenanzahl/Zeitlimit und Lektion wählen</li>
+                <li><strong>Audio/TTS:</strong> Vorlesen nur bei Richtung Thai → Deutsch; bei Deutsch → Thai ohne Sprachausgabe</li>
                 <li><strong>Fragenlogik:</strong> Verfügbare Karten kommen zuerst einmal dran, Wiederholungen danach in zufälliger Reihenfolge</li>
                 <li><strong>Zahlenspiel (🔢):</strong> Verwendet nur Zahlenkarten (Thai-Ziffern ⇄ Arabische Ziffern)</li>
                 <li><strong>Gamification:</strong> XP, Level, Tagesaufgabe und Badges werden pro Runde aktualisiert</li>
@@ -629,6 +630,7 @@ export default function Settings() {
                 <li>Formale Prüfung mit Bestehensgrenze (85% richtig = bestanden)</li>
                 <li><strong>Zahlenexamen (🔢):</strong> Läuft als Generator-Examen mit 100 Fragen (gewichtete Bereiche) und eigener Bestehensanzeige</li>
                 <li>Pro Frage eine Auswahlantwort, danach Auswertung mit Punkten und Ergebnis</li>
+                <li><strong>Vorlesen:</strong> Nur bei Richtung Thai → Deutsch; bei Deutsch → Thai keine Sprachausgabe</li>
                 <li>Nutze das für realistische Lernzielkontrolle pro Lektion</li>
               </ul>
             </div>

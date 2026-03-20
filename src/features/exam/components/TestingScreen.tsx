@@ -93,25 +93,24 @@ export function TestingScreen({
               <div className="text-3xl sm:text-4xl font-semibold leading-snug text-primary">
                 {question.questionText}
               </div>
-              <Button
-                onClick={() => {
-                  const textToSpeak = getSpeakableText(
-                    direction === "TH_DE" ? question.thai : question.german
-                  );
-                  const lang = direction === "TH_DE" ? "th-TH" : "de-DE";
-                  void speak(textToSpeak, lang);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  stopSpeak();
-                }}
-                variant="outline"
-                size="sm"
-                className="mx-auto min-h-[44px] shadow-md"
-                title="Klick = Abspielen, Rechtsklick = Stoppen"
-              >
-                🔊 Vorlesen
-              </Button>
+              {direction === "TH_DE" ? (
+                <Button
+                  onClick={() => {
+                    const textToSpeak = getSpeakableText(question.thai);
+                    void speak(textToSpeak, "th-TH");
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    stopSpeak();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="mx-auto min-h-[44px] shadow-md"
+                  title="Klick = Abspielen, Rechtsklick = Stoppen"
+                >
+                  🔊 Vorlesen
+                </Button>
+              ) : null}
               <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                 Wähle die richtige Antwort
               </p>
