@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+import { useEffect } from "react";
 
 import type { VocabEntry } from "../db/db";
 
@@ -13,6 +13,10 @@ type UseKeyboardNavigationArgs = {
   backText: string;
   frontLang: SpeakLang;
   backLang: SpeakLang;
+  /** When false, skip TTS for the front side (e.g. German prompt on vocab cards in DE→TH). */
+  canSpeakFront?: boolean;
+  /** When false, skip TTS for the back side (e.g. German answer on vocab cards in TH→DE). */
+  canSpeakBack?: boolean;
   flipCard: () => void;
   gradeAnswer: (isRight: boolean) => void;
   handleSpeak: (text: string, lang: SpeakLang, key: string) => void | Promise<void>;
@@ -28,6 +32,8 @@ export function useKeyboardNavigation({
   backText,
   frontLang,
   backLang,
+  canSpeakFront = true,
+  canSpeakBack = true,
   flipCard,
   gradeAnswer,
   handleSpeak,
@@ -92,6 +98,8 @@ export function useKeyboardNavigation({
     backText,
     frontLang,
     backLang,
+    canSpeakFront,
+    canSpeakBack,
     flipCard,
     gradeAnswer,
     handleSpeak,

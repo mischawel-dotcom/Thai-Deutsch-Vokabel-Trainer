@@ -600,7 +600,8 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-lg mb-3">🧪 Test (Abfrage)</h3>
               <ul className="space-y-2 text-sm">
-                <li><strong>Lernrichtung:</strong> Wird automatisch aus deinen Einstellungen übernommen</li>
+                <li><strong>Lernrichtung:</strong> Startwert aus Einstellungen; in den Test-Dialogen (Vokabeln, Zahlen, Sätze) und bei erweiterten Filtern anpassbar und wird mitgespeichert</li>
+                <li><strong>Satztest (💬):</strong> Richtung Thai→Deutsch oder Deutsch→Thai im Dialog „Sätze testen“ wählbar</li>
                 <li><strong>Fällige Karten testen:</strong> Standardmäßig nur SRS-fällige gelernte Karten, optional alle gelernten</li>
                 <li><strong>Lektions-Tests:</strong> Direktstart pro Lektion mit optionalem Kartenlimit (DB/SRS-basiert)</li>
                 <li><strong>Zahlentest (🔢):</strong> Wahl zwischen SRS-Mode (DB-Zahlen) und Generator-Mode (von-bis Bereich)</li>
