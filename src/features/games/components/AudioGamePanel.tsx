@@ -5,6 +5,8 @@ type AudioGamePanelProps = {
   question: GameQuestion;
   answerFeedback: AnswerFeedback | null;
   isSpeaking: boolean;
+  /** Wenn false: kein Audio-Button (z. B. Deutsch → Thai ohne deutsches TTS). */
+  showPromptAudio?: boolean;
   onPlayAudio: () => void;
   onAnswer: (option: string) => void;
 };
@@ -13,6 +15,7 @@ export default function AudioGamePanel({
   question,
   answerFeedback,
   isSpeaking,
+  showPromptAudio = true,
   onPlayAudio,
   onAnswer,
 }: AudioGamePanelProps) {
@@ -21,11 +24,15 @@ export default function AudioGamePanel({
       <div className="rounded-md border p-4">
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Hoere zu und waehle die richtige Uebersetzung:
+            {showPromptAudio
+              ? "Hoere zu und waehle die richtige Uebersetzung:"
+              : "Waehle die richtige Uebersetzung (Audio nur bei Thai → Deutsch)."}
           </p>
-          <Button variant="outline" onClick={onPlayAudio} disabled={isSpeaking}>
-            {isSpeaking ? "Spielt..." : "🔊 Audio abspielen"}
-          </Button>
+          {showPromptAudio ? (
+            <Button variant="outline" onClick={onPlayAudio} disabled={isSpeaking}>
+              {isSpeaking ? "Spielt..." : "🔊 Audio abspielen"}
+            </Button>
+          ) : null}
         </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">

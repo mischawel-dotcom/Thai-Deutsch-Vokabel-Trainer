@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { db } from "../db/db";
 import type { SentenceEntry, VocabEntry } from "../db/db";
 import { ensureProgressForEntries, ensureProgressForNumberEntries } from "../db/srs";
@@ -59,6 +59,11 @@ export default function Test() {
     if (saved === "TH_DE" || saved === "DE_TH") return saved;
     return "TH_DE";
   });
+
+  const handleTestDirectionChange = useCallback((next: LearnDirection) => {
+    setDirection(next);
+    localStorage.setItem("learnDirection", next);
+  }, []);
 
   // Tag-Auswahl (OR-Logik)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -277,8 +282,9 @@ export default function Test() {
     isVocabSessionCard || isNumberSessionCard || isSentenceSessionCard;
   const frontIsThai = frontLang === "th-TH";
   const backIsThai = backLang === "th-TH";
-  const showBackAudioButton = !(isVocabSessionCard && backLang === "de-DE");
-  const showGermanExampleAudio = !isVocabSessionCard;
+  /** Kein TTS für deutsche Texte auf Testkarten (alle Kartentypen: Vokabeln, Zahlen, Sätze). */
+  const showBackAudioButton = backLang !== "de-DE";
+  const showFrontAudioButton = frontLang !== "de-DE";
   const showCurrentCardTransliteration = isNumberSessionCard
     ? showNumberTransliteration
     : showTransliteration;
@@ -642,6 +648,8 @@ export default function Test() {
     backText,
     frontLang,
     backLang,
+    canSpeakFront: showFrontAudioButton,
+    canSpeakBack: showBackAudioButton,
     flipCard,
     gradeAnswer: gradeAnswerHook,
     handleSpeak,
@@ -1101,7 +1109,7 @@ export default function Test() {
                       ? "shadow-sm ring-2 ring-primary/30"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setDirection("TH_DE")}
+                  onClick={() => handleTestDirectionChange("TH_DE")}
                   title="Thai → Deutsch"
                   aria-pressed={direction === "TH_DE"}
                   aria-label="Richtung: Thai nach Deutsch"
@@ -1117,7 +1125,7 @@ export default function Test() {
                       ? "shadow-sm ring-2 ring-primary/30"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
-                  onClick={() => setDirection("DE_TH")}
+                  onClick={() => handleTestDirectionChange("DE_TH")}
                   title="Deutsch → Thai"
                   aria-pressed={direction === "DE_TH"}
                   aria-label="Richtung: Deutsch nach Thai"
@@ -1492,27 +1500,29 @@ export default function Test() {
                     ) : null
                   ) : null}
 
-                  <div className="flex flex-wrap justify-center gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className={`transition-all duration-150 ${
-                        isVocabSessionCard
-                          ? "h-10 border border-transparent bg-background text-foreground shadow-none hover:bg-muted"
-                          : "shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 bg-slate-400 hover:bg-slate-500 text-white"
-                      }`}
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        void handleSpeak(getSpeakableText(frontText), frontLang, "front");
-                      }}
-                      title="Vorlesen"
-                      aria-label={`Vorderseite vorlesen: ${frontText}`}
-                      disabled={isSpeaking}
-                      aria-busy={isSpeaking && speakingKey === "front"}
-                    >
-                      {isSpeaking && speakingKey === "front" ? "🔊 Spricht…" : "🔊 Vorlesen"}
-                    </Button>
-                  </div>
+                  {showFrontAudioButton ? (
+                    <div className="flex flex-wrap justify-center gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className={`transition-all duration-150 ${
+                          isVocabSessionCard
+                            ? "h-10 border border-transparent bg-background text-foreground shadow-none hover:bg-muted"
+                            : "shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 bg-slate-400 hover:bg-slate-500 text-white"
+                        }`}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          void handleSpeak(getSpeakableText(frontText), frontLang, "front");
+                        }}
+                        title="Vorlesen"
+                        aria-label={`Vorderseite vorlesen: ${frontText}`}
+                        disabled={isSpeaking}
+                        aria-busy={isSpeaking && speakingKey === "front"}
+                      >
+                        {isSpeaking && speakingKey === "front" ? "🔊 Spricht…" : "🔊 Vorlesen"}
+                      </Button>
+                    </div>
+                  ) : null}
 
                   <div className="pt-4 border-t">
                     <Button
@@ -1673,23 +1683,6 @@ export default function Test() {
                             </span>
                             <div className="flex items-start">
                               <span className="leading-relaxed break-words">{current.exampleGerman}</span>
-                              {showGermanExampleAudio ? (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={(ev) => {
-                                    ev.stopPropagation();
-                                    void handleSpeak(current.exampleGerman!, "de-DE", "example-de");
-                                  }}
-                                  title="Beispiel Deutsch vorlesen"
-                                  aria-label={`Deutsches Beispiel vorlesen: ${current.exampleGerman}`}
-                                  disabled={isSpeaking}
-                                  aria-busy={isSpeaking && speakingKey === "example-de"}
-                                  className={isVocabSessionCard ? "ml-4 -mt-0.5" : ""}
-                                >
-                                  {isSpeaking && speakingKey === "example-de" ? "⏳" : "🔊"}
-                                </Button>
-                              ) : null}
                             </div>
                           </div>
                         ) : null}
@@ -1764,7 +1757,7 @@ export default function Test() {
         open={quickStartDialogOpen}
         onOpenChange={setQuickStartDialogOpen}
         direction={direction}
-        onDirectionChange={setDirection}
+        onDirectionChange={handleTestDirectionChange}
         showTransliteration={showTransliteration}
         onShowTransliterationChange={setShowTransliteration}
         includeAllLearned={quickStartIncludeAllLearned}
@@ -1778,7 +1771,7 @@ export default function Test() {
         open={numberQuickStartDialogOpen}
         onOpenChange={setNumberQuickStartDialogOpen}
         direction={direction}
-        onDirectionChange={setDirection}
+        onDirectionChange={handleTestDirectionChange}
         showNumberTransliteration={showNumberTransliteration}
         onShowNumberTransliterationChange={setShowNumberTransliteration}
         includeAllLearned={numberQuickStartIncludeAllLearned}
@@ -1801,7 +1794,7 @@ export default function Test() {
         onOpenChange={setDialogOpen}
         selectedLesson={selectedDialogLesson}
         direction={direction}
-        onDirectionChange={setDirection}
+        onDirectionChange={handleTestDirectionChange}
         showTransliteration={showTransliteration}
         onShowTransliterationChange={setShowTransliteration}
         cardLimit={cardLimit}
@@ -1829,6 +1822,42 @@ export default function Test() {
               />
               Lautschrift unter Thai-Satz anzeigen
             </label>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Richtung</p>
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Satztest-Richtung">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => handleTestDirectionChange("TH_DE")}
+                  aria-pressed={direction === "TH_DE"}
+                >
+                  Thai → Deutsch
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => handleTestDirectionChange("DE_TH")}
+                  aria-pressed={direction === "DE_TH"}
+                >
+                  Deutsch → Thai
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Deutsch → Thai: Vorderseite zeigt den deutschen Satz, Rückseite den thailändischen.
+              </p>
+            </div>
             <div className="grid grid-cols-1 gap-2">
             <Button
               onClick={() => {
@@ -1882,6 +1911,39 @@ export default function Test() {
               />
               Lautschrift unter Thai-Satz anzeigen
             </label>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Richtung</p>
+              <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Satztest-Richtung">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "TH_DE" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "TH_DE"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => handleTestDirectionChange("TH_DE")}
+                  aria-pressed={direction === "TH_DE"}
+                >
+                  Thai → Deutsch
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={direction === "DE_TH" ? "default" : "secondary"}
+                  className={`min-h-[44px] transition-all ${
+                    direction === "DE_TH"
+                      ? "shadow-sm ring-2 ring-primary/30"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => handleTestDirectionChange("DE_TH")}
+                  aria-pressed={direction === "DE_TH"}
+                >
+                  Deutsch → Thai
+                </Button>
+              </div>
+            </div>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

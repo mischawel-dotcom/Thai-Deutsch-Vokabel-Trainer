@@ -508,16 +508,18 @@ export default function Games() {
     ]
   );
 
+  /** Kein TTS für deutsche Prompts (nur Thai → Deutsch). */
+  const canPlayPromptTts = direction === "TH_DE";
+
   const playQuestionAudio = useCallback(async () => {
-    if (!question || !gameRunning) return;
+    if (!question || !gameRunning || !canPlayPromptTts) return;
     try {
       setIsSpeaking(true);
-      const lang = direction === "TH_DE" ? "th-TH" : "de-DE";
-      await speak(question.prompt, lang);
+      await speak(question.prompt, "th-TH");
     } finally {
       setIsSpeaking(false);
     }
-  }, [direction, gameRunning, question]);
+  }, [canPlayPromptTts, gameRunning, question]);
 
   const progressText = useMemo(() => {
     if (!gameRunning || (mode !== "quiz" && mode !== "audio" && mode !== "numbers")) return null;
@@ -894,6 +896,7 @@ export default function Games() {
             <QuizGamePanel
               question={question}
               answerFeedback={answerFeedback}
+              showPromptAudio={canPlayPromptTts}
               onPlayAudio={() => void playQuestionAudio()}
               onAnswer={answerQuestion}
             />
@@ -903,6 +906,7 @@ export default function Games() {
               question={question}
               answerFeedback={answerFeedback}
               isSpeaking={isSpeaking}
+              showPromptAudio={canPlayPromptTts}
               onPlayAudio={() => void playQuestionAudio()}
               onAnswer={answerQuestion}
             />
