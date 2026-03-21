@@ -35,6 +35,7 @@ import { SessionActionConfirmDialog } from "../features/test/components/SessionA
 import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
 import { buildSentenceSegments } from "../features/sentences/transliteration";
 import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
+import { isVocabExcludedFromPractice } from "../features/vocab/practiceExclusions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Test() {
@@ -52,6 +53,8 @@ export default function Test() {
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+  /** Tag-Chips für erweiterte Filter: aus kompletter DB (ohne CEFR-first A2-Ausblendung), damit z.B. A2 sichtbar bleibt. */
+  const [vocabTagIndex, setVocabTagIndex] = useState<Array<{ tag: string; count: number }>>([]);
 
   // Richtung (während Session gesperrt)
   const [direction, setDirection] = useState<LearnDirection>(() => {
@@ -211,8 +214,9 @@ export default function Test() {
 
 
   // ===== Derived data =====
-  // Tag-Index
+  // Tag-Index (bevorzugt vocabTagIndex = alle übungsrelevanten Karten; Fallback: gefiltertes allVocab)
   const allTags = useMemo(() => {
+    if (vocabTagIndex.length > 0) return vocabTagIndex;
     const map = new Map<string, number>();
     for (const v of allVocab) {
       for (const t of v.tags ?? []) {
@@ -224,7 +228,7 @@ export default function Test() {
     return Array.from(map.entries())
       .sort((a, b) => a[0].localeCompare(b[0], "de"))
       .map(([tag, count]) => ({ tag, count }));
-  }, [allVocab]);
+  }, [vocabTagIndex, allVocab]);
 
   // Lektionen-Index (aus Metadaten, nicht aus allVocab)
   const allLessons = lessonMetadata;
@@ -301,15 +305,40 @@ export default function Test() {
   const completedCount = useMemo(() => doneIds.size, [doneIds]);
 
   // ===== Data loading =====
+  function updateVocabTagIndexFromEntries(raw: VocabEntry[]): void {
+    const map = new Map<string, number>();
+    for (const entry of raw) {
+      if (isVocabExcludedFromPractice(entry)) continue;
+      for (const t of entry.tags ?? []) {
+        const key = t.trim();
+        if (!key) continue;
+        map.set(key, (map.get(key) ?? 0) + 1);
+      }
+    }
+    const sorted = Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], "de"))
+      .map(([tag, count]) => ({ tag, count }));
+    setVocabTagIndex(sorted);
+  }
+
+  async function refreshVocabTagIndex(): Promise<void> {
+    try {
+      const raw = await db.vocab.toArray();
+      updateVocabTagIndexFromEntries(raw);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   async function loadAllVocab(silent: boolean = false) {
     setError("");
     if (!silent) {
       setStatus("Lade alle Vokabeln …");
     }
     try {
-      const { entries: cefrFilteredEntries, activeGate } = applyCefrFirstFilter(
-        await db.vocab.toArray()
-      );
+      const rawVocab = await db.vocab.toArray();
+      updateVocabTagIndexFromEntries(rawVocab);
+      const { entries: cefrFilteredEntries, activeGate } = applyCefrFirstFilter(rawVocab);
       const vocab = cefrFilteredEntries
         .map((entry) => ({
           ...entry,
@@ -540,9 +569,10 @@ export default function Test() {
     localStorage.removeItem("openNumberQuickStartDialog");
   }, []);
 
-  // Load tags source data when advanced filters are opened so tag chips appear immediately.
+  // Beim Öffnen der erweiterten Filter: Tag-Index aus DB (inkl. A2), ggf. allVocab nachladen
   useEffect(() => {
     if (!showAdvancedFilters) return;
+    void refreshVocabTagIndex();
     if (allVocab.length > 0) return;
     void loadAllVocab(true);
   }, [showAdvancedFilters, allVocab.length]);

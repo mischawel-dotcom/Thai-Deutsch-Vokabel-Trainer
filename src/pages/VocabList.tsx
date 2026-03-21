@@ -705,7 +705,7 @@ export default function VocabList() {
                     border: `1px solid ${border}`,
                     borderRadius: 8,
                   }}
-                  placeholder="z.B. Food, A1"
+                  placeholder="z.B. Essen, A1"
                 />
               </label>
 
@@ -776,7 +776,7 @@ export default function VocabList() {
             </div>
 
             <p style={{ marginTop: 10, color: mutedFg }}>
-              Tipp: Tags als Komma-Liste, z.B. <code>Food, A1</code>
+              Tipp: Tags als Komma-Liste, z.B. <code>Essen, A1</code>
             </p>
           </div>
         </div>
