@@ -1,0 +1,13 @@
+---
+description: Interne App-Versionsnummer bei Änderungen erhöhen
+alwaysApply: true
+---
+
+# Interne Versionsnummer (Thai-DE-Fresh)
+
+Bei **inhaltlichen oder sichtbaren App-Änderungen** (Features, UI, Texte, Fixes für Nutzer):
+
+1. **`INTERNAL_APP_VERSION`** in `src/lib/internalAppVersion.ts` um **1** erhöhen.
+2. Die Zahl erscheint auf der **Home**-Seite (rote Kennzahl) und dient Deploy-/Test-Zuordnung.
+
+Keine Erhöhung nötig bei reinen Refactors ohne Verhaltensänderung, Kommentaren oder reinen Dev-Tooling-Änderungen – beim Zweifel lieber erhöhen.

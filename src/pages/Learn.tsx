@@ -25,6 +25,8 @@ import {
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ThaiScriptOverview } from "../features/thai-script/ThaiScriptOverview";
+import { MidClassConsonantsSection } from "../features/thai-script/MidClassConsonantsSection";
 
 // Session-State für Learn
 type SessionState = {
@@ -120,8 +122,15 @@ export default function Learn() {
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [learnEntryView, setLearnEntryView] = useState<
-    "hub" | "vocab" | "numbers" | "sentences"
+    "hub" | "vocab" | "numbers" | "sentences" | "thaiScript"
   >("hub");
+  /** Thai Schrift: Übersicht → Mittelklasse (wie Vokabeln → Lektionen) */
+  const [thaiScriptStep, setThaiScriptStep] = useState<"overview" | "midClass">("overview");
+
+  /** Vollbild-Lernmodus: Vokabel-/Zahlen-Session oder Thai Mittelklasse-Karten */
+  const learnImmersiveActive =
+    sessionState.sessionActive ||
+    (learnEntryView === "thaiScript" && thaiScriptStep === "midClass");
 
   // Dialog-State
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
@@ -301,6 +310,12 @@ export default function Learn() {
     localStorage.removeItem("openSentenceLearnSession");
   }, [sentencesMeta.unlockedCount, sessionState.sessionActive]);
 
+  useEffect(() => {
+    if (learnEntryView !== "thaiScript") {
+      setThaiScriptStep("overview");
+    }
+  }, [learnEntryView]);
+
   // On Learn page entry we reset any persisted in-page card session.
   // This keeps navigation deterministic: opening "Lernen" shows the overview.
   useEffect(() => {
@@ -311,7 +326,7 @@ export default function Learn() {
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("learnSessionVisibilityChanged", {
-        detail: { active: sessionState.sessionActive },
+        detail: { active: learnImmersiveActive },
       })
     );
 
@@ -322,7 +337,7 @@ export default function Learn() {
         })
       );
     };
-  }, [sessionState.sessionActive]);
+  }, [learnImmersiveActive]);
 
   // Save session to localStorage whenever it changes
   useEffect(() => {
@@ -798,13 +813,14 @@ export default function Learn() {
         ) : null}
       </div>
 
-      {/* Lektion-Auswahl (nur wenn keine Session läuft) */}
-      {!sessionState.sessionActive ? (
+      {/* Lektion-Auswahl (nicht während Lernsession / nicht bei Thai Mittelklasse Vollbild) */}
+      {!sessionState.sessionActive &&
+      !(learnEntryView === "thaiScript" && thaiScriptStep === "midClass") ? (
         <Card className="p-4 space-y-3">
           {learnEntryView === "hub" ? (
             <>
               <div className="text-sm font-semibold text-muted-foreground">Lernbereich wählen</div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Button
                   onClick={() => setLearnEntryView("vocab")}
                   variant="outline"
@@ -834,6 +850,16 @@ export default function Learn() {
                   <span className="text-base font-semibold">💬 Sätze lernen</span>
                   <span className="text-xs text-muted-foreground">
                     Freigeschaltet ({sentencesMeta.unlockedLearnedCount}/{sentencesMeta.unlockedCount})
+                  </span>
+                </Button>
+                <Button
+                  onClick={() => setLearnEntryView("thaiScript")}
+                  variant="outline"
+                  className="h-24 flex-col items-start justify-center gap-1 text-left border-amber-200/80 bg-amber-50/50 hover:bg-amber-100/70 dark:border-amber-900/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+                >
+                  <span className="text-base font-semibold">✏️ Thai Schrift lernen</span>
+                  <span className="text-xs text-muted-foreground">
+                    Buchstaben, Vokale & Lesen (Ausbau)
                   </span>
                 </Button>
               </div>
@@ -933,10 +959,44 @@ export default function Learn() {
             </>
           ) : null}
 
+          {learnEntryView === "thaiScript" ? (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-muted-foreground">
+                  ✏️ Thai Schrift lernen
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    thaiScriptStep === "midClass"
+                      ? setThaiScriptStep("overview")
+                      : setLearnEntryView("hub")
+                  }
+                >
+                  Zurück
+                </Button>
+              </div>
+              {thaiScriptStep === "overview" ? (
+                <ThaiScriptOverview onOpenMidClass={() => setThaiScriptStep("midClass")} />
+              ) : null}
+            </>
+          ) : null}
+
           {allLessons.length === 0 && numbersMeta.count === 0 && sentencesMeta.count === 0 ? (
             <div className="text-sm text-muted-foreground">Keine Lektionen vorhanden.</div>
           ) : null}
         </Card>
+      ) : null}
+
+      {/* Thai Schrift: Mittelklasse – gleiches Vollbild wie Vokabel-Lernsession */}
+      {!sessionState.sessionActive &&
+      learnEntryView === "thaiScript" &&
+      thaiScriptStep === "midClass" ? (
+        <MidClassConsonantsSection
+          key="mid-class-step"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
       ) : null}
 
       {/* Lern-Session */}

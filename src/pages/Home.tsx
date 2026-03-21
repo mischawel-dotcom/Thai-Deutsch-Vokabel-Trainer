@@ -8,6 +8,7 @@ import {
   useHomeLessonNavigation,
 } from "../features/home";
 import type { HomeProps } from "../features/home";
+import { INTERNAL_APP_VERSION } from "../lib/internalAppVersion";
 
 export default function Home({ onNavigate }: HomeProps) {
   const [streakDialogOpen, setStreakDialogOpen] = useState<boolean>(false);
@@ -37,8 +38,8 @@ export default function Home({ onNavigate }: HomeProps) {
 
 
     <div className="space-y-6">
-      {/* Test-Kennzahl nach Deploys (bei RTM entfernen) */}
-      <div className="text-3xl font-bold text-red-600">349</div>
+      {/* Test-Kennzahl nach Deploys (bei RTM entfernen) – siehe src/lib/internalAppVersion.ts */}
+      <div className="text-3xl font-bold text-red-600">{INTERNAL_APP_VERSION}</div>
 
       {/* Welcome Header */}
       <div>
