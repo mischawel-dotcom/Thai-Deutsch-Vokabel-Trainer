@@ -26,7 +26,10 @@ import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ThaiScriptOverview } from "../features/thai-script/ThaiScriptOverview";
+import { HighClassConsonantsSection } from "../features/thai-script/HighClassConsonantsSection";
+import { LowClassConsonantsSection } from "../features/thai-script/LowClassConsonantsSection";
 import { MidClassConsonantsSection } from "../features/thai-script/MidClassConsonantsSection";
+import { VowelPhase1Section } from "../features/thai-script/VowelPhase1Section";
 
 // Session-State für Learn
 type SessionState = {
@@ -125,12 +128,14 @@ export default function Learn() {
     "hub" | "vocab" | "numbers" | "sentences" | "thaiScript"
   >("hub");
   /** Thai Schrift: Übersicht → Mittelklasse (wie Vokabeln → Lektionen) */
-  const [thaiScriptStep, setThaiScriptStep] = useState<"overview" | "midClass">("overview");
+  const [thaiScriptStep, setThaiScriptStep] = useState<
+    "overview" | "midClass" | "highClass" | "lowClass" | "vowels1"
+  >("overview");
 
   /** Vollbild-Lernmodus: Vokabel-/Zahlen-Session oder Thai Mittelklasse-Karten */
   const learnImmersiveActive =
     sessionState.sessionActive ||
-    (learnEntryView === "thaiScript" && thaiScriptStep === "midClass");
+    (learnEntryView === "thaiScript" && thaiScriptStep !== "overview");
 
   // Dialog-State
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
@@ -813,9 +818,9 @@ export default function Learn() {
         ) : null}
       </div>
 
-      {/* Lektion-Auswahl (nicht während Lernsession / nicht bei Thai Mittelklasse Vollbild) */}
+      {/* Lektion-Auswahl (nicht während Lernsession / nicht bei Thai-Schrift Vollbild-Karten) */}
       {!sessionState.sessionActive &&
-      !(learnEntryView === "thaiScript" && thaiScriptStep === "midClass") ? (
+      !(learnEntryView === "thaiScript" && thaiScriptStep !== "overview") ? (
         <Card className="space-y-2 p-3 sm:space-y-3 sm:p-4">
           {learnEntryView === "hub" ? (
             <>
@@ -972,7 +977,7 @@ export default function Learn() {
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    thaiScriptStep === "midClass"
+                    thaiScriptStep !== "overview"
                       ? setThaiScriptStep("overview")
                       : setLearnEntryView("hub")
                   }
@@ -981,7 +986,12 @@ export default function Learn() {
                 </Button>
               </div>
               {thaiScriptStep === "overview" ? (
-                <ThaiScriptOverview onOpenMidClass={() => setThaiScriptStep("midClass")} />
+                <ThaiScriptOverview
+                  onOpenMidClass={() => setThaiScriptStep("midClass")}
+                  onOpenHighClass={() => setThaiScriptStep("highClass")}
+                  onOpenLowClass={() => setThaiScriptStep("lowClass")}
+                  onOpenVowelsPhase1={() => setThaiScriptStep("vowels1")}
+                />
               ) : null}
             </>
           ) : null}
@@ -992,12 +1002,28 @@ export default function Learn() {
         </Card>
       ) : null}
 
-      {/* Thai Schrift: Mittelklasse – gleiches Vollbild wie Vokabel-Lernsession */}
-      {!sessionState.sessionActive &&
-      learnEntryView === "thaiScript" &&
-      thaiScriptStep === "midClass" ? (
+      {/* Thai Schrift: Konsonantenklassen – Vollbild wie Vokabel-Lernsession */}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "midClass" ? (
         <MidClassConsonantsSection
-          key="mid-class-step"
+          key="thai-mid"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "highClass" ? (
+        <HighClassConsonantsSection
+          key="thai-high"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "lowClass" ? (
+        <LowClassConsonantsSection
+          key="thai-low"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "vowels1" ? (
+        <VowelPhase1Section
+          key="thai-vowels-1"
           onExitFullscreen={() => setThaiScriptStep("overview")}
         />
       ) : null}

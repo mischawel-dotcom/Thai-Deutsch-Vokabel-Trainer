@@ -3,12 +3,20 @@ import { Card } from "@/components/ui/card";
 
 type Props = {
   onOpenMidClass: () => void;
+  onOpenHighClass: () => void;
+  onOpenLowClass: () => void;
+  onOpenVowelsPhase1: () => void;
 };
 
 /**
  * Erste Ebene unter „Thai Schrift lernen“: Einleitung + Button wie bei Zahlen/Vokabeln.
  */
-export function ThaiScriptOverview({ onOpenMidClass }: Props) {
+export function ThaiScriptOverview({
+  onOpenMidClass,
+  onOpenHighClass,
+  onOpenLowClass,
+  onOpenVowelsPhase1,
+}: Props) {
   return (
     <div className="space-y-4 w-full">
       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -22,9 +30,9 @@ export function ThaiScriptOverview({ onOpenMidClass }: Props) {
         <Card className="p-4 space-y-2">
           <h3 className="text-sm font-semibold">Phase 1 (aktuell)</h3>
           <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
-            <li>Mittelklasse: eine Karte pro Buchstabe (Pfeile / Tastatur)</li>
-            <li>Bald: Hoch- und Tiefklasse, erste Vokale</li>
-            <li>Bald: einfache Leseübungen</li>
+            <li>Alle drei Konsonantenklassen: Karten mit Pfeilen / Tastatur</li>
+            <li>Vokale Teil 1: า ิ ี ุ ู ะ, เ/แ/โ, ใ/ไ, ำ</li>
+            <li>Bald: mehr Vokale & einfache Leseübungen</li>
           </ul>
         </Card>
         <Card className="p-4 space-y-2">
@@ -44,7 +52,31 @@ export function ThaiScriptOverview({ onOpenMidClass }: Props) {
           className="h-12 w-full text-base font-medium justify-center bg-amber-600 hover:bg-amber-700 text-white"
           title="Neun Konsonanten der Mittelklasse"
         >
-          Mittelklasse-Konsonanten
+          Mittelklasse-Konsonanten (9)
+        </Button>
+        <Button
+          type="button"
+          onClick={onOpenHighClass}
+          className="h-12 w-full text-base font-medium justify-center bg-teal-700 hover:bg-teal-800 text-white"
+          title="Elf Konsonanten der Hochklasse"
+        >
+          Hochklasse-Konsonanten (11)
+        </Button>
+        <Button
+          type="button"
+          onClick={onOpenLowClass}
+          className="h-12 w-full text-base font-medium justify-center bg-slate-700 hover:bg-slate-800 text-white"
+          title="Zweiundzwanzig Konsonanten der Tiefklasse"
+        >
+          Tiefklasse-Konsonanten (22)
+        </Button>
+        <Button
+          type="button"
+          onClick={onOpenVowelsPhase1}
+          className="h-12 w-full text-base font-medium justify-center bg-violet-700 hover:bg-violet-800 text-white"
+          title="Grundvokale mit Beispielwörtern"
+        >
+          Vokale Teil 1 (12)
         </Button>
       </div>
 

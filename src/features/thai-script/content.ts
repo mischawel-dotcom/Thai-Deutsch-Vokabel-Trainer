@@ -158,3 +158,5 @@ export const MID_CLASS_CONSONANTS: ThaiConsonantEntry[] = [
     ttsPhraseThai: "ออ่าง",
   },
 ];
+
+export { HIGH_CLASS_CONSONANTS, LOW_CLASS_CONSONANTS } from "./consonantsHighLow";
