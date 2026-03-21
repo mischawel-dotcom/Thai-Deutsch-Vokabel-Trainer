@@ -53,13 +53,12 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 เด็ก,Kind,dek,Nomen,"Personen,A1",1,เด็กกินข้าว,Das Kind isst Reis.
 ครู,Lehrer/Lehrerin,khru,Nomen,"Personen,Schule,A1",1,ครูพูดภาษาไทย,Der Lehrer spricht Thai.
 นักเรียน,Schüler/Schülerin,nak rian,Nomen,"Personen,Schule,A1",1,นักเรียนเรียนภาษาไทย,Der Schüler/Die Schülerin lernt Thai.
-พยาบาล,Krankenpfleger/in,phayaban,Nomen,"Personen,Gesundheit,A1",1,พยาบาลช่วยคน,Der Krankenpfleger/Die Krankenpflegerin hilft Menschen.
-พนักงาน,Angestellte/r,phanakngan,Nomen,"Personen,Berufe,A1",1,พนักงานทำงาน,Der Angestellte/Die Angestellte arbeitet.
-เจ้านาย,Chef/in,jao nai,Nomen,"Personen,Berufe,A1",1,เจ้านายพูดช้า,Der Chef/Die Chefin spricht langsam.
-ลูกค้า,Kunde/Kundin,luk kha,Nomen,"Personen,Alltag,A1",1,ลูกค้าซื้อข้าว,Die Kundin kauft Reis.
-นักท่องเที่ยว,Tourist/in,nak thong thiao,Nomen,"Reisen,Personen,A1",1,นักท่องเที่ยวไปเที่ยว,Der Tourist macht Urlaub.
+พยาบาล,Krankenpfleger/in,phayaban,Nomen,"Personen,Gesundheit,A1",4,พยาบาลช่วยคน,Der Krankenpfleger/Die Krankenpflegerin hilft Menschen.
+พนักงาน,Angestellte/r,phanakngan,Nomen,"Personen,Berufe,A1",4,พนักงานทำงาน,Der Angestellte/Die Angestellte arbeitet.
+เจ้านาย,Chef/in,jao nai,Nomen,"Personen,Berufe,A1",4,เจ้านายพูดช้า,Der Chef/Die Chefin spricht langsam.
+ลูกค้า,Kunde/Kundin,luk kha,Nomen,"Personen,Alltag,A1",4,ลูกค้าซื้อข้าว,Die Kundin kauft Reis.
+นักท่องเที่ยว,Tourist/in,nak thong thiao,Nomen,"Reisen,Personen,A1",4,นักท่องเที่ยวไปเที่ยว,Der Tourist macht Urlaub.
 คนไทย,Thailänder/in,khon thai,Nomen,"Personen,Nationalitäten,A1",1,เขาเป็นคนไทย,Er/Sie ist Thailänder/in.
-คนต่างชาติ,Ausländer/in,khon tang chat,Nomen,"Personen,Nationalitäten,A1",1,เขาเป็นคนต่างชาติ,Er/Sie ist Ausländer/in.
 นามสกุล,Nachname,nam sakun,Nomen,"Personen,A1",1,นามสกุลของคุณคืออะไร,Wie ist dein Nachname?
 ชื่อแรก,Vorname,chue raek,Nomen,"Personen,A1",1,ชื่อแรกของฉันคืออันนา,Mein Vorname ist Anna.
 อาชีพ,Beruf,achip,Nomen,"Personen,Berufe,A1",1,อาชีพของคุณคืออะไร,Was ist dein Beruf?
@@ -200,7 +199,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ว่างเปล่า,leer,wang plao,Adjektiv,"Alltag,A1",1,กล่องนี้ว่างเปล่า,Diese Box ist leer.
 โกรธ,wütend,grot,Adjektiv,"Gefühle,A1",1,เขาโกรธ,Er ist wütend.
 กลัว,ängstlich,klua,Adjektiv,"Gefühle,A1",1,ฉันกลัว,Ich habe Angst.
-สวัสดี,Hallo,sawasdee,Interjektion,"Höflichkeit,A1",2,สวัสดีครับ,Hallo.
+สวัสดี,Hallo,sawasdee,Interjektion,"Höflichkeit,A1",1,สวัสดีครับ,Hallo.
 ขอบคุณ,Danke,khop khun,Interjektion,"Höflichkeit,A1",2,ขอบคุณครับ,Danke.
 ขอบคุณมาก,vielen Dank,khop khun mak,Interjektion,"Höflichkeit,A1",2,ขอบคุณมากครับ,Vielen Dank.
 ขอโทษ,Entschuldigung,kho thot,Interjektion,"Höflichkeit,A1",2,ขอโทษครับ,Entschuldigung.
@@ -247,8 +246,8 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 กระเป๋าเดินทาง,Koffer,grapao dern thang,Nomen,"Transport,Reisen,A1",2,ฉันมีกระเป๋าเดินทาง,Ich habe einen Koffer.
 เงินบาท,Baht,ngoen baht,Nomen,"Einkaufen,A1",2,ฉันจ่ายเงินบาทไทย,Ich bezahle in Baht.
 ตะเกียบ,Essstäbchen,takiep,Nomen,"Essen,Trinken,A1",4,ฉันใช้ตะเกียบ,Ich benutze Essstäbchen.
-ขวด,Flasche,khuat,Nomen,"Essen,Trinken,A1",4,นี่คือขวดน้ำ,Stell die Flasche bitte auf den Tisch.
-แก้ว,Glas / Becher,kaeo,Nomen,"Essen,Trinken,A1",4,ฉันขอแก้วน้ำ,Ich möchte ein Glas Wasser.
+ขวด,Flasche,khuat,Nomen,"Essen,Trinken,A1",1,นี่คือขวดน้ำ,Stell die Flasche bitte auf den Tisch.
+แก้ว,Glas / Becher,kaeo,Nomen,"Essen,Trinken,A1",1,ฉันขอแก้วน้ำ,Ich möchte ein Glas Wasser.
 ถุง,Tüte / Beutel,thung,Nomen,"Einkaufen,A1",2,ขอถุงหนึ่งใบ,Bitte eine Tüte.
 เมือง,Stadt,mueang,Nomen,"Orte,A1",2,เมืองนี้ใหญ่,Diese Stadt ist groß.
 สะพาน,Brücke,saphan,Nomen,"Orte,A1",2,สะพานนี้ยาว,Diese Brücke ist lang.
@@ -387,7 +386,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ส้ม,Orange,som,Nomen,"Essen,A1",2,ส้มนี้เปรี้ยว,Diese Orange ist sauer.
 กล้วย,Banane,kluai,Nomen,"Essen,A1",2,กล้วยสุกแล้ว,Die Banane ist reif.
 ถุงเท้า,Socken,thung thao,Nomen,"Kleidung,A1",4,ถุงเท้านี้สีขาว,Diese Socken sind weiß.
-มะม่วง,Mango,mamuang,Nomen,"Essen,A1",3,มะม่วงนี้หวาน,Diese Mango ist süß.
+มะม่วง,Mango,mamuang,Nomen,"Essen,A1",2,มะม่วงนี้หวาน,Diese Mango ist süß.
 สับปะรด,Ananas,sapparot,Nomen,"Essen,A1",3,สับปะรดเขียว,Ananas ist grün.
 มะเขือเทศ,Tomate,makhuea thet,Nomen,"Essen,A1",3,มะเขือเทศแดง,Die Tomate ist rot.
 แตงกวา,Gurke,taeng kwa,Nomen,"Essen,A1",3,แตงกวาสด,Die Gurke ist frisch.
@@ -427,7 +426,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 เคย,schon einmal,khoei,Partikel,"Zeit,Erfahrung,A1",3,ฉันเคยไปกรุงเทพ,Ich war schon einmal in Bangkok.
 สายไป,zu spät,sai bpai,Adjektiv,"Zeit,A1",3,ฉันมาสายไป,Ich komme zu spät.
 เร็วไป,zu früh,reo bpai,Adjektiv,"Zeit,A1",3,คุณมาเร็วไป,Du kommst zu früh.
-ขา,Bein,kha,Nomen,"Körper,A1",4,ขาของฉันเจ็บ,Mein Bein tut weh.
+ขา,Bein,kha,Nomen,"Körper,A1",1,ขาของฉันเจ็บ,Mein Bein tut weh.
 ไม่เป็นไร,kein Problem,mai pen rai,Satz,"Höflichkeit,A1",4,ไม่เป็นไรครับ,Kein Problem.
 ช่วยด้วย,Hilfe!,chuai duai,Interjektion,"Notfall,A1",4,ช่วยด้วย!,Hilfe!
 ราคาเท่าไหร่,wie viel kostet das?,raa-khaa-thao-rai,Phrase,"Einkaufen,A1",4,ราคาเท่าไหร่,wie viel kostet das?
@@ -439,7 +438,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ข้างนอก,draußen,khang nok,Adverb,"Orte,Richtung,A1",4,เด็กเล่นข้างนอก,Die Kinder spielen draußen.
 ฝนตก,es regnet,fon-tok,Phrase,"Wetter,A1",4,ฝนตก,es regnet
 แดดออก,die Sonne scheint,daet-ok,Phrase,"Wetter,A1",4,แดดออก,die Sonne scheint
-ผัด,gebraten / pfannenrühren,phat,Verb,"Essen,Verben,A1",4,ฉันผัดผัก,Ich brate Gemüse an.
+ผัด,gebraten / pfannenrühren,phat,Verb,"Essen,Verben,A1",1,ฉันผัดผัก,Ich brate Gemüse an.
 ย่าง,grillen,yang,Verb,"Essen,Verben,A1",4,พ่อย่างปลา,Papa grillt Fisch.
 เบียร์,Bier,bia,Nomen,"Essen,Trinken,A1",4,เขาดื่มเบียร์,Er trinkt Bier.
 ไวน์,Wein,wai,Nomen,"Essen,Trinken,A1",4,เธอดื่มไวน์,Sie trinkt Wein.
@@ -449,7 +448,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ได้ไหม,geht das? / darf ich?,dai mai,Partikel,"Fragen,A1",4,ฉันลองได้ไหม,Darf ich probieren?
 มีไหม,gibt es?,mi mai,Partikel,"Fragen,A1",4,มีน้ำไหม,Gibt es Wasser?
 เอาไหม,willst du?,ao mai,Partikel,"Fragen,A1",4,เอากาแฟไหม,Willst du Kaffee?
-มืด,dunkel,muet,Adjektiv,"Eigenschaften,A1",4,ห้องนี้มืดเกินไป,Dieses Zimmer ist zu dunkel.
+มืด,dunkel,muet,Adjektiv,"Eigenschaften,A1",2,ห้องนี้มืดเกินไป,Dieses Zimmer ist zu dunkel.
 สว่าง,hell,sawang,Adjektiv,"Eigenschaften,A1",4,ห้องนี้สว่างมาก,Dieses Zimmer ist sehr hell.
 แคบ,eng,khaep,Adjektiv,"Eigenschaften,A1",4,ซอยนี้แคบมาก,Diese Gasse ist sehr eng.
 กว้าง,breit,kwang,Adjektiv,"Eigenschaften,A1",4,ถนนเส้นนี้กว้าง,Diese Straße ist breit.
@@ -515,7 +514,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 สวน,Park/Garten,suan,Nomen,"Zuhause,A2",2,เราไปเดินเล่นในสวน,Wir spazieren im Park.
 ภูเขา,Berg,phuu-khao,Nomen,"Reisen,A2",2,ภูเขาสูงมาก,Der Berg ist sehr hoch.
 เครื่องบิน,Flugzeug,khrueang-bin,Nomen,"Reisen,A2",2,เครื่องบินขึ้นแล้ว,Das Flugzeug ist schon gestartet.
-เนื้อ,Fleisch,nuea,Nomen,"Essen,A2",2,ฉันไม่กินเนื้อ,Ich esse kein Fleisch.
+เนื้อ,Fleisch,nuea,Nomen,"Essen,A2",3,ฉันไม่กินเนื้อ,Ich esse kein Fleisch.
 สัปดาห์,Woche,sapda,Nomen,"Zeit,A2",3,ฉันทำงานห้าวันต่อสัปดาห์,Ich arbeite fünf Tage pro Woche.
 กระจก,Spiegel,krajok,Nomen,"Haushalt,A2",3,นี่คือกระจก,Zu Hause brauche ich oft Spiegel.
 กางเกงยีนส์,Jeans,kangkeng yin,Nomen,"Kleidung,A2",3,นี่คือกางเกงยีนส์,Diese Jeans passt mir sehr gut.
@@ -675,6 +674,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ตุลาคม,Oktober,tulakhom,Nomen,"Zeit,A2",3,ฉันมีสอบใหญ่ในเดือนตุลาคม,Ich habe im Oktober eine große Prüfung.
 พฤศจิกายน,November,phruetsachikayon,Nomen,"Zeit,A2",3,อากาศเย็นขึ้นในเดือนพฤศจิกายน,Im November wird es kühler.
 ธันวาคม,Dezember,thanwakhom,Nomen,"Zeit,A2",3,เดือนธันวาคมมีบรรยากาศเทศกาล,Im Dezember ist Feststimmung.
+คนต่างชาติ,Ausländer/in,khon tang chat,Nomen,"Personen,Nationalitäten,A1",3,เขาเป็นคนต่างชาติ,Er/Sie ist Ausländer/in.
 บัตรเครดิต,Kreditkarte,bat khredit,Nomen,"Einkaufen,A2",4,คำนี้คือบัตรเครดิต,Ich zahle heute mit Kreditkarte.
 ธนบัตร,Banknote,thanabat,Nomen,"Finanzen,A2",4,คำนี้คือธนบัตร,Ich habe nur noch einen Geldschein dabei.
 เหรียญ,Münze,rian,Nomen,"Finanzen,A2",4,คำนี้คือเหรียญ,Für den Automaten brauche ich eine Münze.
@@ -709,7 +709,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ห้องนั่งเล่น,Wohnzimmer,hong-nang-len,Nomen,"Zuhause,A2",4,เราดูทีวีหอในห้องนั่งเล่น,Wollen wir fernschauen im Wohnzimmer?
 ห้องเรียน,Klassenzimmer,hong-rian,Nomen,"Bildung,A2",4,วัอะเมื่อจากห้องเรียน,Wann verlasse ich das Klassenzimmer?
 สนามกีฬา,Sportplatz,sa-naam-gii-laa,Nomen,"Freizeit,A2",4,เราสำกลิกคนในสนามกีฬา,Lass uns auf dem Sportplatz Sport machen.
-ของขวัญ,Geschenk,khong khwan,Nomen,"Soziales,A2",3,เขาให้ของขวัญวันเกิดฉัน,Er gibt mir ein Geburtstagsgeschenk.
+ของขวัญ,Geschenk,khong khwan,Nomen,"Soziales,A2",4,เขาให้ของขวัญวันเกิดฉัน,Er gibt mir ein Geburtstagsgeschenk.
 กล้อง,Kamera,klong,Nomen,"Technik,A2",4,คำนี้คือกล้อง,Nimm die Kamera für den Ausflug mit.
 ดนตรี,Musik,dontri,Nomen,"Medien,A2",4,คำนี้คือดนตรี,Musik hilft mir beim Lernen.
 กีฬา,Sport,kila,Nomen,"Freizeit,A2",4,คำนี้คือกีฬา,Sport ist gut für die Gesundheit.
@@ -900,7 +900,7 @@ thai,german,transliteration,pos,tags,lesson,exampleThai,exampleGerman
 ขยัน,fleißig,khayan,Adjektiv,"Soziales,A2",4,เขาเป็นนักเรียนที่ขยันมาก,Er ist ein sehr fleißiger Schüler.
 สุดสัปดาห์,Wochenende,sut sapda,Nomen,"Zeit,A2",4,สุดสัปดาห์นี้เราไปต่างจังหวัด,Dieses Wochenende fahren wir aus der Stadt.
 ครึ่ง,Hälfte,khrueng,Nomen,"Zeit,A2",4,แบ่งเค้กให้ฉันครึ่งหนึ่ง,Gib mir die Hälfte des Kuchens.
-ช่วง,Zeitraum,chuang,Nomen,"Zeit,A2",4,ช่วงนี้ฉันงานเยอะมาก,In diesem Zeitraum habe ich sehr viel Arbeit.
+ช่วง,Zeitraum,chuang,Nomen,"Zeit,A2",5,ช่วงนี้ฉันงานเยอะมาก,In diesem Zeitraum habe ich sehr viel Arbeit.
 ลำดับ,Reihenfolge,lamdap,Nomen,"Zeit,A2",5,กรุณาพูดตามลำดับ,Bitte sprich der Reihenfolge nach.
 ภายหลัง,später/nachher,phai lang,Adverb,"Zeit,A2",5,เราค่อยคุยกันภายหลัง,Wir sprechen später darüber.
 ในที่สุด,schließlich,nai thisut,Adverb,"Zeit,A2",5,ในที่สุดเขาก็มาถึง,Schließlich ist er angekommen.
