@@ -25,19 +25,21 @@ export function DirectionScreen({
       : `Examen - Lektion ${selectedLesson ?? ""}`;
 
   return (
-    <PageShell title={title}>
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Wähle die Richtung für deinen Test:</p>
+    <PageShell title={title} compactNarrow>
+      <div className="space-y-2 sm:space-y-4">
+        <p className="text-xs text-muted-foreground sm:text-sm">
+          Wähle die Richtung für deinen Test:
+        </p>
 
-        <div className="grid gap-3">
+        <div className="grid gap-2 sm:gap-3">
           <Button
             onClick={() => onStart("TH_DE")}
-            className="w-full justify-start h-auto py-6 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
+            className="h-auto w-full justify-start py-3 shadow-md transition-all duration-150 hover:shadow-lg active:shadow-sm sm:py-6 sm:shadow-lg sm:hover:-translate-y-1 sm:hover:shadow-2xl sm:active:translate-y-0 sm:active:shadow-md"
             variant="outline"
           >
             <div className="text-left">
-              <div className="font-semibold">Thai → Deutsch</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-sm font-semibold sm:text-base">Thai → Deutsch</div>
+              <div className="text-[11px] text-muted-foreground sm:text-xs">
                 {examDomain === "numbers"
                   ? "Sehe Thai-Zahl, wähle deutsche Zahl"
                   : "Sehe Thai-Wort, wähle deutsche Übersetzung"}
@@ -64,7 +66,7 @@ export function DirectionScreen({
         <Button
           onClick={onBack}
           variant="ghost"
-          className="w-full mt-4 shadow-lg hover:shadow-2xl hover:-translate-y-1 active:shadow-md active:translate-y-0 transition-all duration-150"
+          className="mt-2 h-9 w-full text-sm sm:mt-4 sm:h-10"
         >
           ← Zurück
         </Button>

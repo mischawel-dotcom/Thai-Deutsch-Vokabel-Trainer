@@ -1,10 +1,9 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   FlaskConical,
   Gamepad2,
   GraduationCap,
   Home as HomeIcon,
-  MoreHorizontal,
   NotebookTabs,
   Settings as SettingsIcon,
 } from "lucide-react";
@@ -111,9 +110,6 @@ export default function App() {
   const [showVocabPage, setShowVocabPage] = useState<boolean>(true);
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
   const [isLearnSessionActive, setIsLearnSessionActive] = useState(false);
-  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
-  const mobileMoreRef = useRef<HTMLDivElement | null>(null);
-
   // Initialize default vocab on app load
   useEffect(() => {
     // Guard to prevent double-execution in StrictMode
@@ -660,21 +656,6 @@ export default function App() {
     }
   }, [route]);
 
-  useEffect(() => {
-    setIsMobileMoreOpen(false);
-  }, [route]);
-
-  useEffect(() => {
-    if (!isMobileMoreOpen) return;
-    const onClickOutside = (event: MouseEvent) => {
-      if (mobileMoreRef.current && !mobileMoreRef.current.contains(event.target as Node)) {
-        setIsMobileMoreOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [isMobileMoreOpen]);
-
   // Auto-redirect from list route if page is hidden
   useEffect(() => {
     if (route === "list" && !showVocabPage) {
@@ -706,24 +687,37 @@ export default function App() {
     return () => mq.removeEventListener?.("change", handler);
   }, []);
 
-  function toggleTheme() {
-    const next = !darkMode;
-    setDarkMode(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
+  /** Hell/Dunkel – wird in Einstellungen → App Einstellungen gesetzt */
+  function applyTheme(dark: boolean) {
+    setDarkMode(dark);
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("theme", dark ? "dark" : "light");
   }
-
-  const mobileMoreActive = route === "exam" || route === "settings" || route === "list";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-3xl p-4 pb-24 md:pb-4">
-        <header className="mb-6 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold">Thai–Deutsch Vokabeltrainer</h2>
-
-            <Button variant="outline" size="sm" onClick={toggleTheme} title="Hell/Dunkel umschalten">
-              {darkMode ? "☀️ Light" : "🌙 Dark"}
+        <header
+          className={
+            route === "learn" || route === "exam"
+              ? "mb-3 space-y-2 md:mb-6 md:space-y-3"
+              : "mb-6 space-y-3"
+          }
+        >
+          <div className="flex min-w-0 items-center gap-4 sm:gap-6">
+            <h2 className="min-w-0 text-xl font-semibold">Thai–Deutsch Vokabeltrainer</h2>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              onClick={() => setRoute("settings")}
+              aria-label="Einstellungen"
+              title="Einstellungen"
+            >
+              <SettingsIcon
+                className={`h-5 w-5 ${route === "settings" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`}
+              />
             </Button>
           </div>
 
@@ -752,7 +746,9 @@ export default function App() {
           {route === "test" && <Test />}
           {route === "exam" && <Exam />}
           {route === "games" && <Games />}
-          {route === "settings" && <Settings />}
+          {route === "settings" && (
+            <Settings darkMode={darkMode} onThemeChange={applyTheme} />
+          )}
         </Suspense>
 
         {/* Help Dialog */}
@@ -825,6 +821,7 @@ export default function App() {
               <div>
                 <h3 className="font-bold text-lg mb-3">⚙️ Einstellungen (Settings)</h3>
                 <ul className="space-y-2 text-sm">
+                  <li><strong>Hell/Dunkel:</strong> Unter App Einstellungen (Erscheinungsbild)</li>
                   <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 30)</li>
                   <li><strong>Lernrichtung:</strong> Standard für Tests (Thai→Deutsch oder Deutsch→Thai)</li>
                   <li><strong>Vokabeln-Seite:</strong> Zusätzlicher Tab zum Durchsuchen aller Vokabeln</li>
@@ -895,54 +892,21 @@ export default function App() {
             Spiele
           </button>
 
-          <div className="relative" ref={mobileMoreRef}>
-            <button
-              type="button"
-              onClick={() => setIsMobileMoreOpen((prev) => !prev)}
-              className={`relative flex min-h-[56px] w-full flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                mobileMoreActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted/60"
-              }`}
-              aria-expanded={isMobileMoreOpen}
-              aria-controls="mobile-more-menu"
-            >
-              <MoreHorizontal className={`h-4 w-4 ${mobileMoreActive ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
-              Mehr
-            </button>
-
-            {isMobileMoreOpen ? (
-              <div
-                id="mobile-more-menu"
-                className="absolute bottom-full right-0 mb-2 w-[min(18rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-border bg-background py-2 shadow-lg"
-              >
-                <button
-                  type="button"
-                  onClick={() => setRoute("exam")}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
-                    route === "exam"
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  }`}
-                >
-                  <NotebookTabs className="h-4 w-4" />
-                  Examen
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRoute("settings")}
-                  className={`flex w-full items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
-                    route === "settings"
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  }`}
-                >
-                  <SettingsIcon className="h-4 w-4" />
-                  Einstellungen
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            onClick={() => setRoute("exam")}
+            className={`relative flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-md text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+              route === "exam"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted/60"
+            }`}
+            aria-current={route === "exam" ? "page" : undefined}
+          >
+            <NotebookTabs
+              className={`h-4 w-4 ${route === "exam" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`}
+            />
+            Examen
+          </button>
           </div>
         </nav>
       ) : null}

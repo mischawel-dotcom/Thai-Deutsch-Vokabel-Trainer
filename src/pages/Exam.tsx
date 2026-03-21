@@ -9,7 +9,10 @@ import {
   groupEntriesByLesson,
 } from "../features/exam/engine";
 import type { Question } from "../features/exam/types";
-import { SelectionScreen } from "../features/exam/components/SelectionScreen";
+import {
+  SelectionScreen,
+  type ExamBrowseStep,
+} from "../features/exam/components/SelectionScreen";
 import { DirectionScreen } from "../features/exam/components/DirectionScreen";
 import { TestingScreen } from "../features/exam/components/TestingScreen";
 import { ResultScreen } from "../features/exam/components/ResultScreen";
@@ -27,11 +30,16 @@ import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
 
 export default function Exam() {
   const [state, setState] = useState<ExamState>("selection");
+  const [browseStep, setBrowseStep] = useState<ExamBrowseStep>("root");
   const [examDomain, setExamDomain] = useState<ExamDomain>("vocab");
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const [direction, setDirection] = useState<ExamDirection>("TH_DE");
   const [activeGeneratedNumbersExam, setActiveGeneratedNumbersExam] = useState(false);
   const [vocabByLesson, setVocabByLesson] = useState<Record<number, VocabEntry[]>>({});
+  /** Anzeige-Zahlen wie Home: alle DB-Karten pro Lektion (ohne CEFR-/Übungsfilter) */
+  const [vocabDisplayCountByLesson, setVocabDisplayCountByLesson] = useState<Record<number, number>>(
+    {}
+  );
   const [numbersByLesson, setNumbersByLesson] = useState<Record<number, NumberEntry[]>>({});
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +69,9 @@ export default function Exam() {
     const shouldOpenNumbersExam = localStorage.getItem("openNumbersExamMode") === "true";
     if (!shouldOpenNumbersExam) return;
     setExamDomain("numbers");
+    setActiveGeneratedNumbersExam(true);
+    setSelectedLesson(null);
+    setState("direction");
     localStorage.removeItem("openNumbersExamMode");
   }, []);
 
@@ -142,7 +153,18 @@ export default function Exam() {
 
   async function loadVocab() {
     try {
-      const { entries: allVocab } = applyCefrFirstFilter(await db.vocab.toArray());
+      const rawVocab = await db.vocab.toArray();
+      // Gleiche Zähllogik wie Home (useHomeDashboardData.refreshLessonProgress) – nur für die Anzeige
+      const displayCounts: Record<number, number> = {};
+      for (const entry of rawVocab) {
+        const lesson = entry.lesson ?? 0;
+        const id = entry.id;
+        if (!Number.isFinite(lesson) || lesson <= 0 || typeof id !== "number") continue;
+        displayCounts[lesson] = (displayCounts[lesson] ?? 0) + 1;
+      }
+      setVocabDisplayCountByLesson(displayCounts);
+
+      const { entries: allVocab } = applyCefrFirstFilter(rawVocab);
       const allNumbers = await db.numbersVocab.toArray();
 
       setVocabByLesson(groupEntriesByLesson(allVocab));
@@ -227,6 +249,7 @@ export default function Exam() {
     if (nextQuestionTimer) clearTimeout(nextQuestionTimer);
     clearExamSession();
     setState("selection");
+    setBrowseStep("root");
     setSelectedLesson(null);
     setActiveGeneratedNumbersExam(false);
     setQuestions([]);
@@ -240,14 +263,16 @@ export default function Exam() {
     return (
       <SelectionScreen
         loading={loading}
-        examDomain={examDomain}
+        browseStep={browseStep}
+        onBrowseStepChange={setBrowseStep}
         availableLessons={availableLessons}
         vocabByLesson={vocabByLesson}
-        onDomainChange={(domain) => {
-          setExamDomain(domain);
+        vocabDisplayCountByLesson={vocabDisplayCountByLesson}
+        onVocabCategoryClick={() => {
+          setExamDomain("vocab");
           setActiveGeneratedNumbersExam(false);
         }}
-        onStartGeneratedNumbers={() => {
+        onNumbersExamClick={() => {
           setExamDomain("numbers");
           setActiveGeneratedNumbersExam(true);
           setSelectedLesson(null);
@@ -281,6 +306,12 @@ export default function Exam() {
         onBack={() => {
           setState("selection");
           setSelectedLesson(null);
+          if (examDomain === "numbers" && activeGeneratedNumbersExam) {
+            setActiveGeneratedNumbersExam(false);
+            setBrowseStep("root");
+          } else {
+            setBrowseStep("vocabLessons");
+          }
         }}
       />
     );

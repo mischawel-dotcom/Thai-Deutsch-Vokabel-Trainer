@@ -824,14 +824,9 @@ export default function Games() {
             </p>
             {status ? <div className="text-sm text-red-600">{status}</div> : null}
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedLesson(undefined);
-                }}
-              >
-                Zurücksetzen
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="ghost" onClick={() => setSetupDialogOpen(false)}>
+                Zurück
               </Button>
               <Button
                 onClick={async () => {

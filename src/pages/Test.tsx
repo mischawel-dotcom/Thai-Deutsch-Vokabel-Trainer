@@ -497,18 +497,15 @@ export default function Test() {
     setError("");
     setStatus("Lade Lektionen …");
     try {
-      // Hole nur eindeutige Lektionen und deren Counts
-      const lessons = await db.vocab
-        .orderBy("lesson")
-        .uniqueKeys();
-      
+      const lessons = await db.vocab.orderBy("lesson").uniqueKeys();
+
       const metadata = await Promise.all(
         lessons.map(async (lesson) => ({
           lesson: lesson as number,
-          count: await db.vocab.where("lesson").equals(lesson).count()
+          count: await db.vocab.where("lesson").equals(lesson).count(),
         }))
       );
-      
+
       setLessonMetadata(metadata.sort((a, b) => a.lesson - b.lesson));
       setStatus("");
       return metadata;

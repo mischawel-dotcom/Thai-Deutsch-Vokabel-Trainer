@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { getLastBackupTime } from "../features/vocab/backup";
-import { db } from "../db/db";
-import { listVoices, hasThaiVoice } from "../features/tts";
 import { useSettingsDataHandlers } from "../features/settings/hooks/useSettingsDataHandlers";
 import { useSettingsMaintenance } from "../features/settings/hooks/useSettingsMaintenance";
 import { useSettingsPreferences } from "../features/settings/hooks/useSettingsPreferences";
@@ -20,25 +18,22 @@ import {
 type SettingsSectionId =
   | "learn"
   | "install"
-  | "vocab"
   | "backup"
   | "danger"
-  | "debugLesson"
-  | "voice"
-  | "pwaDebug";
+  | "debugLesson";
 
-export default function Settings() {
+export type SettingsPageProps = {
+  darkMode: boolean;
+  onThemeChange: (dark: boolean) => void;
+};
+
+export default function Settings({ darkMode, onThemeChange }: SettingsPageProps) {
   const [msg, setMsg] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState<boolean>(false);
   const [activeSection, setActiveSection] = useState<SettingsSectionId | null>(null);
-  const [vocabCount, setVocabCount] = useState<number>(0);
   const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
   const [renderNow] = useState<number>(() => Date.now());
-  const latestCsvUrls = [
-    "https://raw.githubusercontent.com/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer/main/data/thai-de-vocab_Ver_2.csv",
-    "https://cdn.jsdelivr.net/gh/mischawel-dotcom/Thai-Deutsch-Vokabel-Trainer@main/data/thai-de-vocab_Ver_2.csv",
-  ];
   const settingsSections: Array<{
     id: SettingsSectionId;
     title: string;
@@ -46,18 +41,13 @@ export default function Settings() {
   }> = [
     {
       id: "learn",
-      title: "Lern-Einstellungen",
-      description: "Tagesziel, Lernrichtung und Sound-Einstellungen.",
+      title: "App Einstellungen",
+      description: "Erscheinungsbild, Tagesziel, Lernrichtung und Sound.",
     },
     {
       id: "install",
       title: "Als App installieren",
       description: "PWA-Installation auf Android, iOS und Desktop.",
-    },
-    {
-      id: "vocab",
-      title: "Vokabeln verwalten",
-      description: "CSV Import/Export und Direktimport der aktuellen CSV.",
     },
     {
       id: "backup",
@@ -74,25 +64,11 @@ export default function Settings() {
       title: "Entwickler-Debug",
       description: "Lektionsfortschritt und Exam-Status für Tests setzen.",
     },
-    {
-      id: "voice",
-      title: "Text-to-Speech Debug",
-      description: "Verfügbare Stimmen und Thai-Unterstützung prüfen.",
-    },
-    {
-      id: "pwaDebug",
-      title: "PWA Debug Info",
-      description: "Installations- und Laufzeitstatus der PWA ansehen.",
-    },
   ];
 
+  /** Wird nach Backup-Import und DB-Wartung von Hooks aufgerufen (keine Anzeige mehr in Settings). */
   async function refreshVocabCount() {
-    try {
-      const count = await db.vocab.count();
-      setVocabCount(count);
-    } catch {
-      // ignore count read errors in UI
-    }
+    await Promise.resolve();
   }
 
   function refreshBackupTime() {
@@ -101,7 +77,7 @@ export default function Settings() {
 
   function openSection(section: SettingsSectionId) {
     setActiveSection(section);
-    if (section === "vocab" || section === "danger") {
+    if (section === "danger") {
       void refreshVocabCount();
     }
     if (section === "backup") {
@@ -109,19 +85,12 @@ export default function Settings() {
     }
   }
 
-  const {
-    onImport,
-    onExport,
-    onBackupExport,
-    onBackupImport,
-    importLatestCsvDirectly,
-    downloadLatestCsv,
-  } = useSettingsDataHandlers({
+  const { onBackupExport, onBackupImport } = useSettingsDataHandlers({
     setMsg,
     setIsLoading,
     refreshVocabCount,
     refreshBackupTime,
-    latestCsvUrls,
+    latestCsvUrls: [],
   });
   const {
     dailyLimit,
@@ -135,7 +104,7 @@ export default function Settings() {
     changeLearnDirection,
     toggleSoundEnabled,
   } = useSettingsPreferences({ setMsg });
-  const { deferredPrompt, showInstallButton, debugInfo, installApp } = useSettingsPwaInstall({
+  const { showInstallButton, installApp } = useSettingsPwaInstall({
     setMsg,
   });
   const {
@@ -170,26 +139,6 @@ export default function Settings() {
     return null;
   }
 
-  async function showVoiceDebug() {
-    try {
-      const voices = await listVoices();
-      const thai = await hasThaiVoice();
-
-      const info = thai ? "✅ Thai-Stimme gefunden." : "⚠️ Keine Thai-Stimme gefunden.";
-
-      alert(
-        info + "\n\n" +
-        voices
-          .slice(0, 25)
-          .map((v) => `${v.lang} — ${v.name}${v.default ? " (default)" : ""}`)
-          .join("\n")
-      );
-    } catch (e: unknown) {
-      console.error(e);
-      alert(e instanceof Error ? e.message : String(e));
-    }
-  }
-
   function getSectionTitle(section: SettingsSectionId | null): string {
     return settingsSections.find((item) => item.id === section)?.title ?? "Einstellungen";
   }
@@ -200,6 +149,39 @@ export default function Settings() {
         return (
           <div className="space-y-3">
             <div>
+              <label className="text-sm font-medium block mb-2">Erscheinungsbild</label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Hell- oder Dunkelmodus für die gesamte App (wird auf diesem Gerät gespeichert).
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  type="button"
+                  onClick={() => onThemeChange(false)}
+                  variant={!darkMode ? "default" : "outline"}
+                  className={
+                    !darkMode
+                      ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
+                      : ""
+                  }
+                >
+                  ☀️ Hell
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => onThemeChange(true)}
+                  variant={darkMode ? "default" : "outline"}
+                  className={
+                    darkMode
+                      ? "bg-primary text-primary-foreground border border-primary/80 shadow-sm hover:shadow hover:bg-primary/90 transition-shadow"
+                      : ""
+                  }
+                >
+                  🌙 Dunkel
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
               <label className="text-sm font-medium">Tägliches Lernziel</label>
               <p className="text-xs text-muted-foreground mb-2">
                 Maximale Karten, die täglich als "Heute fällig" angezeigt werden (Standard: 10)
@@ -329,41 +311,6 @@ export default function Settings() {
             )}
           </div>
         );
-      case "vocab":
-        return (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              DB aktuell: <span className="font-semibold">{vocabCount}</span> Vokabeln
-            </p>
-            <div>
-              <label className="text-sm font-medium block mb-2">CSV Import</label>
-              {isLoading ? (
-                <p className="text-sm text-muted-foreground">⏳ Lade Vokabeln...</p>
-              ) : (
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={onImport}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900 dark:file:text-blue-200 dark:hover:file:bg-blue-800"
-                />
-              )}
-            </div>
-            <Button onClick={onExport} variant="outline" className="w-full">
-              📥 Export herunterladen
-            </Button>
-            <Button
-              onClick={importLatestCsvDirectly}
-              variant="default"
-              className="w-full"
-              disabled={isLoading}
-            >
-              ⚡ Aktuelle CSV direkt importieren
-            </Button>
-            <Button onClick={downloadLatestCsv} variant="outline" className="w-full">
-              🌐 Aktuelle CSV herunterladen
-            </Button>
-          </div>
-        );
       case "backup":
         return (
           <div className="space-y-3">
@@ -460,37 +407,6 @@ export default function Settings() {
                 Komplett Reset
               </Button>
             </div>
-          </div>
-        );
-      case "voice":
-        return (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Zeigt verfügbare Sprachstimmen und prüft Thai-Unterstützung.
-            </p>
-            <Button onClick={showVoiceDebug} variant="outline" className="w-full">
-              Stimmen Debug
-            </Button>
-          </div>
-        );
-      case "pwaDebug":
-        return (
-          <div className="space-y-2 text-xs">
-            <p className="font-mono bg-slate-100 dark:bg-slate-800 p-2 rounded">
-              {debugInfo || "Keine Informationen verfügbar"}
-            </p>
-            <p className="text-muted-foreground">
-              Service Worker: {"serviceWorker" in navigator ? "✅ Unterstützt" : "❌ Nicht unterstützt"}
-            </p>
-            <p className="text-muted-foreground">
-              beforeinstallprompt: {deferredPrompt ? "✅ Verfügbar" : "❌ Nicht verfügbar"}
-            </p>
-            <p className="text-muted-foreground">
-              Display Mode:{" "}
-              {window.matchMedia("(display-mode: standalone)").matches
-                ? "📱 Standalone (installiert)"
-                : "🌐 Browser"}
-            </p>
           </div>
         );
       default:
@@ -650,10 +566,11 @@ export default function Settings() {
             <div>
               <h3 className="font-bold text-lg mb-3">⚙️ Einstellungen (Settings)</h3>
               <ul className="space-y-2 text-sm">
+                <li><strong>Erscheinungsbild:</strong> Hell- oder Dunkelmodus</li>
                 <li><strong>Tägliches Lernziel:</strong> Maximale Karten pro Tag (Standard: 10)</li>
                 <li><strong>Lernrichtung:</strong> Standard für neue Test-Abfragen (Thai→Deutsch oder Deutsch→Thai)</li>
                 <li><strong>Sound:</strong> Effekte aktivieren/deaktivieren</li>
-                <li><strong>CSV Import/Export:</strong> Vokabeln sichern oder neue Datensätze einspielen</li>
+                <li><strong>Backup & Restore:</strong> Komplette App-Daten sichern und wiederherstellen</li>
                 <li><strong>Datenbank zurücksetzen:</strong> Löscht importierte Daten und Fortschritt (nur Standarddaten bleiben)</li>
               </ul>
             </div>

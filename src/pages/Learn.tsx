@@ -802,7 +802,7 @@ export default function Learn() {
   };
 
   return (
-    <PageShell title="Lernen">
+    <PageShell title="Lernen" compactNarrow>
       {/* Status / Fehler */}
       <div className="space-y-2">
         {status ? <p className="text-sm text-muted-foreground">{status}</p> : null}
@@ -816,17 +816,20 @@ export default function Learn() {
       {/* Lektion-Auswahl (nicht während Lernsession / nicht bei Thai Mittelklasse Vollbild) */}
       {!sessionState.sessionActive &&
       !(learnEntryView === "thaiScript" && thaiScriptStep === "midClass") ? (
-        <Card className="p-4 space-y-3">
+        <Card className="space-y-2 p-3 sm:space-y-3 sm:p-4">
           {learnEntryView === "hub" ? (
             <>
-              <div className="text-sm font-semibold text-muted-foreground">Lernbereich wählen</div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="text-xs font-semibold text-muted-foreground sm:text-sm">
+                Lernbereich wählen
+              </div>
+              {/* Handy: eine Spalte, kompaktere Höhen. Ab sm: 2×2 */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
                 <Button
                   onClick={() => setLearnEntryView("vocab")}
                   variant="outline"
-                  className="h-24 flex-col items-start justify-center gap-1 text-left"
+                  className="h-[4.75rem] flex-col items-start justify-center gap-0.5 px-3 py-2 text-left sm:h-24 sm:gap-1 sm:py-0"
                 >
-                  <span className="text-base font-semibold">📚 Vokabeln lernen</span>
+                  <span className="text-sm font-semibold sm:text-base">📚 Vokabeln lernen</span>
                   <span className="text-xs text-muted-foreground">
                     Lektionen 1-5 ({learnedVocabCards}/{totalVocabCards} gelernt)
                   </span>
@@ -834,9 +837,9 @@ export default function Learn() {
                 <Button
                   onClick={() => setLearnEntryView("numbers")}
                   variant="outline"
-                  className="h-24 flex-col items-start justify-center gap-1 text-left"
+                  className="h-[4.75rem] flex-col items-start justify-center gap-0.5 px-3 py-2 text-left sm:h-24 sm:gap-1 sm:py-0"
                 >
-                  <span className="text-base font-semibold">🔢 Zahlen lernen</span>
+                  <span className="text-sm font-semibold sm:text-base">🔢 Zahlen lernen</span>
                   <span className="text-xs text-muted-foreground">
                     Grundlagen + Lektion ({numbersMeta.learnedCount}/{numbersMeta.count})
                   </span>
@@ -844,10 +847,10 @@ export default function Learn() {
                 <Button
                   onClick={() => setLearnEntryView("sentences")}
                   variant="outline"
-                  className="h-24 flex-col items-start justify-center gap-1 text-left"
+                  className="h-[4.75rem] flex-col items-start justify-center gap-0.5 px-3 py-2 text-left sm:h-24 sm:gap-1 sm:py-0"
                   disabled={sentencesMeta.unlockedCount <= 0}
                 >
-                  <span className="text-base font-semibold">💬 Sätze lernen</span>
+                  <span className="text-sm font-semibold sm:text-base">💬 Sätze lernen</span>
                   <span className="text-xs text-muted-foreground">
                     Freigeschaltet ({sentencesMeta.unlockedLearnedCount}/{sentencesMeta.unlockedCount})
                   </span>
@@ -855,9 +858,9 @@ export default function Learn() {
                 <Button
                   onClick={() => setLearnEntryView("thaiScript")}
                   variant="outline"
-                  className="h-24 flex-col items-start justify-center gap-1 text-left border-amber-200/80 bg-amber-50/50 hover:bg-amber-100/70 dark:border-amber-900/50 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+                  className="h-[4.75rem] flex-col items-start justify-center gap-0.5 px-3 py-2 text-left sm:h-24 sm:gap-1 sm:py-0"
                 >
-                  <span className="text-base font-semibold">✏️ Thai Schrift lernen</span>
+                  <span className="text-sm font-semibold sm:text-base">✏️ Thai Schrift lernen</span>
                   <span className="text-xs text-muted-foreground">
                     Buchstaben, Vokale & Lesen (Ausbau)
                   </span>
