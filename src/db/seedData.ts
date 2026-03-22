@@ -381,7 +381,7 @@ export const seedVocabularyData = [
   },
   {
     thai: 'ฉัน',
-    german: 'ich',
+    german: 'ich (weiblich)',
     transliteration: 'chan',
     pos: 'Pronomen',
     lesson: 1,
