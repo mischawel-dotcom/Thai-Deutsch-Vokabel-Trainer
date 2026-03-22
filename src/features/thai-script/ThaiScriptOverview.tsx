@@ -6,6 +6,7 @@ type Props = {
   onOpenHighClass: () => void;
   onOpenLowClass: () => void;
   onOpenVowelsPhase1: () => void;
+  onOpenVowelsPhase2: () => void;
 };
 
 /**
@@ -16,6 +17,7 @@ export function ThaiScriptOverview({
   onOpenHighClass,
   onOpenLowClass,
   onOpenVowelsPhase1,
+  onOpenVowelsPhase2,
 }: Props) {
   return (
     <div className="space-y-4 w-full">
@@ -28,19 +30,18 @@ export function ThaiScriptOverview({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Card className="p-4 space-y-2">
-          <h3 className="text-sm font-semibold">Phase 1 (aktuell)</h3>
+          <h3 className="text-sm font-semibold">Phase 1</h3>
           <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
             <li>Alle drei Konsonantenklassen: Karten mit Pfeilen / Tastatur</li>
             <li>Vokale Teil 1: า ิ ี ุ ู ะ, เ/แ/โ, ใ/ไ, ำ</li>
-            <li>Bald: mehr Vokale & einfache Leseübungen</li>
           </ul>
         </Card>
         <Card className="p-4 space-y-2">
-          <h3 className="text-sm font-semibold">Was du später üben wirst</h3>
+          <h3 className="text-sm font-semibold">Phase 2 &amp; danach</h3>
           <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
-            <li>Tonregeln (Klasse + Silbenlänge + Tonzeichen)</li>
-            <li>Vokalzeichen rund um den Konsonanten</li>
-            <li>Häufige Silben und kurze Texte</li>
+            <li>Vokale Teil 2: ึ/ื, ั, เอา/เอีย/เือ, ือ, เออ/เอิ, แอะ, ฤ</li>
+            <li>Bald: einfache Leseübungen</li>
+            <li>Später: Tonregeln, häufige Silben, kurze Texte</li>
           </ul>
         </Card>
       </div>
@@ -77,6 +78,14 @@ export function ThaiScriptOverview({
           title="Grundvokale mit Beispielwörtern"
         >
           Vokale Teil 1 (12)
+        </Button>
+        <Button
+          type="button"
+          onClick={onOpenVowelsPhase2}
+          className="h-12 w-full text-base font-medium justify-center bg-violet-900 hover:bg-violet-950 text-white dark:bg-violet-950 dark:hover:bg-violet-900"
+          title="Weitere Vokale und mehrteilige Schreibungen"
+        >
+          Vokale Teil 2 (11)
         </Button>
       </div>
 

@@ -4,4 +4,4 @@
  * Bei inhaltlichen oder sichtbaren App-Änderungen (Features, UI, Nutzer-Fixes)
  * den Wert um **1** erhöhen – damit Deploys und Tests eindeutig zuordenbar sind.
  */
-export const INTERNAL_APP_VERSION = 380;
+export const INTERNAL_APP_VERSION = 387;

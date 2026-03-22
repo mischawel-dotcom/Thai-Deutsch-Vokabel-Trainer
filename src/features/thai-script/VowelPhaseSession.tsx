@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { speak } from "@/features/tts";
+import { buildVowelHeroDisplay } from "./buildVowelHeroText";
 import type { ThaiVowelEntry } from "./vowelsContent";
 
 type Props = {
@@ -42,16 +43,23 @@ export function VowelPhaseSession({
   }, [goPrev, goNext]);
 
   const row = entries[index]!;
+  /** Thai-Schulweise: „สระ อา“, „สระ อิ“ … (oberer Lautsprecher am großen Zeichen) */
+  const vowelNameTts = row.ttsVowelNameThai ?? row.nameThai;
+  const {
+    heroText: vowelHeroText,
+    sublabelDe: vowelHeroSublabelDe,
+    heroSegments: vowelHeroSegments,
+  } = buildVowelHeroDisplay(row.vowelDisplay);
 
-  const playTts = useCallback(async () => {
+  const playVowelNameTts = useCallback(async () => {
     if (ttsBusy) return;
     setTtsBusy(true);
     try {
-      await speak(row.ttsPhraseThai, "th-TH");
+      await speak(vowelNameTts, "th-TH");
     } finally {
       setTtsBusy(false);
     }
-  }, [row.ttsPhraseThai, ttsBusy]);
+  }, [vowelNameTts, ttsBusy]);
 
   const bottomChrome = "pb-[calc(env(safe-area-inset-bottom)+5rem)] sm:pb-[calc(env(safe-area-inset-bottom)+5.25rem)]";
 
@@ -109,17 +117,44 @@ export function VowelPhaseSession({
           <div className="flex min-h-0 w-full flex-1 flex-col">
             <div className="flex shrink-0 flex-col items-center justify-center gap-2 py-1.5 sm:py-2">
               <div
-                className="text-center text-5xl font-normal leading-none text-foreground sm:text-6xl md:text-7xl"
+                className="flex w-full min-h-[4.5rem] items-center justify-center sm:min-h-[5.25rem] md:min-h-[6.25rem]"
                 lang="th"
+                title={`Notation in der App: ${row.vowelDisplay}`}
+                aria-label={`Großdarstellung des Vokals (Notation ${row.vowelDisplay}), Silbe ${vowelHeroText}`}
               >
-                {row.vowelDisplay}
+                {vowelHeroSegments?.length ? (
+                  <span className="inline-flex flex-wrap items-baseline justify-center gap-0 text-center text-5xl font-normal leading-none tracking-normal text-foreground sm:text-6xl md:text-7xl">
+                    {vowelHeroSegments.map((seg, i) => (
+                      <span
+                        key={`${seg.text}-${i}`}
+                        className={
+                          seg.muted
+                            ? "text-muted-foreground/70 dark:text-muted-foreground/65"
+                            : undefined
+                        }
+                        lang="th"
+                      >
+                        {seg.text}
+                      </span>
+                    ))}
+                  </span>
+                ) : (
+                  <span className="text-center text-5xl font-normal leading-none tracking-normal text-foreground sm:text-6xl md:text-7xl">
+                    {vowelHeroText}
+                  </span>
+                )}
               </div>
+              {vowelHeroSublabelDe ? (
+                <p className="max-w-sm px-2 text-center text-[11px] leading-snug text-muted-foreground sm:max-w-md sm:text-xs">
+                  {vowelHeroSublabelDe}
+                </p>
+              ) : null}
               <button
                 type="button"
                 lang="th"
-                onClick={() => void playTts()}
-                title={`Beispiel abspielen: ${row.ttsPhraseThai}`}
-                aria-label={`Thailändisches Beispiel abspielen: ${row.ttsPhraseThai}`}
+                onClick={() => void playVowelNameTts()}
+                title={`Vokalnamen abspielen: ${vowelNameTts}`}
+                aria-label={`Thailändischen Vokalnamen abspielen: ${vowelNameTts}`}
                 disabled={ttsBusy}
                 className="text-2xl leading-none transition-opacity hover:opacity-80 active:opacity-60 disabled:pointer-events-none disabled:opacity-50 sm:text-3xl"
               >

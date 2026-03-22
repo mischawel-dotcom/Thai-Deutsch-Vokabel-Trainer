@@ -30,6 +30,7 @@ import { HighClassConsonantsSection } from "../features/thai-script/HighClassCon
 import { LowClassConsonantsSection } from "../features/thai-script/LowClassConsonantsSection";
 import { MidClassConsonantsSection } from "../features/thai-script/MidClassConsonantsSection";
 import { VowelPhase1Section } from "../features/thai-script/VowelPhase1Section";
+import { VowelPhase2Section } from "../features/thai-script/VowelPhase2Section";
 
 // Session-State für Learn
 type SessionState = {
@@ -129,7 +130,7 @@ export default function Learn() {
   >("hub");
   /** Thai Schrift: Übersicht → Mittelklasse (wie Vokabeln → Lektionen) */
   const [thaiScriptStep, setThaiScriptStep] = useState<
-    "overview" | "midClass" | "highClass" | "lowClass" | "vowels1"
+    "overview" | "midClass" | "highClass" | "lowClass" | "vowels1" | "vowels2"
   >("overview");
 
   /** Vollbild-Lernmodus: Vokabel-/Zahlen-Session oder Thai Mittelklasse-Karten */
@@ -991,6 +992,7 @@ export default function Learn() {
                   onOpenHighClass={() => setThaiScriptStep("highClass")}
                   onOpenLowClass={() => setThaiScriptStep("lowClass")}
                   onOpenVowelsPhase1={() => setThaiScriptStep("vowels1")}
+                  onOpenVowelsPhase2={() => setThaiScriptStep("vowels2")}
                 />
               ) : null}
             </>
@@ -1024,6 +1026,12 @@ export default function Learn() {
       {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "vowels1" ? (
         <VowelPhase1Section
           key="thai-vowels-1"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "vowels2" ? (
+        <VowelPhase2Section
+          key="thai-vowels-2"
           onExitFullscreen={() => setThaiScriptStep("overview")}
         />
       ) : null}

@@ -18,7 +18,9 @@ export interface ThaiVowelEntry {
   exampleGerman: string;
   /** Zusatzinfo (z. B. wenn nicht mit ก) */
   hintDe?: string;
-  /** TTS: meist das Beispielwort */
+  /** TTS: Thai-Name des Vokals (สระ …), falls Klammern/Zusätze in nameThai die Stimme stören */
+  ttsVowelNameThai?: string;
+  /** Entspricht meist dem Beispielwort (Beispiel-TTS nutzt direkt exampleThai) */
   ttsPhraseThai: string;
 }
 
@@ -144,6 +146,7 @@ export const PHASE1_VOWELS: ThaiVowelEntry[] = [
     exampleTransliteration: "khrai",
     exampleGerman: "wer",
     hintDe: "ใ- kommt nur in wenigen häufigen Wörtern vor (Merken!).",
+    ttsVowelNameThai: "สระ ไอ ตัว ใ",
     ttsPhraseThai: "ใคร",
   },
   {
@@ -157,5 +160,141 @@ export const PHASE1_VOWELS: ThaiVowelEntry[] = [
     exampleGerman: "machen / tun",
     hintDe: "Beispiel mit ท; ำ hängt direkt an den Konsonanten.",
     ttsPhraseThai: "ทำ",
+  },
+];
+
+/**
+ * Phase 2: weitere Vokale – u-/ü-Laute, Han-Akat (kurzes a), Diphthonge und
+ * mehrteilige Schreibungen (เ…า, เ…ีย, เ…ือ, ื…อ, เ…อ, เ…ิ…, แ…ะ) plus seltenes ฤ.
+ */
+export const PHASE2_VOWELS: ThaiVowelEntry[] = [
+  {
+    vowelDisplay: "ึ",
+    nameThai: "สระ อึ",
+    nameRtgs: "sara ue",
+    nameDe: "kurzes „ü“-artiger Vokal",
+    positionDe: "über dem Konsonanten",
+    exampleThai: "หมึก",
+    exampleTransliteration: "muek",
+    exampleGerman: "Tintenfisch / Tinte",
+    ttsPhraseThai: "หมึก",
+  },
+  {
+    vowelDisplay: "ื",
+    nameThai: "สระ อื",
+    nameRtgs: "sara uue",
+    nameDe: "langes „ü“-artiger Vokal",
+    positionDe: "über dem Konsonanten (oft gefolgt von อ oder Konsonant)",
+    exampleThai: "คืน",
+    exampleTransliteration: "khuen",
+    exampleGerman: "Nacht / zurückgeben",
+    hintDe: "Oft bildet ื mit dem nächsten Zeichen eine Silbe (z. B. คืน, มือ).",
+    ttsPhraseThai: "คืน",
+  },
+  {
+    vowelDisplay: "ั",
+    nameThai: "สระ อะ (ไม้หันอากาศ)",
+    nameRtgs: "sara a (mai han akat)",
+    nameDe: "kurzes „a“",
+    positionDe: "über dem Konsonanten (ไม้หันอากาศ ั)",
+    exampleThai: "รับ",
+    exampleTransliteration: "rap",
+    exampleGerman: "annehmen; höfliche Partikel (am Satzende)",
+    hintDe: "Das ั kürzt die Silbe; die Aussprache ist ein kurzes „a“.",
+    ttsVowelNameThai: "สระ อะ ไม้หันอากาศ",
+    ttsPhraseThai: "รับ",
+  },
+  {
+    vowelDisplay: "เ…า",
+    nameThai: "สระ เอา",
+    nameRtgs: "sara ao",
+    nameDe: "Diphthong „ao“",
+    positionDe: "เ links vor dem Konsonanten + า rechts (เ + Konsonant + า)",
+    exampleThai: "เขา",
+    exampleTransliteration: "khao",
+    exampleGerman: "er / sie (höflich); sie (Plural)",
+    hintDe: "Die Silbe spannt sich von เ über den Konsonanten bis zum า.",
+    ttsPhraseThai: "เขา",
+  },
+  {
+    vowelDisplay: "เ…ีย",
+    nameThai: "สระ เอีย",
+    nameRtgs: "sara ia",
+    nameDe: "Diphthong „ia“",
+    positionDe: "เ + Konsonant + ี + ย",
+    exampleThai: "เรียน",
+    exampleTransliteration: "rian",
+    exampleGerman: "lernen / studieren",
+    ttsPhraseThai: "เรียน",
+  },
+  {
+    vowelDisplay: "เ…ือ",
+    nameThai: "สระ เือ",
+    nameRtgs: "sara uea",
+    nameDe: "Laut wie „üe“ / „ue“",
+    positionDe: "เ + Konsonant + ื + อ",
+    exampleThai: "เดือน",
+    exampleTransliteration: "duean",
+    exampleGerman: "Monat",
+    hintDe: "Vier Teile: เ, Konsonant, ื und อ gehören zu einer Silbe.",
+    ttsPhraseThai: "เดือน",
+  },
+  {
+    vowelDisplay: "ื…อ",
+    nameThai: "สระ อือ",
+    nameRtgs: "sara uue + o ang",
+    nameDe: "langes „ü“ + leises „o“",
+    positionDe: "ื direkt nach dem Konsonanten, danach อ (stumm)",
+    exampleThai: "มือ",
+    exampleTransliteration: "mue",
+    exampleGerman: "Hand",
+    hintDe: "Das อ nach ื wird nicht als voller Vokal gesprochen; es schließt die Silbe.",
+    ttsPhraseThai: "มือ",
+  },
+  {
+    vowelDisplay: "เ…อ",
+    nameThai: "สระ เออ",
+    nameRtgs: "sara oe",
+    nameDe: "offener Laut „ö“ / „oe“",
+    positionDe: "เ vor dem Konsonanten; bei kurzer Silbe oft ohne sichtbares อ",
+    exampleThai: "เกิด",
+    exampleTransliteration: "koet",
+    exampleGerman: "geboren werden; geschehen",
+    hintDe: "In offenen Silben siehst du เ + Konsonant + อ (z. B. เธอ). Bei Endkonsonant fällt das อ weg.",
+    ttsPhraseThai: "เกิด",
+  },
+  {
+    vowelDisplay: "เ…ิ…",
+    nameThai: "สระ เอิ",
+    nameRtgs: "sara oei",
+    nameDe: "Laut wie „ö“ mit folgendem „i“-Ansatz",
+    positionDe: "เ + Konsonant + ิ + … (häufig น am Silbenende)",
+    exampleThai: "เงิน",
+    exampleTransliteration: "ngoen",
+    exampleGerman: "Geld",
+    ttsPhraseThai: "เงิน",
+  },
+  {
+    vowelDisplay: "แ…ะ",
+    nameThai: "สระ แอะ",
+    nameRtgs: "sara ae (short)",
+    nameDe: "kurzes offenes „ä“",
+    positionDe: "แ vor dem Konsonanten + ะ rechts (kurze Silbe)",
+    exampleThai: "แพะ",
+    exampleTransliteration: "phae",
+    exampleGerman: "Ziege",
+    ttsPhraseThai: "แพะ",
+  },
+  {
+    vowelDisplay: "ฤ",
+    nameThai: "สระ ฤ",
+    nameRtgs: "sara rue",
+    nameDe: "Sonderzeichen (selten)",
+    positionDe: "eigenes Zeichen; Aussprache vom Wort abhängig",
+    exampleThai: "ฤดู",
+    exampleTransliteration: "reedu",
+    exampleGerman: "Jahreszeit",
+    hintDe: "Kommt fast nur in wenigen festen Wörtern vor – zum Erkennen reicht es, es nicht zu fürchten.",
+    ttsPhraseThai: "ฤดู",
   },
 ];
