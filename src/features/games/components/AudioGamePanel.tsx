@@ -21,17 +21,25 @@ export default function AudioGamePanel({
 }: AudioGamePanelProps) {
   return (
     <>
-      <div className="rounded-md border p-4">
-        <div className="space-y-3">
+      <div className="rounded-md border p-4 text-center">
+        <div className="flex flex-col items-center justify-center gap-3">
           <p className="text-xs text-muted-foreground">
             {showPromptAudio
               ? "Hoere zu und waehle die richtige Uebersetzung:"
               : "Waehle die richtige Uebersetzung (Audio nur bei Thai → Deutsch)."}
           </p>
           {showPromptAudio ? (
-            <Button variant="outline" onClick={onPlayAudio} disabled={isSpeaking}>
-              {isSpeaking ? "Spielt..." : "🔊 Audio abspielen"}
-            </Button>
+            <button
+              type="button"
+              onClick={onPlayAudio}
+              title={isSpeaking ? "Spricht…" : "Thai Wort anhören"}
+              aria-label="Thai Wort anhören"
+              aria-busy={isSpeaking}
+              disabled={isSpeaking}
+              className="text-3xl leading-none transition-opacity hover:opacity-80 active:opacity-60 disabled:pointer-events-none disabled:opacity-50 sm:text-4xl"
+            >
+              🔊
+            </button>
           ) : null}
         </div>
       </div>

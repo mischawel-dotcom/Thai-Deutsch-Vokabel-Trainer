@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { GameDirection } from "../../../hooks/useGamesSetup";
 import type { AnswerFeedback, GameQuestion } from "../types";
 
 type QuizGamePanelProps = {
   question: GameQuestion;
   answerFeedback: AnswerFeedback | null;
+  direction: GameDirection;
   /** Wenn false: kein Vorlesen-Button (z. B. Deutsch → Thai ohne deutsches TTS). */
   showPromptAudio?: boolean;
+  /** Während TTS: Lautsprecher deaktiviert (wie Testkarten). */
+  isSpeaking?: boolean;
   onPlayAudio: () => void;
   onAnswer: (option: string) => void;
 };
@@ -13,26 +18,51 @@ type QuizGamePanelProps = {
 export default function QuizGamePanel({
   question,
   answerFeedback,
+  direction,
   showPromptAudio = true,
+  isSpeaking = false,
   onPlayAudio,
   onAnswer,
 }: QuizGamePanelProps) {
+  const promptIsThai = direction === "TH_DE";
+
   return (
     <>
       <div className="rounded-md border p-4 text-center">
         <p className="text-xs text-muted-foreground mb-2">Uebersetze:</p>
-        <p className="text-2xl font-semibold">{question.prompt}</p>
         {showPromptAudio ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={onPlayAudio}
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div
+              className="text-center text-4xl font-semibold leading-snug sm:text-5xl"
+              lang="th"
+            >
+              {question.prompt}
+            </div>
+            <button
+              type="button"
+              onClick={onPlayAudio}
+              title={isSpeaking ? "Spricht…" : "Thai Wort vorlesen"}
+              aria-label={`Thai Wort vorlesen: ${question.prompt}`}
+              aria-busy={isSpeaking}
+              disabled={isSpeaking}
+              className="text-3xl leading-none transition-opacity hover:opacity-80 active:opacity-60 disabled:pointer-events-none disabled:opacity-50 sm:text-4xl"
+            >
+              🔊
+            </button>
+          </div>
+        ) : (
+          <p
+            className={cn(
+              "font-semibold leading-snug",
+              promptIsThai
+                ? "text-3xl sm:text-4xl md:text-5xl"
+                : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
+            )}
+            lang={promptIsThai ? "th" : undefined}
           >
-            🔊 Vorlesen
-          </Button>
-        ) : null}
+            {question.prompt}
+          </p>
+        )}
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {question.options.map((option) => {

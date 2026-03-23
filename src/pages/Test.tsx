@@ -36,7 +36,13 @@ import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
 import { buildSentenceSegments } from "../features/sentences/transliteration";
 import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
 import { isVocabExcludedFromPractice } from "../features/vocab/practiceExclusions";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Test() {
   // ===== State =====
@@ -114,6 +120,8 @@ export default function Test() {
   const [sentenceSelectedLessons, setSentenceSelectedLessons] = useState<Record<number, boolean>>(
     {}
   );
+  /** Hinweis im Satztest-Konfigurationsdialog (sichtbar statt nur Status hinter dem Modal) */
+  const [sentenceDialogNotice, setSentenceDialogNotice] = useState<string>("");
   const [numberQuickStartIncludeAllLearned, setNumberQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [numberQuickStartLimit, setNumberQuickStartLimit] = useState<string>("");
   const [numberGeneratorMode, setNumberGeneratorMode] = useState<boolean>(() => {
@@ -257,7 +265,13 @@ export default function Test() {
   // Front/Back abhängig von Richtung
   const frontText = useMemo(() => {
     if (!current) return "";
-    return direction === "TH_DE" ? current.thai : current.german;
+    if (direction === "TH_DE") return current.thai;
+    // DE_TH: bei Zahlen nur arabische Zahl (14), nicht „vierzehn (14)“
+    if (current.sourceType === "numbers" || current.sourceType === "numbers_generated") {
+      const arabicMatch = current.german.match(/\(([^)]*)\)\s*$/);
+      return arabicMatch?.[1]?.trim() ?? current.german;
+    }
+    return current.german;
   }, [current, direction]);
 
   const backText = useMemo(() => {
@@ -289,6 +303,17 @@ export default function Test() {
   /** Kein TTS für deutsche Texte auf Testkarten (alle Kartentypen: Vokabeln, Zahlen, Sätze). */
   const showBackAudioButton = backLang !== "de-DE";
   const showFrontAudioButton = frontLang !== "de-DE";
+  /** Vokabel-, Zahlen- & Satztest: Thai + Audio wie Lernkarte (großes 🔊 zentriert, ohne „Vorlesen“-Text) */
+  const testThaiFrontLikeLearn =
+    (isVocabSessionCard || isNumberSessionCard || isSentenceSessionCard) &&
+    direction === "TH_DE" &&
+    frontIsThai &&
+    showFrontAudioButton;
+  const testThaiBackLikeLearn =
+    (isVocabSessionCard || isNumberSessionCard || isSentenceSessionCard) &&
+    direction === "DE_TH" &&
+    backIsThai &&
+    showBackAudioButton;
   const showCurrentCardTransliteration = isNumberSessionCard
     ? showNumberTransliteration
     : showTransliteration;
@@ -810,6 +835,7 @@ export default function Test() {
       setSentenceSelectedLessons(defaultSelection);
       setSentenceIncludeViewed(false);
       setSentenceCardLimit("");
+      setSentenceDialogNotice("");
       setSentenceDialogOpen(true);
     } catch (e: any) {
       console.error(e);
@@ -818,11 +844,17 @@ export default function Test() {
   }
 
   async function startSentenceRegularTestFromDialog() {
+    setSentenceDialogNotice("");
     const selectedLessons = sentenceLessonOptions
       .filter((option) => option.enabled && sentenceSelectedLessons[option.lesson])
       .map((option) => option.lesson);
     if (selectedLessons.length === 0) {
-      setStatus("Bitte mindestens eine freigeschaltete Satz-Lektion wählen.");
+      const anyLessonUnlocked = sentenceLessonOptions.some((o) => o.enabled);
+      setSentenceDialogNotice(
+        anyLessonUnlocked
+          ? "Bitte mindestens eine freigeschaltete Lektion auswählen (Häkchen setzen)."
+          : "Es ist keine Satz-Lektion freigeschaltet. Sätze werden freigeschaltet, sobald du in den zugehörigen Vokabel-Lektionen genug Tests bestanden hast (je Satz ein eigener Schwellenwert)."
+      );
       return;
     }
 
@@ -839,12 +871,25 @@ export default function Test() {
       limit = sentenceDialogMaxCount;
     }
 
-    await startSentenceTestSession("regular", selectedLessons, sentenceIncludeViewed, limit);
+    const result = await startSentenceTestSession(
+      "regular",
+      selectedLessons,
+      sentenceIncludeViewed,
+      limit
+    );
+    if (!result.ok) {
+      setSentenceDialogNotice(result.message);
+      return;
+    }
     setSentenceDialogOpen(false);
   }
 
   async function startSentenceImportantTestDirect() {
-    await startSentenceTestSession("important", [6], true);
+    const result = await startSentenceTestSession("important", [6], true);
+    if (!result.ok) {
+      setStatus(result.message);
+      return;
+    }
   }
 
   function openSentenceModeDialog() {
@@ -856,15 +901,16 @@ export default function Test() {
     selectedLessons: number[],
     includeViewedCards: boolean,
     limit?: number
-  ) {
+  ): Promise<{ ok: true } | { ok: false; message: string }> {
     let cards = await loadSentenceCardsForTest(scope, selectedLessons, includeViewedCards);
     if (cards.length === 0) {
-      setStatus(
+      const message =
         scope === "important"
           ? "Keine wichtigen Sätze verfügbar."
-          : "Keine freigeschalteten Satzkarten für die Auswahl."
-      );
-      return;
+          : includeViewedCards
+            ? "Für die gewählten Lektionen gibt es keine freigeschalteten Satzkarten."
+            : "Für die gewählten Lektionen gibt es keine ungelernten Sätze: Alle freigeschalteten Sätze sind schon angesehen. Aktiviere „Bereits gelernte Sätze einblenden“, um sie weiter zu testen.";
+      return { ok: false, message };
     }
     if (typeof limit === "number" && limit > 0 && limit < cards.length) {
       cards = [...cards].sort(() => Math.random() - 0.5).slice(0, limit);
@@ -895,6 +941,7 @@ export default function Test() {
         ? `Wichtige Sätze Test gestartet (${cards.length} Karte(n)).`
         : `Satztest gestartet (${cards.length} Karte(n)).`
     );
+    return { ok: true };
   }
 
   const selectedCardsCount = useMemo(() => {
@@ -1446,7 +1493,9 @@ export default function Test() {
           {/* Testkarte */}
           <Card
             className={`mx-auto mt-3 flex w-full min-h-0 max-w-xs flex-col overflow-y-auto p-3 shadow-xl sm:max-w-md sm:p-5 md:max-w-2xl md:p-7 max-h-[calc(100dvh-16rem)] sm:max-h-[calc(100dvh-18rem)] ${
-              isVocabSessionCard ? "justify-center pt-5 pb-5 sm:pt-7 sm:pb-7 md:pt-9 md:pb-9" : ""
+              isVocabSessionCard || isSentenceSessionCard
+                ? "justify-center pt-5 pb-5 sm:pt-7 sm:pb-7 md:pt-9 md:pb-9"
+                : ""
             }`}
           >
             <div className="w-full space-y-4">
@@ -1480,17 +1529,47 @@ export default function Test() {
                     </span>
                   </div>
 
-                  <div
-                    className={`font-semibold text-center leading-snug ${
-                      isVocabSessionCard
-                        ? frontIsThai
-                          ? "text-4xl sm:text-5xl"
-                          : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
-                        : "text-3xl sm:text-4xl"
-                    }`}
-                  >
-                    {frontText}
-                  </div>
+                  {testThaiFrontLikeLearn ? (
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="text-center text-4xl font-semibold leading-snug sm:text-5xl">
+                        {frontText}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          void handleSpeak(getSpeakableText(frontText), frontLang, "front");
+                        }}
+                        title={
+                          isSpeaking && speakingKey === "front"
+                            ? "Spricht…"
+                            : isSentenceSessionCard
+                              ? "Thai-Satz vorlesen"
+                              : "Thai Wort vorlesen"
+                        }
+                        aria-label={`${
+                          isSentenceSessionCard ? "Thai-Satz vorlesen" : "Thai Wort vorlesen"
+                        }: ${frontText}`}
+                        aria-busy={isSpeaking && speakingKey === "front"}
+                        disabled={isSpeaking}
+                        className="text-3xl leading-none transition-opacity hover:opacity-80 active:opacity-60 disabled:pointer-events-none disabled:opacity-50 sm:text-4xl"
+                      >
+                        🔊
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`font-semibold text-center leading-snug ${
+                        isVocabSessionCard || isSentenceSessionCard
+                          ? frontIsThai
+                            ? "text-4xl sm:text-5xl"
+                            : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
+                          : "text-3xl sm:text-4xl"
+                      }`}
+                    >
+                      {frontText}
+                    </div>
+                  )}
 
                   {showCurrentCardTransliteration && direction === "TH_DE" ? (
                     current.sourceType === "sentences" ||
@@ -1518,7 +1597,9 @@ export default function Test() {
                       <div className="text-center">
                         <div
                           className={`text-muted-foreground italic ${
-                            isVocabSessionCard ? "text-base sm:text-lg" : "text-sm"
+                            isVocabSessionCard || isNumberSessionCard || isSentenceSessionCard
+                              ? "text-base sm:text-lg"
+                              : "text-sm"
                           }`}
                         >
                           {current.transliteration}
@@ -1527,13 +1608,13 @@ export default function Test() {
                     ) : null
                   ) : null}
 
-                  {showFrontAudioButton ? (
+                  {showFrontAudioButton && !testThaiFrontLikeLearn ? (
                     <div className="flex flex-wrap justify-center gap-2 pt-2">
                       <Button
                         size="sm"
                         variant="secondary"
                         className={`transition-all duration-150 ${
-                          isVocabSessionCard
+                          isVocabSessionCard || isSentenceSessionCard
                             ? "h-10 border border-transparent bg-background text-foreground shadow-none hover:bg-muted"
                             : "shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 bg-slate-400 hover:bg-slate-500 text-white"
                         }`}
@@ -1577,17 +1658,47 @@ export default function Test() {
                     </span>
                   </div>
 
-                  <div
-                    className={`font-semibold text-center leading-snug ${
-                      isVocabSessionCard
-                        ? backIsThai
-                          ? "text-4xl sm:text-5xl"
-                          : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
-                        : "text-2xl sm:text-3xl"
-                    }`}
-                  >
-                    {backText}
-                  </div>
+                  {testThaiBackLikeLearn ? (
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="text-center text-4xl font-semibold leading-snug sm:text-5xl">
+                        {backText}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          void handleSpeak(getSpeakableText(backText), backLang, "back");
+                        }}
+                        title={
+                          isSpeaking && speakingKey === "back"
+                            ? "Spricht…"
+                            : isSentenceSessionCard
+                              ? "Thai-Satz vorlesen"
+                              : "Thai Wort vorlesen"
+                        }
+                        aria-label={`${
+                          isSentenceSessionCard ? "Thai-Satz vorlesen" : "Thai Wort vorlesen"
+                        }: ${backText}`}
+                        aria-busy={isSpeaking && speakingKey === "back"}
+                        disabled={isSpeaking}
+                        className="text-3xl leading-none transition-opacity hover:opacity-80 active:opacity-60 disabled:pointer-events-none disabled:opacity-50 sm:text-4xl"
+                      >
+                        🔊
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`font-semibold text-center leading-snug ${
+                        isVocabSessionCard || isSentenceSessionCard
+                          ? backIsThai
+                            ? "text-4xl sm:text-5xl"
+                            : "text-2xl sm:text-3xl text-blue-600 dark:text-blue-400"
+                          : "text-2xl sm:text-3xl"
+                      }`}
+                    >
+                      {backText}
+                    </div>
+                  )}
 
                   {showCurrentCardTransliteration && direction === "DE_TH" ? (
                     current.sourceType === "sentences" ||
@@ -1615,7 +1726,9 @@ export default function Test() {
                       <div className="text-center">
                         <div
                           className={`text-muted-foreground italic ${
-                            isVocabSessionCard ? "text-base sm:text-lg" : "text-sm"
+                            isVocabSessionCard || isNumberSessionCard || isSentenceSessionCard
+                              ? "text-base sm:text-lg"
+                              : "text-sm"
                           }`}
                         >
                           {current.transliteration}
@@ -1624,13 +1737,13 @@ export default function Test() {
                     ) : null
                   ) : null}
 
-                  {showBackAudioButton ? (
+                  {showBackAudioButton && !testThaiBackLikeLearn ? (
                     <div className="flex flex-wrap justify-center gap-2 pt-2">
                       <Button
                         size="sm"
                         variant="secondary"
                         className={`transition-all duration-150 ${
-                          isVocabSessionCard
+                          isVocabSessionCard || isSentenceSessionCard
                             ? "h-10 border border-transparent bg-background text-foreground shadow-none hover:bg-muted"
                             : "shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 bg-slate-400 hover:bg-slate-500 text-white"
                         }`}
@@ -1654,7 +1767,9 @@ export default function Test() {
                       <div className="border-t my-3" />
                       <div
                         className={`rounded-md border bg-muted/30 p-3 ${
-                          isVocabSessionCard ? "text-base sm:text-lg space-y-3" : "text-xs space-y-2"
+                          isVocabSessionCard || isSentenceSessionCard
+                            ? "text-base sm:text-lg space-y-3"
+                            : "text-xs space-y-2"
                         }`}
                       >
                         <div className="font-semibold text-muted-foreground">📝 Beispiele:</div>
@@ -1662,14 +1777,14 @@ export default function Test() {
                         {current.exampleThai ? (
                           <div
                             className={
-                              isVocabSessionCard
+                              isVocabSessionCard || isSentenceSessionCard
                                 ? "grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2 pt-1"
                                 : "flex flex-wrap items-center justify-center gap-2"
                             }
                           >
                             <span
                               className={`text-muted-foreground ${
-                                isVocabSessionCard ? "font-medium mt-0.5" : ""
+                                isVocabSessionCard || isSentenceSessionCard ? "font-medium mt-0.5" : ""
                               }`}
                             >
                               TH:
@@ -1688,7 +1803,9 @@ export default function Test() {
                                 disabled={isSpeaking}
                                 aria-busy={isSpeaking && speakingKey === "example-th"}
                                 className={
-                                  isVocabSessionCard ? "ml-4 h-8 w-8 self-end p-0 leading-none -mb-0.5" : ""
+                                  isVocabSessionCard || isSentenceSessionCard
+                                    ? "ml-4 h-8 w-8 self-end p-0 leading-none -mb-0.5"
+                                    : ""
                                 }
                               >
                                 {isSpeaking && speakingKey === "example-th" ? "⏳" : "🔊"}
@@ -1700,12 +1817,16 @@ export default function Test() {
                         {current.exampleGerman ? (
                           <div
                             className={
-                              isVocabSessionCard
+                              isVocabSessionCard || isSentenceSessionCard
                                 ? "grid grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-2"
                                 : "flex flex-wrap items-center justify-center gap-2"
                             }
                           >
-                            <span className={`text-muted-foreground ${isVocabSessionCard ? "font-medium" : ""}`}>
+                            <span
+                              className={`text-muted-foreground ${
+                                isVocabSessionCard || isSentenceSessionCard ? "font-medium" : ""
+                              }`}
+                            >
                               DE:
                             </span>
                             <div className="flex items-start">
@@ -1923,12 +2044,26 @@ export default function Test() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={sentenceDialogOpen} onOpenChange={setSentenceDialogOpen}>
+      <Dialog
+        open={sentenceDialogOpen}
+        onOpenChange={(open) => {
+          setSentenceDialogOpen(open);
+          if (!open) setSentenceDialogNotice("");
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>💬 Satztest konfigurieren</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {sentenceDialogNotice ? (
+              <p
+                className="rounded-md border border-amber-500/50 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-100"
+                role="alert"
+              >
+                {sentenceDialogNotice}
+              </p>
+            ) : null}
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -2027,9 +2162,23 @@ export default function Test() {
                 Maximal: {sentenceDialogMaxCount} Satz/Saetze mit aktueller Auswahl
               </p>
             </div>
-            <Button className="w-full" onClick={() => void startSentenceRegularTestFromDialog()}>
-              Satztest starten
-            </Button>
+            <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-11 w-full border-0 shadow-none sm:w-auto"
+                onClick={() => setSentenceDialogOpen(false)}
+              >
+                Abbrechen
+              </Button>
+              <Button
+                type="button"
+                className="h-11 w-full border-0 shadow-none sm:w-auto"
+                onClick={() => void startSentenceRegularTestFromDialog()}
+              >
+                Satztest starten
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

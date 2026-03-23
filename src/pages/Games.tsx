@@ -884,6 +884,7 @@ export default function Games() {
             <BlitzGamePanel
               question={question}
               answerFeedback={answerFeedback}
+              direction={direction}
               onAnswer={answerQuestion}
             />
           ) : null}
@@ -891,7 +892,9 @@ export default function Games() {
             <QuizGamePanel
               question={question}
               answerFeedback={answerFeedback}
+              direction={direction}
               showPromptAudio={canPlayPromptTts}
+              isSpeaking={isSpeaking}
               onPlayAudio={() => void playQuestionAudio()}
               onAnswer={answerQuestion}
             />
