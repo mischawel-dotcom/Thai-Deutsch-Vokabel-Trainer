@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useReducer } from "react";
+import { useEffect, useMemo, useRef, useState, useReducer } from "react";
 import { db } from "../db/db";
 import type { VocabEntry } from "../db/db";
 import { speak } from "../features/tts";
@@ -31,6 +31,7 @@ import { LowClassConsonantsSection } from "../features/thai-script/LowClassConso
 import { MidClassConsonantsSection } from "../features/thai-script/MidClassConsonantsSection";
 import { VowelPhase1Section } from "../features/thai-script/VowelPhase1Section";
 import { VowelPhase2Section } from "../features/thai-script/VowelPhase2Section";
+import type { Route } from "../features/home/types";
 
 // Session-State für Learn
 type SessionState = {
@@ -94,13 +95,20 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
   }
 }
 
-export default function Learn() {
+type LearnProps = {
+  onNavigate?: (route: Route) => void;
+};
+
+export default function Learn({ onNavigate }: LearnProps) {
   // Session-State mit useReducer
   const [sessionState, dispatchSession] = useReducer(sessionReducer, {
     sessionActive: false,
     lessonCards: [],
     currentIndex: 0,
   });
+  /** Nach letzter Karte: Abschlusskarte statt Hinweis unter der Karte */
+  const [learnSessionShowSummary, setLearnSessionShowSummary] = useState(false);
+  const learnSessionWasActiveRef = useRef(false);
 
   // UI-State
   const [allLessons, setAllLessons] = useState<
@@ -322,6 +330,13 @@ export default function Learn() {
     }
   }, [learnEntryView]);
 
+  useEffect(() => {
+    if (sessionState.sessionActive && !learnSessionWasActiveRef.current) {
+      setLearnSessionShowSummary(false);
+    }
+    learnSessionWasActiveRef.current = sessionState.sessionActive;
+  }, [sessionState.sessionActive]);
+
   // On Learn page entry we reset any persisted in-page card session.
   // This keeps navigation deterministic: opening "Lernen" shows the overview.
   useEffect(() => {
@@ -414,9 +429,13 @@ export default function Learn() {
             setStatus("Keine fälligen Karten verfügbar.");
           }
         } else {
+          const lessonCards: LearnCard[] = cards.map((card) => ({
+            ...card,
+            sourceType: "vocab" as const,
+          }));
           dispatchSession({
             type: "SET",
-            payload: { lessonCards: cards },
+            payload: { lessonCards },
           });
           setStatus(`Heute fällig: ${cards.length} Karte(n)`);
         }
@@ -696,9 +715,23 @@ export default function Learn() {
   });
 
   function endSession() {
+    setLearnSessionShowSummary(false);
     dispatchSession({ type: "END_SESSION" });
     setStatus("Session beendet");
     setConfirmEndOpen(false);
+  }
+
+  /** Abschlusskarte / normaler Lektionsende: zur Lernen-Übersicht ohne Dialog. */
+  function returnToLearnOverviewFromLessonEnd() {
+    setLearnSessionShowSummary(false);
+    dispatchSession({ type: "END_SESSION" });
+    setStatus("");
+    setConfirmEndOpen(false);
+  }
+
+  function goToTestsFromSummary() {
+    returnToLearnOverviewFromLessonEnd();
+    onNavigate?.("test");
   }
 
   function requestEndSession() {
@@ -772,14 +805,20 @@ export default function Learn() {
   }
 
   function goNext() {
+    if (learnSessionShowSummary) return;
     if (sessionState.currentIndex < sessionState.lessonCards.length - 1) {
       dispatchSession({ type: "NEXT_CARD" });
     } else {
-      setStatus("Ende der Lektion erreicht!");
+      setLearnSessionShowSummary(true);
+      setStatus("");
     }
   }
 
   function goPrev() {
+    if (learnSessionShowSummary) {
+      setLearnSessionShowSummary(false);
+      return;
+    }
     if (sessionState.currentIndex > 0) {
       dispatchSession({ type: "PREV_CARD" });
     }
@@ -806,6 +845,21 @@ export default function Learn() {
     if (match && match[1]) return match[1].trim();
     return text.trim();
   };
+
+  const learnSessionSummaryStats = useMemo(() => {
+    const cards = sessionState.lessonCards;
+    const scorable = cards.filter((c) => c.sourceType !== "numbers_info");
+    const viewedCount = scorable.filter((c) => c.viewed).length;
+    const types = new Set(scorable.map((c) => c.sourceType ?? "vocab"));
+    let unitLabel: "Vokabeln" | "Zahlen" | "Sätze" | "Karten" = "Karten";
+    if (types.size === 1) {
+      const only = [...types][0];
+      if (only === "vocab") unitLabel = "Vokabeln";
+      else if (only === "numbers") unitLabel = "Zahlen";
+      else if (only === "sentences") unitLabel = "Sätze";
+    }
+    return { viewedCount, unitLabel };
+  }, [sessionState.lessonCards]);
 
   return (
     <PageShell title="Lernen" compactNarrow>
@@ -1057,7 +1111,11 @@ export default function Learn() {
               Karte: <b className="text-foreground">{sessionState.currentIndex + 1}</b> / <b className="text-foreground">{sessionState.lessonCards.length}</b>
             </span>
             <span className="rounded-full bg-muted/70 px-2 py-1">
-              Status: {current.viewed ? "✅ Gesehen" : "⭕ Nicht gesehen"}
+              {learnSessionShowSummary ? (
+                <>Abschluss</>
+              ) : (
+                <>Status: {current.viewed ? "✅ Gesehen" : "⭕ Nicht gesehen"}</>
+              )}
             </span>
           </div>
 
@@ -1066,8 +1124,18 @@ export default function Learn() {
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full bg-primary transition-all"
-                style={{ width: `${((sessionState.currentIndex + 1) / sessionState.lessonCards.length) * 100}%` }}
-                aria-label={`Fortschritt ${Math.round(((sessionState.currentIndex + 1) / sessionState.lessonCards.length) * 100)}%`}
+                style={{
+                  width: `${
+                    (learnSessionShowSummary
+                      ? 1
+                      : (sessionState.currentIndex + 1) / sessionState.lessonCards.length) * 100
+                  }%`,
+                }}
+                aria-label={`Fortschritt ${Math.round(
+                  (learnSessionShowSummary
+                    ? 100
+                    : ((sessionState.currentIndex + 1) / sessionState.lessonCards.length) * 100)
+                )}%`}
               />
             </div>
           </div>
@@ -1081,6 +1149,44 @@ export default function Learn() {
             }`}
           >
             <div className="w-full space-y-4">
+              {learnSessionShowSummary ? (
+                <div
+                  className="flex flex-col items-center justify-center gap-4 px-2 py-4 text-center sm:py-8"
+                  role="region"
+                  aria-label="Lektion abgeschlossen"
+                >
+                  <span
+                    className="text-5xl leading-none sm:text-6xl"
+                    aria-hidden="true"
+                  >
+                    👍
+                  </span>
+                  <p className="text-lg font-semibold text-green-800 dark:text-green-200">
+                    Ende der Lektion erreicht.
+                  </p>
+                  <p className="text-base text-foreground">
+                    {learnSessionSummaryStats.viewedCount} {learnSessionSummaryStats.unitLabel}{" "}
+                    gelernt.
+                  </p>
+                  <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+                    Wenn du möchtest, kannst du das Gelernte in{" "}
+                    {onNavigate ? (
+                      <button
+                        type="button"
+                        onClick={goToTestsFromSummary}
+                        className="inline h-auto border-0 bg-transparent p-0 font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        aria-label="Zur Seite Tests wechseln"
+                      >
+                        Tests
+                      </button>
+                    ) : (
+                      <span className="font-medium text-foreground">Tests</span>
+                    )}{" "}
+                    festigen.
+                  </p>
+                </div>
+              ) : (
+                <>
               {/* Infokarte Grundlagen Thai-Zahlen */}
               {current.sourceType === "numbers_info" ? (
                 <div className="space-y-4">
@@ -1306,6 +1412,8 @@ export default function Learn() {
                   </div>
                 </>
               ) : null}
+                </>
+              )}
             </div>
           </Card>
 
@@ -1314,7 +1422,7 @@ export default function Learn() {
             <div className="mx-auto w-full max-w-xs rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur sm:max-w-md md:max-w-2xl">
               <div className="space-y-2">
                 {/* Markieren als gesehen */}
-                {current.sourceType !== "numbers_info" ? (
+                {current.sourceType !== "numbers_info" && !learnSessionShowSummary ? (
                   <Button
                     onClick={markCurrentAsViewed}
                     size="sm"
@@ -1332,34 +1440,34 @@ export default function Learn() {
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button
                     onClick={goPrev}
-                    disabled={sessionState.currentIndex === 0}
+                    disabled={!learnSessionShowSummary && sessionState.currentIndex === 0}
                     variant="outline"
                     className="h-11 px-5 border-transparent bg-background text-foreground hover:bg-muted disabled:opacity-50"
                   >
                     Zurück
                   </Button>
 
-                  <Button
-                    onClick={goNext}
-                    disabled={sessionState.currentIndex === sessionState.lessonCards.length - 1}
-                    className="h-11 px-5 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    Weiter
-                  </Button>
+                  {learnSessionShowSummary ? (
+                    <Button
+                      type="button"
+                      onClick={returnToLearnOverviewFromLessonEnd}
+                      className="h-11 px-5 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      Zur Übersicht
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={goNext}
+                      className="h-11 px-5 bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      Weiter
+                    </Button>
+                  )}
                 </div>
 
               </div>
             </div>
           </div>
-
-          {/* Info: Ende der Lektion */}
-          {sessionState.currentIndex === sessionState.lessonCards.length - 1 ? (
-            <div className="mt-2 rounded-md bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 text-center">
-              <p className="text-sm font-medium text-green-800 dark:text-green-200">
-                🎉 Ende der Lektion erreicht!
-              </p>
-            </div>
-          ) : null}
         </div>
       ) : null}
 

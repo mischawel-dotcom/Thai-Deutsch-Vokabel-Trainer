@@ -742,7 +742,7 @@ export default function App() {
         >
           {route === "home" && <Home onNavigate={setRoute} />}
           {route === "list" && <VocabList />}
-          {route === "learn" && <Learn />}
+          {route === "learn" && <Learn onNavigate={setRoute} />}
           {route === "test" && <Test />}
           {route === "exam" && <Exam />}
           {route === "games" && <Games />}
