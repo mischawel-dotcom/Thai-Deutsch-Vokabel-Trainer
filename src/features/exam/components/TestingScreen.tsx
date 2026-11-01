@@ -94,7 +94,8 @@ export function TestingScreen({
                 {question.questionText}
               </div>
               {direction === "TH_DE" ? (
-                <Button
+                <button
+                  type="button"
                   onClick={() => {
                     const textToSpeak = getSpeakableText(question.thai);
                     void speak(textToSpeak, "th-TH");
@@ -103,13 +104,12 @@ export function TestingScreen({
                     e.preventDefault();
                     stopSpeak();
                   }}
-                  variant="outline"
-                  size="sm"
-                  className="mx-auto min-h-[44px] shadow-md"
-                  title="Klick = Abspielen, Rechtsklick = Stoppen"
+                  title="Thai vorlesen (Rechtsklick = Stoppen)"
+                  aria-label={`Thai vorlesen: ${question.thai}`}
+                  className="text-3xl leading-none transition-opacity hover:opacity-80 active:opacity-60 sm:text-4xl"
                 >
-                  🔊 Vorlesen
-                </Button>
+                  🔊
+                </button>
               ) : null}
               <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
                 Wähle die richtige Antwort

@@ -1,6 +1,8 @@
 {
   "name": "thai-vocab-trainer",
-  "private": true,  "homepage": "https://mischawel-dotcom.github.io/Thai-Deutsch-Vokabel-Trainer/",  "version": "0.0.0",
+  "private": true,
+  "homepage": "https://mischawel-dotcom.github.io/Thai-Deutsch-Vokabel-Trainer/",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

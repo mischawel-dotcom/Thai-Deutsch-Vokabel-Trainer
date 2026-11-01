@@ -1299,24 +1299,21 @@ export default function Learn({ onNavigate }: LearnProps) {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="flex flex-col items-center justify-center gap-2 py-1">
                       <div className="text-3xl sm:text-4xl font-semibold text-center leading-snug">
                         {current.thai}
                       </div>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)
-                          }
-                          title="Thai Wort vorlesen"
-                          aria-label="Thai Wort vorlesen"
-                          className="shadow-md hover:shadow-lg hover:-translate-y-0.5 active:shadow-sm active:translate-y-0 transition-all duration-150 bg-slate-400 hover:bg-slate-500 text-white"
-                        >
-                          🔊 Thai sprechen
-                        </Button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void speak(getSpeakableText(current.thai, current.sourceType), thaiLang)
+                        }
+                        title="Thai-Satz vorlesen"
+                        aria-label="Thai-Satz vorlesen"
+                        className="text-3xl leading-none transition-opacity hover:opacity-80 active:opacity-60 sm:text-4xl"
+                      >
+                        🔊
+                      </button>
                     </div>
                   )}
 
