@@ -13,6 +13,7 @@ import { EndSessionConfirmDialog } from "../features/learn/components/EndSession
 import { ensureDefaultSentencesSeeded } from "../features/sentences/defaults";
 import { buildSentenceSegments } from "../features/sentences/transliteration";
 import { applyCefrFirstFilter } from "../features/vocab/cefrFirst";
+import { isVocabExcludedFromPractice } from "../features/vocab/practiceExclusions";
 import {
   Dialog,
   DialogContent,
@@ -178,8 +179,10 @@ export default function Learn({ onNavigate }: LearnProps) {
   async function loadLessonMetadata() {
     setError("");
     try {
-      // Nur Metadaten: alle Vokabeln zählen ohne Inhalte zu laden
-      const { entries: practiceVocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
+      // Lektions-Übersicht: volle Lektion (ohne CEFR-A2-Gate). Gate gilt nur für gemischte Pools (z.B. Heute fällig).
+      const practiceVocabEntries = (await db.vocab.toArray()).filter(
+        (entry) => !isVocabExcludedFromPractice(entry)
+      );
       const count = practiceVocabEntries.length;
       if (count === 0) {
         setStatus("Keine Einträge vorhanden.");
@@ -271,7 +274,10 @@ export default function Learn({ onNavigate }: LearnProps) {
     }
 
     try {
-      const { entries: practiceVocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
+      // Explizit gewählte Lektion: alle Übungskarten der Lektion (CEFR-Gate aus).
+      const practiceVocabEntries = (await db.vocab.toArray()).filter(
+        (entry) => !isVocabExcludedFromPractice(entry)
+      );
       const cards = practiceVocabEntries
         .filter((card) => card.lesson === lessonNum)
         .map((card) => ({
@@ -498,7 +504,9 @@ export default function Learn({ onNavigate }: LearnProps) {
 
   async function getTestPassedByLesson(): Promise<Record<number, number>> {
     const groupedIdsByLesson: Record<number, number[]> = {};
-    const { entries: vocabEntries } = applyCefrFirstFilter(await db.vocab.toArray());
+    const vocabEntries = (await db.vocab.toArray()).filter(
+      (entry) => !isVocabExcludedFromPractice(entry)
+    );
     for (const vocabEntry of vocabEntries) {
       const lesson = vocabEntry.lesson ?? 0;
       const id = vocabEntry.id;
