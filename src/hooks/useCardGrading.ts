@@ -23,6 +23,8 @@ interface UseCardGradingProps {
   setLastAnswer: (answer: "right" | "wrong" | null) => void;
   requeueCurrentToEnd: () => void;
   goNext: (treatedDoneId?: number) => void;
+  /** Wie oft hintereinander richtig, bis die Karte in der Session erledigt ist (Standard 5). */
+  requiredStreak?: number;
 }
 
 /**
@@ -39,7 +41,9 @@ export function useCardGrading({
   setLastAnswer,
   requeueCurrentToEnd,
   goNext,
+  requiredStreak = 5,
 }: UseCardGradingProps) {
+  const streakTarget = Math.max(1, Math.floor(requiredStreak));
   const gradeAnswer = useCallback(
     async (isRight: boolean) => {
       if (!currentId) return;
@@ -101,8 +105,8 @@ export function useCardGrading({
       const nextStreak = (streaks.get(currentId) ?? 0) + 1;
       dispatchSession({ type: "updateStreak", id: currentId, value: nextStreak });
 
-      if (nextStreak >= 5) {
-        // 5x RICHTIG in dieser Session: Karte als erledigt markieren.
+      if (nextStreak >= streakTarget) {
+        // Session-Streak erreicht: Karte als erledigt markieren.
         // Das persistente SRS (dueAt/intervall/repetitions) kommt aus gradeCard().
         dispatchSession({ type: "addDone", id: currentId });
         if (sourceType === "numbers") {
@@ -122,9 +126,20 @@ export function useCardGrading({
       }
 
       // Immer zur nächsten Karte im Durchgang
-      goNext(nextStreak >= 5 ? currentId : undefined);
+      goNext(nextStreak >= streakTarget ? currentId : undefined);
     },
-    [currentId, flipped, streaks, current, playFeedbackTone, setLastAnswer, dispatchSession, requeueCurrentToEnd, goNext]
+    [
+      currentId,
+      flipped,
+      streaks,
+      current,
+      playFeedbackTone,
+      setLastAnswer,
+      dispatchSession,
+      requeueCurrentToEnd,
+      goNext,
+      streakTarget,
+    ]
   );
 
   return { gradeAnswer };
