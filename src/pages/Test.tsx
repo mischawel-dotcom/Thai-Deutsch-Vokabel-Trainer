@@ -29,6 +29,7 @@ import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { QuickStartDialog } from "../features/test/components/QuickStartDialog";
+import { RecentLearnedQuickStartDialog } from "../features/test/components/RecentLearnedQuickStartDialog";
 import { NumberQuickStartDialog } from "../features/test/components/NumberQuickStartDialog";
 import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
 import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
@@ -104,6 +105,10 @@ export default function Test() {
   const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
+  const [recentLearnedDialogOpen, setRecentLearnedDialogOpen] = useState<boolean>(false);
+  const [recentLearnedLimit, setRecentLearnedLimit] = useState<string>("10");
+  /** Session: wie oft hintereinander richtig bis Karte erledigt (5 Standard, 1 bei „Zuletzt gelernt“). */
+  const [sessionRequiredStreak, setSessionRequiredStreak] = useState<number>(5);
   const [numberQuickStartDialogOpen, setNumberQuickStartDialogOpen] = useState<boolean>(false);
   const [sentenceDialogOpen, setSentenceDialogOpen] = useState<boolean>(false);
   const [sentenceIncludeViewed, setSentenceIncludeViewed] = useState<boolean>(false);
@@ -575,6 +580,7 @@ export default function Test() {
         if (!isNaN(lesson) && [1, 2, 3, 4, 5].includes(lesson)) {
           setSelectedLesson(lesson);
           setSessionMode("vocab");
+          setSessionRequiredStreak(5);
           setTimeout(() => {
             startSessionWithFiltersHook(lesson, false);
           }, 0);
@@ -689,6 +695,7 @@ export default function Test() {
     setLastAnswer,
     requeueCurrentToEnd,
     goNext,
+    requiredStreak: sessionRequiredStreak,
   });
 
   useKeyboardNavigation({
@@ -765,6 +772,7 @@ export default function Test() {
 
   function startQuickStartSession() {
     setSessionMode("vocab");
+    setSessionRequiredStreak(5);
     const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
     const quickLimit =
       Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
@@ -775,8 +783,22 @@ export default function Test() {
     setQuickStartDialogOpen(false);
   }
 
+  function startRecentLearnedSession() {
+    setSessionMode("vocab");
+    setSessionRequiredStreak(1);
+    const parsedLimit = recentLearnedLimit.trim() ? Number.parseInt(recentLearnedLimit, 10) : NaN;
+    const recentLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
+    void quickStartLearnedHook({
+      recentLearned: true,
+      limit: recentLimit,
+    });
+    setRecentLearnedDialogOpen(false);
+  }
+
   async function startNumberQuickStartSession() {
     setSessionMode("numbers");
+    setSessionRequiredStreak(5);
     const parsedLimit = numberQuickStartLimit.trim() ? Number.parseInt(numberQuickStartLimit, 10) : NaN;
     const numberLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
     await startNumberQuickStart({
@@ -1001,6 +1023,7 @@ export default function Test() {
         });
       } else {
         setSessionMode("vocab");
+        setSessionRequiredStreak(5);
         startSessionHook();
       }
       setStatus("Session neu gestartet");
@@ -1029,10 +1052,13 @@ export default function Test() {
   const finished = sessionActive && currentId == null;
   const isSentenceSession =
     sessionMode === "sentences_regular" || sessionMode === "sentences_important";
-  const cardStreak = current?.id ? Math.min(streaks.get(current.id) ?? 0, 5) : 0;
+  const streakTarget = Math.max(1, sessionRequiredStreak);
+  const cardStreak = current?.id
+    ? Math.min(streaks.get(current.id) ?? 0, streakTarget)
+    : 0;
   const progressPct = isSentenceSession
     ? Math.round((queue.length > 0 ? (doneIds.size / queue.length) * 100 : 0))
-    : Math.round((cardStreak / 5) * 100);
+    : Math.round((cardStreak / streakTarget) * 100);
   const statusIsWarning = status.startsWith("Keine ");
   const showStatusMessage = !finished && Boolean(status);
 
@@ -1111,6 +1137,15 @@ export default function Test() {
               aria-label="Schnellstart: Teste fällige gelernte Karten"
             >
               📖 Fällige Karten testen
+            </Button>
+            <Button
+              onClick={() => setRecentLearnedDialogOpen(true)}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800"
+              title="Die zuletzt gelernten oder getesteten Karten üben"
+              aria-label="Schnellstart: Zuletzt gelernt testen"
+            >
+              🕐 Zuletzt gelernt testen
             </Button>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
               {allLessons.length > 0 ? (
@@ -1340,6 +1375,7 @@ export default function Test() {
               <Button 
                 onClick={() => {
                   setSessionMode("vocab");
+                  setSessionRequiredStreak(5);
                   startSessionHook();
                 }}
                 size="lg"
@@ -1467,14 +1503,19 @@ export default function Test() {
               aria-label={
                 isSentenceSession
                   ? "Diese Karte wird einmal bewertet"
-                  : `Diese Karte: ${cardStreak} von 5 richtig`
+                  : `Diese Karte: ${cardStreak} von ${streakTarget} richtig`
               }
               className="rounded-full bg-muted/70 px-2 py-1"
             >
               {isSentenceSession ? (
                 <>Diese Karte: <b className="text-foreground">1x bewerten</b></>
               ) : (
-                <>Diese Karte: <b className="text-foreground">{cardStreak}/5</b></>
+                <>
+                  Diese Karte:{" "}
+                  <b className="text-foreground">
+                    {cardStreak}/{streakTarget}
+                  </b>
+                </>
               )}
             </span>
           </div>
@@ -1503,7 +1544,9 @@ export default function Test() {
                 <span className="font-semibold text-foreground">Teste dein Wissen!</span> Karte umdrehen → bewerten.
                 {isSentenceSession
                   ? " Jede Satzkarte wird in diesem Durchlauf genau einmal bewertet."
-                  : " Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei 5× richtig in Folge ist die Karte erledigt."}
+                  : streakTarget <= 1
+                    ? " Richtig erledigt die Karte in diesem Durchlauf; Falsch legt sie wieder ans Ende. Ideal zum Üben in beiden Richtungen."
+                    : ` Richtig erhöht den Zähler, Falsch setzt ihn zurück. Bei ${streakTarget}× richtig in Folge ist die Karte erledigt.`}
               </div>
               {lastAnswer ? (
                 <div className="flex justify-center" aria-live="polite">
@@ -1915,6 +1958,18 @@ export default function Test() {
         onStart={startQuickStartSession}
       />
 
+      <RecentLearnedQuickStartDialog
+        open={recentLearnedDialogOpen}
+        onOpenChange={setRecentLearnedDialogOpen}
+        direction={direction}
+        onDirectionChange={handleTestDirectionChange}
+        showTransliteration={showTransliteration}
+        onShowTransliterationChange={setShowTransliteration}
+        limit={recentLearnedLimit}
+        onLimitChange={setRecentLearnedLimit}
+        onStart={startRecentLearnedSession}
+      />
+
       <NumberQuickStartDialog
         open={numberQuickStartDialogOpen}
         onOpenChange={setNumberQuickStartDialogOpen}
@@ -1951,6 +2006,7 @@ export default function Test() {
         onIncludeLearnedInDialogChange={setIncludeLearnedInDialog}
         onStart={() => {
           setSessionMode("vocab");
+          setSessionRequiredStreak(5);
           startLessonFromDialogHook();
         }}
       />

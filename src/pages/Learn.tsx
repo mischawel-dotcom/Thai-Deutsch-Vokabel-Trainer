@@ -749,12 +749,13 @@ export default function Learn({ onNavigate }: LearnProps) {
         try {
           // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
           const newViewedState = !card.viewed;
+          const viewedPatch = { viewed: newViewedState, updatedAt: Date.now() };
           if (card.sourceType === "numbers") {
-            await db.numbersVocab.update(card.id, { viewed: newViewedState });
-              } else if (card.sourceType === "sentences") {
-                await db.sentencesVocab.update(card.id, { viewed: newViewedState });
+            await db.numbersVocab.update(card.id, viewedPatch);
+          } else if (card.sourceType === "sentences") {
+            await db.sentencesVocab.update(card.id, viewedPatch);
           } else {
-            await db.vocab.update(card.id, { viewed: newViewedState });
+            await db.vocab.update(card.id, viewedPatch);
           }
 
           dispatchSession({
