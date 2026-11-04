@@ -95,7 +95,7 @@ export function useQuickStartLearned({
       });
 
       const modeLabel = recentLearned
-        ? "zuletzt gelernte/getestete Karten"
+        ? "zuletzt gelernte Karten"
         : includeAllLearned
           ? "gelernte Karten"
           : "faellige oder noch nicht 5x richtige Karten";
