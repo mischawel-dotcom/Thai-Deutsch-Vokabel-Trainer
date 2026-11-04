@@ -30,6 +30,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { QuickStartDialog } from "../features/test/components/QuickStartDialog";
 import { RecentLearnedQuickStartDialog } from "../features/test/components/RecentLearnedQuickStartDialog";
+import {
+  loadPotpourriCards,
+  PotpourriSessionView,
+  PotpourriStartDialog,
+} from "../features/potpourri";
+import type { PotpourriCard } from "../features/potpourri";
 import { NumberQuickStartDialog } from "../features/test/components/NumberQuickStartDialog";
 import { LessonTestDialog } from "../features/test/components/LessonTestDialog";
 import { SessionActionConfirmDialog } from "../features/test/components/SessionActionConfirmDialog";
@@ -107,6 +113,13 @@ export default function Test() {
   const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
   const [recentLearnedDialogOpen, setRecentLearnedDialogOpen] = useState<boolean>(false);
   const [recentLearnedLimit, setRecentLearnedLimit] = useState<string>("10");
+  const [potpourriDialogOpen, setPotpourriDialogOpen] = useState<boolean>(false);
+  const [potpourriLimit, setPotpourriLimit] = useState<string>("20");
+  const [potpourriSession, setPotpourriSession] = useState<{
+    pool: PotpourriCard[];
+    learnedPool: PotpourriCard[];
+    target: number;
+  } | null>(null);
   /** Session: wie oft hintereinander richtig bis Karte erledigt (5 Standard, 1 bei „Zuletzt gelernt“). */
   const [sessionRequiredStreak, setSessionRequiredStreak] = useState<number>(5);
   const [numberQuickStartDialogOpen, setNumberQuickStartDialogOpen] = useState<boolean>(false);
@@ -796,6 +809,23 @@ export default function Test() {
     setRecentLearnedDialogOpen(false);
   }
 
+  async function startPotpourriSession() {
+    const parsedLimit = potpourriLimit.trim() ? Number.parseInt(potpourriLimit, 10) : NaN;
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20;
+    const result = await loadPotpourriCards(limit);
+    if (!result.ok) {
+      setStatus(result.message);
+      return;
+    }
+    setPotpourriDialogOpen(false);
+    setStatus("");
+    setPotpourriSession({
+      pool: result.pool,
+      learnedPool: result.learnedPool,
+      target: result.target,
+    });
+  }
+
   async function startNumberQuickStartSession() {
     setSessionMode("numbers");
     setSessionRequiredStreak(5);
@@ -1063,6 +1093,20 @@ export default function Test() {
   const showStatusMessage = !finished && Boolean(status);
 
   // ===== Render =====
+  // Potpourri läuft isoliert – bestehende Test-Session-UI bleibt unberührt.
+  if (potpourriSession) {
+    return (
+      <PageShell title="Tests">
+        <PotpourriSessionView
+          pool={potpourriSession.pool}
+          learnedPool={potpourriSession.learnedPool}
+          target={potpourriSession.target}
+          onExit={() => setPotpourriSession(null)}
+        />
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell title="Tests">
       {/* Status / Fehler */}
@@ -1146,6 +1190,15 @@ export default function Test() {
               aria-label="Schnellstart: Zuletzt gelernt testen"
             >
               🕐 Zuletzt gelernt testen
+            </Button>
+            <Button
+              onClick={() => setPotpourriDialogOpen(true)}
+              size="lg"
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800"
+              title="Zufällige Richtung und Audio, Multiple Choice, Zähler-Ziel"
+              aria-label="Schnellstart: Vokabel-Potpourri"
+            >
+              🔀 Vokabel-Potpourri
             </Button>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
               {allLessons.length > 0 ? (
@@ -1968,6 +2021,14 @@ export default function Test() {
         limit={recentLearnedLimit}
         onLimitChange={setRecentLearnedLimit}
         onStart={startRecentLearnedSession}
+      />
+
+      <PotpourriStartDialog
+        open={potpourriDialogOpen}
+        onOpenChange={setPotpourriDialogOpen}
+        limit={potpourriLimit}
+        onLimitChange={setPotpourriLimit}
+        onStart={() => void startPotpourriSession()}
       />
 
       <NumberQuickStartDialog
