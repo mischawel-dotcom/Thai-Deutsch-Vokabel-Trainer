@@ -38,7 +38,7 @@ export function RecentLearnedQuickStartDialog({
         <DialogHeader>
           <DialogTitle>Zuletzt gelernt testen</DialogTitle>
           <DialogDescription>
-            Die zuletzt gelernten oder getesteten Vokabeln – Anzahl frei wählbar.
+            Die zuletzt unter Lernen als gelernt markierten Vokabeln – Anzahl frei wählbar.
           </DialogDescription>
         </DialogHeader>
 
@@ -123,9 +123,9 @@ export function RecentLearnedQuickStartDialog({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Es werden die neuesten gelernten Karten genommen (zuletzt in Lernen markiert oder im
-            Test bewertet). In diesem Modus reicht <strong>1× richtig</strong> pro Karte – ideal
-            zum Üben in beiden Richtungen.
+            Es werden die zuletzt unter Lernen als gelernt markierten Karten genommen (nicht die
+            zuletzt getesteten). In diesem Modus reicht <strong>1× richtig</strong> pro Karte –
+            ideal zum Üben in beiden Richtungen.
           </p>
         </div>
 

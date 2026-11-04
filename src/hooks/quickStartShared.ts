@@ -1,5 +1,5 @@
 import { db } from "../db/db";
-import type { SrsProgress, VocabEntry } from "../db/db";
+import type { VocabEntry } from "../db/db";
 import { shuffle } from "../lib/shuffle";
 
 type ProgressTableName = "progress" | "numbersProgress";
@@ -31,16 +31,16 @@ export async function filterDueOrUnfinishedLearnedIds(
   return learnedIds.filter((id) => eligibleIds.has(id));
 }
 
-/** Neueste Aktivität: Lernen (updatedAt) oder letzter Test (lastReviewed). */
-export function vocabRecencyScore(entry: VocabEntry, progress?: SrsProgress): number {
-  const updatedAt = typeof entry.updatedAt === "number" ? entry.updatedAt : 0;
-  const lastReviewed = typeof progress?.lastReviewed === "number" ? progress.lastReviewed : 0;
-  const progressUpdated = typeof progress?.updatedAt === "number" ? progress.updatedAt : 0;
-  return Math.max(updatedAt, lastReviewed, progressUpdated);
+/**
+ * Zeitpunkt „als gelernt markiert“ (Learn setzt `updatedAt` beim Markieren).
+ * Test-Fortschritt zählt absichtlich nicht – nur zuletzt gelernt, nicht zuletzt getestet.
+ */
+export function vocabLearnedRecencyScore(entry: VocabEntry): number {
+  return typeof entry.updatedAt === "number" ? entry.updatedAt : 0;
 }
 
 /**
- * Gelernte Vokabeln nach letzter Aktivität, neueste zuerst, begrenzt auf `limit`.
+ * Gelernte Vokabeln nach Lern-Zeitpunkt, neueste zuerst, begrenzt auf `limit`.
  */
 export async function selectRecentlyLearnedVocabIds(
   vocab: VocabEntry[],
@@ -49,17 +49,9 @@ export async function selectRecentlyLearnedVocabIds(
   const learned = vocab.filter((entry) => entry.viewed === true && typeof entry.id === "number");
   if (learned.length === 0) return [];
 
-  const ids = learned.map((entry) => entry.id as number);
-  const progressRows = await db.progress.bulkGet(ids);
-  const progressById = new Map<number, SrsProgress>();
-  progressRows.forEach((row, index) => {
-    const id = ids[index];
-    if (row && typeof id === "number") progressById.set(id, row);
-  });
-
   const ranked = [...learned].sort((a, b) => {
-    const scoreA = vocabRecencyScore(a, progressById.get(a.id as number));
-    const scoreB = vocabRecencyScore(b, progressById.get(b.id as number));
+    const scoreA = vocabLearnedRecencyScore(a);
+    const scoreB = vocabLearnedRecencyScore(b);
     if (scoreB !== scoreA) return scoreB - scoreA;
     return (b.id as number) - (a.id as number);
   });
