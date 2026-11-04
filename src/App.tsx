@@ -60,6 +60,7 @@ function buildDefaultSentenceKey(
 
 const VOCAB_DATA_SOURCE_KEY = "vocabDataSource";
 const CUSTOM_CSV_SOURCE = "custom_csv";
+const LEARNED_AT_BACKFILL_KEY = "learnedAtBackfilled_v1";
 
 function isRoute(value: string): value is Route {
   return ROUTES.includes(value as Route);
@@ -221,17 +222,30 @@ export default function App() {
               matches[0];
 
             if (canonical.id != null) {
-              await db.vocab.update(canonical.id, {
-                thai: defaultsEntry.thai,
-                german: defaultsEntry.german,
-                transliteration: defaultsEntry.transliteration,
-                pos: defaultsEntry.pos,
-                lesson: defaultsEntry.lesson,
-                tags: defaultsEntry.tags,
-                exampleThai: defaultsEntry.exampleThai,
-                exampleGerman: defaultsEntry.exampleGerman,
-                updatedAt: Date.now(),
-              });
+              const sameContent =
+                canonical.thai === defaultsEntry.thai &&
+                canonical.german === defaultsEntry.german &&
+                (canonical.transliteration ?? "") === (defaultsEntry.transliteration ?? "") &&
+                (canonical.pos ?? "") === (defaultsEntry.pos ?? "") &&
+                Number(canonical.lesson) === Number(defaultsEntry.lesson) &&
+                JSON.stringify(canonical.tags ?? []) === JSON.stringify(defaultsEntry.tags ?? []) &&
+                (canonical.exampleThai ?? "") === (defaultsEntry.exampleThai ?? "") &&
+                (canonical.exampleGerman ?? "") === (defaultsEntry.exampleGerman ?? "");
+              // Inhalt syncen ohne learnedAt/viewed anzufassen; updatedAt nur bei echter Änderung
+              // (sonst würde „Zuletzt gelernt“ bei jedem App-Start verfälscht).
+              if (!sameContent) {
+                await db.vocab.update(canonical.id, {
+                  thai: defaultsEntry.thai,
+                  german: defaultsEntry.german,
+                  transliteration: defaultsEntry.transliteration,
+                  pos: defaultsEntry.pos,
+                  lesson: defaultsEntry.lesson,
+                  tags: defaultsEntry.tags,
+                  exampleThai: defaultsEntry.exampleThai,
+                  exampleGerman: defaultsEntry.exampleGerman,
+                  updatedAt: Date.now(),
+                });
+              }
               idsToEnsureProgress.add(canonical.id);
             }
 
@@ -315,6 +329,32 @@ export default function App() {
                 `[App Init] Custom source fallback added ${toAdd.length} missing defaults (${currentCount} -> ${currentCount + toAdd.length})`
               );
             }
+          }
+        }
+
+        // Einmalig: viewed-Karten ohne learnedAt bekommen learnedAt aus updatedAt
+        // (Best Effort für bestehende Daten; ab jetzt setzt nur Lernen learnedAt).
+        if (localStorage.getItem(LEARNED_AT_BACKFILL_KEY) !== "1") {
+          const viewedWithoutLearnedAt = await db.vocab
+            .filter(
+              (entry) =>
+                entry.viewed === true &&
+                (!(typeof entry.learnedAt === "number") || entry.learnedAt <= 0)
+            )
+            .toArray();
+          let backfilled = 0;
+          for (const entry of viewedWithoutLearnedAt) {
+            if (typeof entry.id !== "number") continue;
+            const stamp =
+              typeof entry.updatedAt === "number" && entry.updatedAt > 0
+                ? entry.updatedAt
+                : Date.now();
+            await db.vocab.update(entry.id, { learnedAt: stamp });
+            backfilled += 1;
+          }
+          localStorage.setItem(LEARNED_AT_BACKFILL_KEY, "1");
+          if (backfilled > 0) {
+            console.log(`[App Init] Backfilled learnedAt for ${backfilled} viewed vocab entries`);
           }
         }
 

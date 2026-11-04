@@ -755,9 +755,15 @@ export default function Learn({ onNavigate }: LearnProps) {
       }
       if (card.id != null) {
         try {
-          // Learn.tsx: Nur viewed toggeln. Keine SRS/dueAt Änderungen!
+          // Learn.tsx: viewed toggeln + learnedAt für „Zuletzt gelernt“. Keine SRS/dueAt.
           const newViewedState = !card.viewed;
-          const viewedPatch = { viewed: newViewedState, updatedAt: Date.now() };
+          const now = Date.now();
+          const viewedPatch =
+            card.sourceType === "vocab"
+              ? newViewedState
+                ? { viewed: true, updatedAt: now, learnedAt: now }
+                : { viewed: false, updatedAt: now, learnedAt: 0 }
+              : { viewed: newViewedState, updatedAt: now };
           if (card.sourceType === "numbers") {
             await db.numbersVocab.update(card.id, viewedPatch);
           } else if (card.sourceType === "sentences") {

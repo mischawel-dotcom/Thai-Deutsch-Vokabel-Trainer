@@ -11,6 +11,8 @@ export type VocabEntry = {
   exampleGerman?: string;
   tags?: string[];
   viewed?: boolean;
+  /** Zeitpunkt der Markierung „gelernt“ unter Lernen (nicht Test). */
+  learnedAt?: number;
   createdAt: number;
   updatedAt: number;
 };

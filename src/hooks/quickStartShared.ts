@@ -32,21 +32,27 @@ export async function filterDueOrUnfinishedLearnedIds(
 }
 
 /**
- * Zeitpunkt „als gelernt markiert“ (Learn setzt `updatedAt` beim Markieren).
- * Test-Fortschritt zählt absichtlich nicht – nur zuletzt gelernt, nicht zuletzt getestet.
+ * Zeitpunkt „als gelernt markiert“ unter Lernen (`learnedAt`).
+ * Kein Test-Fortschritt, kein generisches `updatedAt` (wird u.a. bei Sync überschrieben).
  */
 export function vocabLearnedRecencyScore(entry: VocabEntry): number {
-  return typeof entry.updatedAt === "number" ? entry.updatedAt : 0;
+  return typeof entry.learnedAt === "number" && entry.learnedAt > 0 ? entry.learnedAt : 0;
 }
 
 /**
- * Gelernte Vokabeln nach Lern-Zeitpunkt, neueste zuerst, begrenzt auf `limit`.
+ * Vokabeln nach Learn-Markierung, neueste zuerst, begrenzt auf `limit`.
+ * Nur Karten mit `learnedAt` (unter Lernen als gelernt markiert).
  */
 export async function selectRecentlyLearnedVocabIds(
   vocab: VocabEntry[],
   limit: number
 ): Promise<number[]> {
-  const learned = vocab.filter((entry) => entry.viewed === true && typeof entry.id === "number");
+  const learned = vocab.filter(
+    (entry) =>
+      typeof entry.id === "number" &&
+      typeof entry.learnedAt === "number" &&
+      entry.learnedAt > 0
+  );
   if (learned.length === 0) return [];
 
   const ranked = [...learned].sort((a, b) => {

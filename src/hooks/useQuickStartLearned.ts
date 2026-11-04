@@ -54,7 +54,7 @@ export function useQuickStartLearned({
         ids = await selectRecentlyLearnedVocabIds(vocab, recentLimit);
         if (ids.length === 0) {
           setStatus(
-            "Keine gelernten Karten für „Zuletzt gelernt“ verfügbar. Markiere zuerst Karten unter Lernen als gelernt."
+            "Keine Karten mit Learn-Markierung für „Zuletzt gelernt“. Markiere Karten unter Lernen als gelernt (auch erneut, falls nötig)."
           );
           return;
         }

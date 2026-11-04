@@ -123,9 +123,8 @@ export function RecentLearnedQuickStartDialog({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Es werden die zuletzt unter Lernen als gelernt markierten Karten genommen (nicht die
-            zuletzt getesteten). In diesem Modus reicht <strong>1× richtig</strong> pro Karte –
-            ideal zum Üben in beiden Richtungen.
+            Einziges Kriterium: Zeitpunkt der Markierung „gelernt“ unter Lernen. Testen ändert die
+            Auswahl nicht. In diesem Modus reicht <strong>1× richtig</strong> pro Karte.
           </p>
         </div>
 
