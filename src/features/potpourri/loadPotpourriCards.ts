@@ -15,11 +15,18 @@ function toCard(entry: {
 }
 
 export type PotpourriLoadResult =
-  | { ok: true; pool: PotpourriCard[]; learnedPool: PotpourriCard[]; target: number }
+  | {
+      ok: true;
+      pool: PotpourriCard[];
+      learnedPool: PotpourriCard[];
+      /** Gesamtkatalog für semantische Distraktoren (z.B. alle Wochentage). */
+      catalogPool: PotpourriCard[];
+      target: number;
+    }
   | { ok: false; message: string };
 
 /**
- * Lädt Potpourri-Pool (zuletzt gelernt) und Distraktor-Pool (alle gelernt).
+ * Lädt Potpourri-Pool (zuletzt gelernt), gelernte Distraktoren und Gesamtkatalog.
  */
 export async function loadPotpourriCards(limit: number): Promise<PotpourriLoadResult> {
   const safeLimit = Math.max(1, Math.floor(limit));
@@ -46,6 +53,10 @@ export async function loadPotpourriCards(limit: number): Promise<PotpourriLoadRe
     if (card) pool.push(card);
   }
 
+  const catalogPool = vocab
+    .map((entry) => toCard(entry))
+    .filter((card): card is PotpourriCard => card != null);
+
   const learnedPool = vocab
     .filter(
       (entry) =>
@@ -60,13 +71,13 @@ export async function loadPotpourriCards(limit: number): Promise<PotpourriLoadRe
     return { ok: false, message: "Die zuletzt gelernten Karten haben unvollständige Texte." };
   }
 
-  if (learnedPool.length < 4) {
+  if (learnedPool.length < 4 && catalogPool.length < 4) {
     return {
       ok: false,
       message:
-        "Für 4 Antwortmöglichkeiten brauchst du mindestens 4 gelernte Karten mit Thai und Deutsch.",
+        "Für 4 Antwortmöglichkeiten brauchst du mindestens 4 Karten mit Thai und Deutsch.",
     };
   }
 
-  return { ok: true, pool, learnedPool, target: pool.length };
+  return { ok: true, pool, learnedPool, catalogPool, target: pool.length };
 }

@@ -1,4 +1,5 @@
 import { shuffle } from "../../lib/shuffle";
+import { getPotpourriSemanticGroup } from "./semanticGroups";
 import type { PotpourriCard, PotpourriPromptMode, PotpourriQuestion } from "./types";
 
 const MODES: PotpourriPromptMode[] = ["TH_DE", "DE_TH", "AUDIO_TH_DE", "AUDIO_DE_TH"];
@@ -49,13 +50,31 @@ function promptParts(card: PotpourriCard, mode: PotpourriPromptMode) {
   }
 }
 
+function uniqueAnswers(
+  cards: PotpourriCard[],
+  mode: PotpourriPromptMode,
+  excludeId: number,
+  excludeAnswer: string
+): string[] {
+  return Array.from(
+    new Set(
+      cards
+        .filter((card) => card.id !== excludeId)
+        .map((card) => answerForMode(card, mode))
+        .filter((value) => value.trim().length > 0 && value !== excludeAnswer)
+    )
+  );
+}
+
 /**
  * Baut eine Multiple-Choice-Frage.
- * Distraktoren: aus allen gelernten Karten (learnedPool), nicht die Zielkarte.
+ * Bei Wochentag/Zahlwort: Distraktoren bevorzugt aus derselben Gruppe (gesamter Katalog).
+ * Sonst / Auffüllen: aus allen gelernten Karten.
  */
 export function createPotpourriQuestion(
   pool: PotpourriCard[],
   learnedPool: PotpourriCard[],
+  catalogPool: PotpourriCard[] = learnedPool,
   preferredId?: number
 ): PotpourriQuestion | null {
   if (pool.length === 0) return null;
@@ -69,20 +88,23 @@ export function createPotpourriQuestion(
   const mode = MODES[Math.floor(Math.random() * MODES.length)];
   const correctAnswer = answerForMode(base, mode);
   const parts = promptParts(base, mode);
+  const group = getPotpourriSemanticGroup(base);
 
-  const distractorSource = learnedPool.length > 0 ? learnedPool : pool;
-  const candidates = Array.from(
-    new Set(
-      distractorSource
-        .filter((card) => card.id !== base.id)
-        .map((card) => answerForMode(card, mode))
-        .filter((value) => value.trim().length > 0 && value !== correctAnswer)
-    )
+  const preferredSource =
+    group != null
+      ? catalogPool.filter((card) => getPotpourriSemanticGroup(card) === group)
+      : [];
+
+  const preferredCandidates = uniqueAnswers(preferredSource, mode, base.id, correctAnswer);
+  const fallbackSource = learnedPool.length > 0 ? learnedPool : pool;
+  const fallbackCandidates = uniqueAnswers(fallbackSource, mode, base.id, correctAnswer).filter(
+    (value) => !preferredCandidates.includes(value)
   );
 
+  const candidates = [...shuffle(preferredCandidates), ...shuffle(fallbackCandidates)];
   if (candidates.length < 3) return null;
 
-  const options = shuffle([correctAnswer, ...shuffle(candidates).slice(0, 3)]);
+  const options = shuffle([correctAnswer, ...candidates.slice(0, 3)]);
   return {
     entryId: base.id,
     mode,
@@ -99,10 +121,11 @@ export function createPotpourriQuestion(
 export function createPotpourriQuestionWithRetry(
   pool: PotpourriCard[],
   learnedPool: PotpourriCard[],
+  catalogPool: PotpourriCard[] = learnedPool,
   attempts = 12
 ): PotpourriQuestion | null {
   for (let i = 0; i < attempts; i += 1) {
-    const question = createPotpourriQuestion(pool, learnedPool);
+    const question = createPotpourriQuestion(pool, learnedPool, catalogPool);
     if (question) return question;
   }
   return null;

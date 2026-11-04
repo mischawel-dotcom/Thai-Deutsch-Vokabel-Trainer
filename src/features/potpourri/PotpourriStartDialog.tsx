@@ -69,7 +69,8 @@ export function PotpourriStartDialog({
 
           <p className="text-xs text-muted-foreground">
             Richtig: +1 · Falsch: −3 (nicht unter 0). Ziel: Zähler = Kartenanzahl. Falsche Antworten
-            aus allen gelernten Karten. Nach einer falschen Antwort wird die Lösung kurz gezeigt.
+            aus gelernten Karten; bei Wochentagen/Zahlwörtern möglichst aus derselben Gruppe. Nach
+            falsch wird die Lösung kurz gezeigt.
           </p>
         </div>
 

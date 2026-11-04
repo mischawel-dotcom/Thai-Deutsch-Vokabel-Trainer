@@ -16,6 +16,7 @@ const FEEDBACK_MS_WRONG = 1400;
 type PotpourriSessionViewProps = {
   pool: PotpourriCard[];
   learnedPool: PotpourriCard[];
+  catalogPool: PotpourriCard[];
   target: number;
   onExit: () => void;
 };
@@ -23,6 +24,7 @@ type PotpourriSessionViewProps = {
 export function PotpourriSessionView({
   pool,
   learnedPool,
+  catalogPool,
   target,
   onExit,
 }: PotpourriSessionViewProps) {
@@ -43,7 +45,7 @@ export function PotpourriSessionView({
   }
 
   function loadNextQuestion() {
-    const next = createPotpourriQuestionWithRetry(pool, learnedPool);
+    const next = createPotpourriQuestionWithRetry(pool, learnedPool, catalogPool);
     if (!next) {
       setError("Konnte keine Frage mit 4 Antwortmöglichkeiten erzeugen.");
       setQuestion(null);

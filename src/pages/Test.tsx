@@ -118,6 +118,7 @@ export default function Test() {
   const [potpourriSession, setPotpourriSession] = useState<{
     pool: PotpourriCard[];
     learnedPool: PotpourriCard[];
+    catalogPool: PotpourriCard[];
     target: number;
   } | null>(null);
   /** Session: wie oft hintereinander richtig bis Karte erledigt (5 Standard, 1 bei „Zuletzt gelernt“). */
@@ -822,6 +823,7 @@ export default function Test() {
     setPotpourriSession({
       pool: result.pool,
       learnedPool: result.learnedPool,
+      catalogPool: result.catalogPool,
       target: result.target,
     });
   }
@@ -1100,6 +1102,7 @@ export default function Test() {
         <PotpourriSessionView
           pool={potpourriSession.pool}
           learnedPool={potpourriSession.learnedPool}
+          catalogPool={potpourriSession.catalogPool}
           target={potpourriSession.target}
           onExit={() => setPotpourriSession(null)}
         />
