@@ -176,6 +176,26 @@ export default function App() {
         const isCustomVocabSource =
           localStorage.getItem(VOCAB_DATA_SOURCE_KEY) === CUSTOM_CSV_SOURCE;
 
+        // Data hotfix: เช้า = Tageszeit „Morgen“, nicht „tomorrow“ im Beispielsatz.
+        const chaoExampleFixed = await db.vocab
+          .where("thai")
+          .equals("เช้า")
+          .and(
+            (entry) =>
+              entry.exampleGerman === "Morgen früh wache ich früh auf." ||
+              entry.exampleThai === "พรุ่งนี้เช้าฉันตื่นเร็ว"
+          )
+          .modify((entry) => {
+            entry.exampleThai = "ตอนเช้าฉันเหนื่อยเสมอ";
+            entry.exampleGerman = "Am Morgen bin ich immer müde.";
+            entry.updatedAt = Date.now();
+          });
+        if (chaoExampleFixed > 0) {
+          console.log(
+            `[App Init] Corrected ${chaoExampleFixed} vocab example(s) for เช้า / Morgen (Tageszeit)`
+          );
+        }
+
         if (!isCustomVocabSource) {
           // Data hotfix: normalize german translation for "ไม่" from "no/nicht" -> "nein/nicht".
           const corrected = await db.vocab
