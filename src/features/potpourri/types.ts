@@ -6,6 +6,12 @@ export type PotpourriCard = {
   german: string;
 };
 
+/** Geplante Abfrage in der Session-Warteschlange. */
+export type PotpourriQueueItem = {
+  entryId: number;
+  mode: PotpourriPromptMode;
+};
+
 export type PotpourriQuestion = {
   entryId: number;
   mode: PotpourriPromptMode;

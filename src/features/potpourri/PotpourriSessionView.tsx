@@ -4,11 +4,17 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { speak } from "../tts";
 import {
-  createPotpourriQuestionWithRetry,
+  buildPotpourriQueue,
+  createQuestionForQueueItem,
   isPotpourriWon,
   nextPotpourriScore,
 } from "./engine";
-import type { PotpourriCard, PotpourriFeedback, PotpourriQuestion } from "./types";
+import type {
+  PotpourriCard,
+  PotpourriFeedback,
+  PotpourriQuestion,
+  PotpourriQueueItem,
+} from "./types";
 
 const FEEDBACK_MS_CORRECT = 650;
 const FEEDBACK_MS_WRONG = 1400;
@@ -29,6 +35,8 @@ export function PotpourriSessionView({
   onExit,
 }: PotpourriSessionViewProps) {
   const [score, setScore] = useState(0);
+  const [queue, setQueue] = useState<PotpourriQueueItem[]>(() => buildPotpourriQueue(pool));
+  const [queueIndex, setQueueIndex] = useState(0);
   const [question, setQuestion] = useState<PotpourriQuestion | null>(null);
   const [feedback, setFeedback] = useState<PotpourriFeedback | null>(null);
   const [won, setWon] = useState(false);
@@ -36,6 +44,12 @@ export function PotpourriSessionView({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const feedbackTimerRef = useRef<number | null>(null);
   const autoSpeakRef = useRef(false);
+  const queueRef = useRef(queue);
+  const queueIndexRef = useRef(0);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
 
   function clearFeedbackTimer() {
     if (feedbackTimerRef.current != null) {
@@ -44,21 +58,46 @@ export function PotpourriSessionView({
     }
   }
 
-  function loadNextQuestion() {
-    const next = createPotpourriQuestionWithRetry(pool, learnedPool, catalogPool);
+  function showQuestionAt(index: number, activeQueue: PotpourriQueueItem[]) {
+    if (index >= activeQueue.length) {
+      setError("Keine weiteren Fragen in der Warteschlange.");
+      setQuestion(null);
+      return false;
+    }
+    const item = activeQueue[index];
+    const next = createQuestionForQueueItem(item, pool, learnedPool, catalogPool);
     if (!next) {
       setError("Konnte keine Frage mit 4 Antwortmöglichkeiten erzeugen.");
       setQuestion(null);
-      return;
+      return false;
     }
     setError("");
     setFeedback(null);
     setQuestion(next);
     autoSpeakRef.current = next.mode.startsWith("AUDIO_");
+    return true;
+  }
+
+  function advanceToNextQuestion() {
+    let nextIndex = queueIndexRef.current + 1;
+    let activeQueue = queueRef.current;
+
+    if (nextIndex >= activeQueue.length) {
+      // Extra-Runde, falls Zielpunkte wegen Fehlern noch nicht erreicht
+      activeQueue = buildPotpourriQueue(pool);
+      setQueue(activeQueue);
+      queueRef.current = activeQueue;
+      nextIndex = 0;
+    }
+
+    queueIndexRef.current = nextIndex;
+    setQueueIndex(nextIndex);
+    showQuestionAt(nextIndex, activeQueue);
   }
 
   useEffect(() => {
-    loadNextQuestion();
+    queueIndexRef.current = 0;
+    showQuestionAt(0, queueRef.current);
     return () => clearFeedbackTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
   }, []);
@@ -98,7 +137,7 @@ export function PotpourriSessionView({
         setFeedback(null);
         return;
       }
-      loadNextQuestion();
+      advanceToNextQuestion();
     }, delay);
   }
 
@@ -108,9 +147,10 @@ export function PotpourriSessionView({
         TH_DE: "Thai → Deutsch",
         DE_TH: "Deutsch → Thai",
         AUDIO_TH_DE: "Audio Thai → Deutsch",
-        AUDIO_DE_TH: "Audio Deutsch → Thai",
+        AUDIO_DE_TH: "Audio Thai → Deutsch",
       }[question.mode]
     : "";
+  const questionNumber = Math.min(queueIndex + 1, Math.max(target, queue.length));
 
   return (
     <Card className="p-4 space-y-4">
@@ -119,6 +159,7 @@ export function PotpourriSessionView({
           <div className="text-sm font-semibold">🔀 Vokabel-Potpourri</div>
           <div className="text-xs text-muted-foreground">
             Zähler {score} / {target}
+            {target > 0 ? ` · Frage ${questionNumber}` : ""}
             {modeLabel ? ` · ${modeLabel}` : ""}
           </div>
         </div>
