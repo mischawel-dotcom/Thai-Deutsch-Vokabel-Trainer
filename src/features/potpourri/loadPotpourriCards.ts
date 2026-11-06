@@ -1,5 +1,6 @@
 import { db } from "../../db/db";
 import { selectRecentlyLearnedVocabIds } from "../../hooks/quickStartShared";
+import { potpourriQuestionTarget } from "./engine";
 import type { PotpourriCard } from "./types";
 
 function toCard(entry: {
@@ -79,5 +80,12 @@ export async function loadPotpourriCards(limit: number): Promise<PotpourriLoadRe
     };
   }
 
-  return { ok: true, pool, learnedPool, catalogPool, target: pool.length };
+  // Zielpunkte = 2 Abfragen pro Karte
+  return {
+    ok: true,
+    pool,
+    learnedPool,
+    catalogPool,
+    target: potpourriQuestionTarget(pool.length),
+  };
 }

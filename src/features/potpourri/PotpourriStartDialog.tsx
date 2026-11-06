@@ -29,8 +29,8 @@ export function PotpourriStartDialog({
         <DialogHeader>
           <DialogTitle>Vokabel-Potpourri</DialogTitle>
           <DialogDescription>
-            Die zuletzt gelernten Karten – zufällige Richtung/Audio, 4 Antworten, Zähler bis zum
-            Ziel.
+            Die zuletzt gelernten Karten – Text Thai↔Deutsch oder Audio nur Thai→Deutsch, 4
+            Antworten, Zähler bis zum Ziel.
           </DialogDescription>
         </DialogHeader>
 
@@ -68,9 +68,9 @@ export function PotpourriStartDialog({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Richtig: +1 · Falsch: −3 (nicht unter 0). Ziel: Zähler = Kartenanzahl. Falsche Antworten
-            aus gelernten Karten; bei Wochentagen/Zahlwörtern möglichst aus derselben Gruppe. Nach
-            falsch wird die Lösung kurz gezeigt.
+            Jede Karte 2× (einmal Audio Thai, einmal Text – nicht dieselbe Art). Zielpunkte = 2 ×
+            Kartenanzahl. Richtig +1 · Falsch −3 (min. 0). Distraktoren aus gelernten Karten; bei
+            Wochentagen/Zahlwörtern möglichst gleiche Gruppe.
           </p>
         </div>
 

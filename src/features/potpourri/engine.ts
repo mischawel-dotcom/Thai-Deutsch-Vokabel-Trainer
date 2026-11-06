@@ -1,8 +1,14 @@
 import { shuffle } from "../../lib/shuffle";
 import { getPotpourriSemanticGroup } from "./semanticGroups";
-import type { PotpourriCard, PotpourriPromptMode, PotpourriQuestion } from "./types";
+import type {
+  PotpourriCard,
+  PotpourriPromptMode,
+  PotpourriQuestion,
+  PotpourriQueueItem,
+} from "./types";
 
-const MODES: PotpourriPromptMode[] = ["TH_DE", "DE_TH", "AUDIO_TH_DE", "AUDIO_DE_TH"];
+/** Audio nur Thai → Deutsch (kein deutsches Vorlesen). */
+const TEXT_MODES: PotpourriPromptMode[] = ["TH_DE", "DE_TH"];
 
 export function nextPotpourriScore(score: number, isCorrect: boolean): number {
   if (isCorrect) return score + 1;
@@ -11,6 +17,36 @@ export function nextPotpourriScore(score: number, isCorrect: boolean): number {
 
 export function isPotpourriWon(score: number, target: number): boolean {
   return target > 0 && score >= target;
+}
+
+export function isPotpourriAudioMode(mode: PotpourriPromptMode): boolean {
+  return mode.startsWith("AUDIO_");
+}
+
+function randomTextMode(): PotpourriPromptMode {
+  return TEXT_MODES[Math.floor(Math.random() * TEXT_MODES.length)];
+}
+
+/**
+ * Jede Karte genau 2×: einmal Audio (Thai), einmal Text — Reihenfolge gemischt.
+ */
+export function buildPotpourriQueue(pool: PotpourriCard[]): PotpourriQueueItem[] {
+  const items: PotpourriQueueItem[] = [];
+  for (const card of pool) {
+    const audioFirst = Math.random() < 0.5;
+    if (audioFirst) {
+      items.push({ entryId: card.id, mode: "AUDIO_TH_DE" });
+      items.push({ entryId: card.id, mode: randomTextMode() });
+    } else {
+      items.push({ entryId: card.id, mode: randomTextMode() });
+      items.push({ entryId: card.id, mode: "AUDIO_TH_DE" });
+    }
+  }
+  return shuffle(items);
+}
+
+export function potpourriQuestionTarget(poolSize: number): number {
+  return Math.max(0, poolSize) * 2;
 }
 
 function answerForMode(card: PotpourriCard, mode: PotpourriPromptMode): string {
@@ -67,15 +103,14 @@ function uniqueAnswers(
 }
 
 /**
- * Baut eine Multiple-Choice-Frage.
- * Bei Wochentag/Zahlwort: Distraktoren bevorzugt aus derselben Gruppe (gesamter Katalog).
- * Sonst / Auffüllen: aus allen gelernten Karten.
+ * Baut eine Multiple-Choice-Frage für eine feste Karte/Mode.
  */
 export function createPotpourriQuestion(
   pool: PotpourriCard[],
   learnedPool: PotpourriCard[],
   catalogPool: PotpourriCard[] = learnedPool,
-  preferredId?: number
+  preferredId?: number,
+  forcedMode?: PotpourriPromptMode
 ): PotpourriQuestion | null {
   if (pool.length === 0) return null;
 
@@ -85,7 +120,9 @@ export function createPotpourriQuestion(
       : pool[Math.floor(Math.random() * pool.length)];
   if (!base) return null;
 
-  const mode = MODES[Math.floor(Math.random() * MODES.length)];
+  const mode =
+    forcedMode ??
+    (Math.random() < 0.5 ? "AUDIO_TH_DE" : randomTextMode());
   const correctAnswer = answerForMode(base, mode);
   const parts = promptParts(base, mode);
   const group = getPotpourriSemanticGroup(base);
@@ -117,16 +154,26 @@ export function createPotpourriQuestion(
   };
 }
 
-/** Versucht mehrere Male eine gültige Frage zu bauen (Mode/Distraktoren). */
-export function createPotpourriQuestionWithRetry(
+/** Baut die Frage zu einem Queue-Eintrag (mit Fallback auf andere Text-Richtung). */
+export function createQuestionForQueueItem(
+  item: PotpourriQueueItem,
   pool: PotpourriCard[],
   learnedPool: PotpourriCard[],
-  catalogPool: PotpourriCard[] = learnedPool,
-  attempts = 12
+  catalogPool: PotpourriCard[]
 ): PotpourriQuestion | null {
-  for (let i = 0; i < attempts; i += 1) {
-    const question = createPotpourriQuestion(pool, learnedPool, catalogPool);
-    if (question) return question;
+  const primary = createPotpourriQuestion(
+    pool,
+    learnedPool,
+    catalogPool,
+    item.entryId,
+    item.mode
+  );
+  if (primary) return primary;
+
+  if (!isPotpourriAudioMode(item.mode)) {
+    const otherText: PotpourriPromptMode = item.mode === "TH_DE" ? "DE_TH" : "TH_DE";
+    return createPotpourriQuestion(pool, learnedPool, catalogPool, item.entryId, otherText);
   }
-  return null;
+
+  return createPotpourriQuestion(pool, learnedPool, catalogPool, item.entryId, randomTextMode());
 }
