@@ -84,7 +84,7 @@ export function useNumberQuickStart({
         setStatus(
           includeAllLearned
             ? "Keine gelernten Zahlen verfügbar. Lerne zuerst Zahlen auf der Seite 'Lernen'."
-            : "Keine passenden gelernten Zahlen verfügbar (fällig oder <5x richtig). Lerne zuerst Zahlen auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Zahlen'."
+            : "Keine offenen gelernten Zahlen (<5x richtig). Lerne zuerst Zahlen auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Zahlen'."
         );
         return;
       }
@@ -96,7 +96,7 @@ export function useNumberQuickStart({
       });
       const modeLabel = includeAllLearned
         ? "gelernte Zahlen"
-        : "fällige oder noch nicht 5x richtige Zahlen";
+        : "noch nicht 5x richtige Zahlen";
       setStatus(`Zahlentest gestartet: ${cardsToUse.length} ${modeLabel}`);
       setDialogOpen(false);
     },

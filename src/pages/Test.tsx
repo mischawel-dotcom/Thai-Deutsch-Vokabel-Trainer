@@ -108,10 +108,11 @@ export default function Test() {
   const [cardLimit, setCardLimit] = useState<string>("");
   const [includeLearnedInDialog, setIncludeLearnedInDialog] = useState<boolean>(false);
   const [cardLimitAdvanced, setCardLimitAdvanced] = useState<string>("");
-  const [quickStartIncludeAllLearned, setQuickStartIncludeAllLearned] = useState<boolean>(false);
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
   const [recentLearnedDialogOpen, setRecentLearnedDialogOpen] = useState<boolean>(false);
+  const [recentLearnedIncludeAllLearned, setRecentLearnedIncludeAllLearned] =
+    useState<boolean>(false);
   const [recentLearnedLimit, setRecentLearnedLimit] = useState<string>("10");
   const [potpourriDialogOpen, setPotpourriDialogOpen] = useState<boolean>(false);
   const [potpourriLimit, setPotpourriLimit] = useState<string>("20");
@@ -791,7 +792,6 @@ export default function Test() {
     const quickLimit =
       Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
     void quickStartLearnedHook({
-      includeAllLearned: quickStartIncludeAllLearned,
       limit: quickLimit,
     });
     setQuickStartDialogOpen(false);
@@ -801,12 +801,18 @@ export default function Test() {
     setSessionMode("vocab");
     setSessionRequiredStreak(1);
     const parsedLimit = recentLearnedLimit.trim() ? Number.parseInt(recentLearnedLimit, 10) : NaN;
-    const recentLimit =
-      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
-    void quickStartLearnedHook({
-      recentLearned: true,
-      limit: recentLimit,
-    });
+    const parsedOk = Number.isFinite(parsedLimit) && parsedLimit > 0;
+    if (recentLearnedIncludeAllLearned) {
+      void quickStartLearnedHook({
+        includeAllLearned: true,
+        limit: parsedOk ? parsedLimit : undefined,
+      });
+    } else {
+      void quickStartLearnedHook({
+        recentLearned: true,
+        limit: parsedOk ? parsedLimit : 10,
+      });
+    }
     setRecentLearnedDialogOpen(false);
   }
 
@@ -2007,8 +2013,6 @@ export default function Test() {
         onDirectionChange={handleTestDirectionChange}
         showTransliteration={showTransliteration}
         onShowTransliterationChange={setShowTransliteration}
-        includeAllLearned={quickStartIncludeAllLearned}
-        onIncludeAllLearnedChange={setQuickStartIncludeAllLearned}
         limit={quickStartLimit}
         onLimitChange={setQuickStartLimit}
         onStart={startQuickStartSession}
@@ -2021,6 +2025,8 @@ export default function Test() {
         onDirectionChange={handleTestDirectionChange}
         showTransliteration={showTransliteration}
         onShowTransliterationChange={setShowTransliteration}
+        includeAllLearned={recentLearnedIncludeAllLearned}
+        onIncludeAllLearnedChange={setRecentLearnedIncludeAllLearned}
         limit={recentLearnedLimit}
         onLimitChange={setRecentLearnedLimit}
         onStart={startRecentLearnedSession}

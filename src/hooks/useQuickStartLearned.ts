@@ -26,7 +26,7 @@ interface QuickStartLearnedOptions {
 
 /**
  * Hook fuer Quick-Start mit gelernten Karten.
- * Standard: nur faellige gelernte Karten (SRS-orientiert).
+ * Standard: gelernte Karten mit repetitions &lt; 5 (Aufholen auf 5×).
  */
 export function useQuickStartLearned({
   dispatchSession,
@@ -74,7 +74,7 @@ export function useQuickStartLearned({
           setStatus(
             includeAllLearned
               ? "Keine gelernten Karten verfuegbar. Lerne zuerst Karten auf der Seite 'Lernen'."
-              : "Keine passenden gelernten Karten verfuegbar (faellig oder <5x richtig). Lerne zuerst Karten auf der Seite 'Lernen' oder aktiviere optional 'Alle gelernten Karten'."
+              : "Keine offenen gelernten Karten (<5x richtig). Lerne zuerst Karten auf der Seite 'Lernen'."
           );
           return;
         }
@@ -98,7 +98,7 @@ export function useQuickStartLearned({
         ? "zuletzt gelernte Karten"
         : includeAllLearned
           ? "gelernte Karten"
-          : "faellige oder noch nicht 5x richtige Karten";
+          : "noch nicht 5x richtige Karten";
       setStatus(`Session gestartet: ${cardsToUse.length} ${modeLabel}`);
     },
     [dispatchSession, setAllVocab, setStatus]

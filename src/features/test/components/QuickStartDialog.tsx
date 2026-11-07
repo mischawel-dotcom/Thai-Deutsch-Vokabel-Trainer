@@ -16,8 +16,6 @@ type QuickStartDialogProps = {
   onDirectionChange: (direction: LearnDirection) => void;
   showTransliteration: boolean;
   onShowTransliterationChange: (checked: boolean) => void;
-  includeAllLearned: boolean;
-  onIncludeAllLearnedChange: (checked: boolean) => void;
   limit: string;
   onLimitChange: (value: string) => void;
   onStart: () => void;
@@ -30,8 +28,6 @@ export function QuickStartDialog({
   onDirectionChange,
   showTransliteration,
   onShowTransliterationChange,
-  includeAllLearned,
-  onIncludeAllLearnedChange,
   limit,
   onLimitChange,
   onStart,
@@ -41,7 +37,9 @@ export function QuickStartDialog({
       <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Fällige Karten testen</DialogTitle>
-          <DialogDescription>Konfiguriere deinen Schnellstart-Test</DialogDescription>
+          <DialogDescription>
+            Gelernte Karten, die noch nicht 5× richtig beantwortet wurden — bis 5× richtig.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -92,17 +90,6 @@ export function QuickStartDialog({
             Lautschrift anzeigen
           </label>
 
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-primary"
-              checked={includeAllLearned}
-              onChange={(e) => onIncludeAllLearnedChange(e.target.checked)}
-              aria-label="Alle gelernten Karten statt nur fällige Karten testen"
-            />
-            Alle gelernten Karten (statt nur fällige)
-          </label>
-
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="quickStartLimit">
               Kartenlimit (optional)
@@ -122,8 +109,7 @@ export function QuickStartDialog({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Standard zeigt fällige oder noch nicht 5x richtig beantwortete gelernte Karten. Für
-            Voll-Review optional "Alle gelernten Karten" aktivieren.
+            Für 1×-Wiederholung (auch alle gelernten) nutze „Zuletzt gelernt testen“.
           </p>
         </div>
 
@@ -139,4 +125,3 @@ export function QuickStartDialog({
     </Dialog>
   );
 }
-
