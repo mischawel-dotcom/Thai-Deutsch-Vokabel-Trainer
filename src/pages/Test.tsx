@@ -786,7 +786,8 @@ export default function Test() {
 
   function startQuickStartSession() {
     setSessionMode("vocab");
-    setSessionRequiredStreak(5);
+    // „Alle gelernten“ = 1×-Review-Durchgang; „nur fällige“ = Aufholen bis 5× richtig.
+    setSessionRequiredStreak(quickStartIncludeAllLearned ? 1 : 5);
     const parsedLimit = quickStartLimit.trim() ? Number.parseInt(quickStartLimit, 10) : NaN;
     const quickLimit =
       Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;

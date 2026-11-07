@@ -211,8 +211,9 @@ export function QuickStartDialog({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Standard zeigt fällige oder noch nicht 5x richtig beantwortete gelernte Karten. Für
-            Voll-Review optional "Alle gelernten Karten" aktivieren.
+            Ohne Haken: nur fällige / noch nicht 5× richtige Karten, Session bis 5× richtig. Mit
+            „Alle gelernten“: ein Durchgang (1× pro Karte) zur regelmäßigen Wiederholung — falsche
+            Karten holst du danach ohne Haken auf 5× nach.
           </p>
         </div>
 
