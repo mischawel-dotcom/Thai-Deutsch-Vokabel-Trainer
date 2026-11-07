@@ -1,4 +1,10 @@
+import { useEffect, useState } from "react";
 import type { LearnDirection } from "../../../lib/sessionTypes";
+import { db } from "../../../db/db";
+import {
+  analyzeDueOrUnfinishedLearned,
+  type DueFilterBreakdown,
+} from "../../../hooks/quickStartShared";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +29,12 @@ type QuickStartDialogProps = {
   onStart: () => void;
 };
 
+function formatMedian(value: number | null, suffix: string): string {
+  if (value === null) return "–";
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded}${suffix}`;
+}
+
 export function QuickStartDialog({
   open,
   onOpenChange,
@@ -36,6 +48,39 @@ export function QuickStartDialog({
   onLimitChange,
   onStart,
 }: QuickStartDialogProps) {
+  const [breakdown, setBreakdown] = useState<DueFilterBreakdown | null>(null);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setBreakdown(null);
+      return;
+    }
+
+    let cancelled = false;
+    setBreakdownLoading(true);
+
+    void (async () => {
+      try {
+        const vocab = await db.vocab.toArray();
+        const learnedIds = vocab
+          .filter((entry) => entry.viewed === true && typeof entry.id === "number")
+          .map((entry) => entry.id as number);
+        const next = await analyzeDueOrUnfinishedLearned(learnedIds, "progress");
+        if (!cancelled) setBreakdown(next);
+      } catch (error) {
+        console.warn("[SRS-Diagnose] Aufschlüsselung fehlgeschlagen", error);
+        if (!cancelled) setBreakdown(null);
+      } finally {
+        if (!cancelled) setBreakdownLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
@@ -121,6 +166,48 @@ export function QuickStartDialog({
             />
           </div>
 
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-1.5">
+            <p className="font-medium text-foreground">Diagnose (aktueller Stand)</p>
+            {breakdownLoading ? (
+              <p>Zähle Karten…</p>
+            ) : breakdown ? (
+              <>
+                <p>
+                  Gelernt: {breakdown.learnedCount} · in Auswahl:{" "}
+                  <span className="text-foreground font-medium">{breakdown.eligibleCount}</span>
+                </p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li>
+                    SRS-fällig (≥5×):{" "}
+                    <span className="text-foreground font-medium">{breakdown.dueMastered}</span>
+                  </li>
+                  <li>
+                    noch &lt;5× (nicht fällig):{" "}
+                    <span className="text-foreground font-medium">{breakdown.unfinishedNotDue}</span>
+                  </li>
+                  <li>
+                    &lt;5× und fällig:{" "}
+                    <span className="text-foreground font-medium">{breakdown.unfinishedAndDue}</span>
+                  </li>
+                </ul>
+                <p>
+                  Wiederholungen: 0× {breakdown.repsZero} · 1–4× {breakdown.repsOneToFour} · ≥5×{" "}
+                  {breakdown.repsFivePlus}
+                </p>
+                <p>
+                  nie bewertet: {breakdown.neverReviewed} · zuletzt falsch:{" "}
+                  {breakdown.lastGradeWrong}
+                </p>
+                <p>
+                  Median Intervall: {formatMedian(breakdown.medianIntervalDays, " Tage")} · Median
+                  überfällig: {formatMedian(breakdown.medianDaysOverdue, " Tage")}
+                </p>
+              </>
+            ) : (
+              <p>Diagnose nicht verfügbar.</p>
+            )}
+          </div>
+
           <p className="text-xs text-muted-foreground">
             Standard zeigt fällige oder noch nicht 5x richtig beantwortete gelernte Karten. Für
             Voll-Review optional "Alle gelernten Karten" aktivieren.
@@ -139,4 +226,3 @@ export function QuickStartDialog({
     </Dialog>
   );
 }
-
