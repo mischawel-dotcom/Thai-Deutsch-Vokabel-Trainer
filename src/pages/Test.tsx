@@ -29,7 +29,10 @@ import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { QuickStartDialog } from "../features/test/components/QuickStartDialog";
-import { RecentLearnedQuickStartDialog } from "../features/test/components/RecentLearnedQuickStartDialog";
+import {
+  ALL_LEARNED_LIMIT,
+  RecentLearnedQuickStartDialog,
+} from "../features/test/components/RecentLearnedQuickStartDialog";
 import {
   loadPotpourriCards,
   PotpourriSessionView,
@@ -111,11 +114,9 @@ export default function Test() {
   const [quickStartLimit, setQuickStartLimit] = useState<string>("");
   const [quickStartDialogOpen, setQuickStartDialogOpen] = useState<boolean>(false);
   const [recentLearnedDialogOpen, setRecentLearnedDialogOpen] = useState<boolean>(false);
-  const [recentLearnedIncludeAllLearned, setRecentLearnedIncludeAllLearned] =
-    useState<boolean>(false);
   const [recentLearnedLimit, setRecentLearnedLimit] = useState<string>("10");
   const [potpourriDialogOpen, setPotpourriDialogOpen] = useState<boolean>(false);
-  const [potpourriLimit, setPotpourriLimit] = useState<string>("20");
+  const [potpourriLimit, setPotpourriLimit] = useState<string>("");
   const [potpourriSession, setPotpourriSession] = useState<{
     pool: PotpourriCard[];
     learnedPool: PotpourriCard[];
@@ -800,17 +801,17 @@ export default function Test() {
   function startRecentLearnedSession() {
     setSessionMode("vocab");
     setSessionRequiredStreak(1);
-    const parsedLimit = recentLearnedLimit.trim() ? Number.parseInt(recentLearnedLimit, 10) : NaN;
-    const parsedOk = Number.isFinite(parsedLimit) && parsedLimit > 0;
-    if (recentLearnedIncludeAllLearned) {
+    if (recentLearnedLimit === ALL_LEARNED_LIMIT) {
       void quickStartLearnedHook({
         includeAllLearned: true,
-        limit: parsedOk ? parsedLimit : undefined,
       });
     } else {
+      const parsedLimit = recentLearnedLimit.trim() ? Number.parseInt(recentLearnedLimit, 10) : NaN;
+      const recentLimit =
+        Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
       void quickStartLearnedHook({
         recentLearned: true,
-        limit: parsedOk ? parsedLimit : 10,
+        limit: recentLimit,
       });
     }
     setRecentLearnedDialogOpen(false);
@@ -2025,8 +2026,6 @@ export default function Test() {
         onDirectionChange={handleTestDirectionChange}
         showTransliteration={showTransliteration}
         onShowTransliterationChange={setShowTransliteration}
-        includeAllLearned={recentLearnedIncludeAllLearned}
-        onIncludeAllLearnedChange={setRecentLearnedIncludeAllLearned}
         limit={recentLearnedLimit}
         onLimitChange={setRecentLearnedLimit}
         onStart={startRecentLearnedSession}

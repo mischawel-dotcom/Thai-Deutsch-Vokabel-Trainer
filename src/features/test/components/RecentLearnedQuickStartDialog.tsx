@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const ALL_LEARNED_LIMIT = "all";
+
 type RecentLearnedQuickStartDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -16,8 +18,6 @@ type RecentLearnedQuickStartDialogProps = {
   onDirectionChange: (direction: LearnDirection) => void;
   showTransliteration: boolean;
   onShowTransliterationChange: (checked: boolean) => void;
-  includeAllLearned: boolean;
-  onIncludeAllLearnedChange: (checked: boolean) => void;
   limit: string;
   onLimitChange: (value: string) => void;
   onStart: () => void;
@@ -30,19 +30,19 @@ export function RecentLearnedQuickStartDialog({
   onDirectionChange,
   showTransliteration,
   onShowTransliterationChange,
-  includeAllLearned,
-  onIncludeAllLearnedChange,
   limit,
   onLimitChange,
   onStart,
 }: RecentLearnedQuickStartDialogProps) {
+  const allSelected = limit === ALL_LEARNED_LIMIT;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Zuletzt gelernt testen</DialogTitle>
           <DialogDescription>
-            1×-Wiederholung: zuletzt markierte Karten oder optional alle gelernten.
+            1×-Wiederholung: zuletzt markierte Karten oder alle gelernten.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,72 +94,52 @@ export function RecentLearnedQuickStartDialog({
             Lautschrift anzeigen
           </label>
 
-          <label className="inline-flex items-center gap-2 text-sm">
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="recentLearnedLimit">
+              Anzahl Karten
+            </label>
             <input
-              type="checkbox"
-              className="h-4 w-4 accent-primary"
-              checked={includeAllLearned}
-              onChange={(e) => onIncludeAllLearnedChange(e.target.checked)}
-              aria-label="Alle gelernten Karten statt nur zuletzt gelernte testen"
+              id="recentLearnedLimit"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={200}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              placeholder="z.B. 10"
+              value={allSelected ? "" : limit}
+              onChange={(e) => onLimitChange(e.target.value)}
+              aria-label="Anzahl der zuletzt gelernten Karten"
             />
-            Alle gelernten Karten
-          </label>
-
-          {!includeAllLearned ? (
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="recentLearnedLimit">
-                Anzahl Karten
-              </label>
-              <input
-                id="recentLearnedLimit"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={200}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                placeholder="z.B. 10"
-                value={limit}
-                onChange={(e) => onLimitChange(e.target.value)}
-                aria-label="Anzahl der zuletzt gelernten Karten"
-              />
-              <div className="flex flex-wrap gap-2">
-                {[5, 10, 15, 20].map((preset) => (
-                  <Button
-                    key={preset}
-                    type="button"
-                    size="sm"
-                    variant={limit === String(preset) ? "default" : "outline"}
-                    className="h-9"
-                    onClick={() => onLimitChange(String(preset))}
-                  >
-                    {preset}
-                  </Button>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              {[5, 10, 15, 20].map((preset) => (
+                <Button
+                  key={preset}
+                  type="button"
+                  size="sm"
+                  variant={limit === String(preset) ? "default" : "outline"}
+                  className="h-9"
+                  onClick={() => onLimitChange(String(preset))}
+                >
+                  {preset}
+                </Button>
+              ))}
+              <Button
+                type="button"
+                size="sm"
+                variant={allSelected ? "default" : "outline"}
+                className="h-9"
+                onClick={() => onLimitChange(ALL_LEARNED_LIMIT)}
+                aria-pressed={allSelected}
+                aria-label="Alle gelernten Karten"
+              >
+                Alle
+              </Button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="allLearnedLimit">
-                Kartenlimit (optional)
-              </label>
-              <input
-                id="allLearnedLimit"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={500}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                placeholder="leer = alle"
-                value={limit}
-                onChange={(e) => onLimitChange(e.target.value)}
-                aria-label="Optionales Limit für alle gelernten Karten"
-              />
-            </div>
-          )}
+          </div>
 
           <p className="text-xs text-muted-foreground">
-            Ohne Haken: zuletzt unter Lernen als gelernt markiert. Mit Haken: alle gelernten
-            Karten. In beiden Fällen reicht <strong>1× richtig</strong> pro Karte.
+            Zahl / 5–20: zuletzt unter Lernen markiert. „Alle“: alle gelernten Karten. In beiden
+            Fällen reicht <strong>1× richtig</strong> pro Karte.
           </p>
         </div>
 
@@ -175,3 +155,5 @@ export function RecentLearnedQuickStartDialog({
     </Dialog>
   );
 }
+
+export { ALL_LEARNED_LIMIT };
