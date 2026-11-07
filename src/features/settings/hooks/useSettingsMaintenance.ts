@@ -103,13 +103,10 @@ export function useSettingsMaintenance({
           const currentRows = await db.progress.bulkGet(ids);
           const patchedRows = ids.map((entryId, idx) => {
             const row = currentRows[idx];
-            const prevInterval =
-              typeof row?.intervalDays === "number" ? row.intervalDays : 0;
             return {
               entryId,
               ease: row?.ease ?? 2.5,
-              // Nie 0/1 als „bestanden“-Intervall übernehmen — sonst SRS-Alltagsschleife.
-              intervalDays: Math.max(prevInterval, 7),
+              intervalDays: row?.intervalDays ?? 1,
               repetitions: 5,
               lastReviewed: now,
               lastGrade: 2 as const,

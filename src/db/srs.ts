@@ -45,17 +45,11 @@ export function nextProgress(prev: SrsProgress | undefined, grade: Grade): SrsPr
   if (grade === 1) ease = clamp(ease - 0.05, 1.3, 3.0);
   if (grade === 3) ease = clamp(ease + 0.05, 1.3, 3.0);
 
-  if (repetitions === 1) {
-    intervalDays = 1;
-  } else if (repetitions === 2) {
-    intervalDays = grade === 3 ? 4 : 3;
-  } else {
-    // Bei niedrigem Ease blieb intervalDays sonst oft bei 1 stecken:
-    // Math.round(1 * 1.3) === 1 → Karten jeden Tag erneut „fällig“.
+  if (repetitions === 1) intervalDays = 1;
+  else if (repetitions === 2) intervalDays = grade === 3 ? 4 : 3;
+  else {
     const mult = grade === 1 ? 1.2 : grade === 2 ? ease : ease * 1.3;
-    const prevInterval = Math.max(1, intervalDays);
-    const grown = Math.round(prevInterval * mult);
-    intervalDays = Math.max(prevInterval + 1, grown);
+    intervalDays = Math.max(1, Math.round(intervalDays * mult));
   }
 
   return { ...p, ease, repetitions, intervalDays, dueAt: now + intervalDays * DAY, lastGrade: grade, updatedAt: now };
