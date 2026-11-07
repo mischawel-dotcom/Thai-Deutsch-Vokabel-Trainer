@@ -519,7 +519,7 @@ export default function Settings({ darkMode, onThemeChange }: SettingsPageProps)
                 <li><strong>Lernrichtung:</strong> Startwert aus Einstellungen; in den Test-Dialogen (Vokabeln, Zahlen, Sätze) und bei erweiterten Filtern anpassbar und wird mitgespeichert</li>
                 <li><strong>Satztest (💬):</strong> Richtung Thai→Deutsch oder Deutsch→Thai im Dialog „Sätze testen“ wählbar</li>
                 <li><strong>Fällige Karten testen:</strong> gelernte Karten mit noch nicht 5× richtig (Aufholen)</li>
-                <li><strong>Zuletzt gelernt:</strong> 1×-Wiederholung der letzten Markierungen, optional alle gelernten</li>
+                <li><strong>Zuletzt gelernt:</strong> 1×-Wiederholung (5/10/15/20 oder alle gelernten)</li>
                 <li><strong>Lektions-Tests:</strong> Direktstart pro Lektion mit optionalem Kartenlimit (DB/SRS-basiert)</li>
                 <li><strong>Zahlentest (🔢):</strong> Wahl zwischen SRS-Mode (DB-Zahlen) und Generator-Mode (von-bis Bereich)</li>
                 <li><strong>Bewertung:</strong> Karte umdrehen, dann Falsch/Richtig tippen (5x richtig = Karte erledigt)</li>

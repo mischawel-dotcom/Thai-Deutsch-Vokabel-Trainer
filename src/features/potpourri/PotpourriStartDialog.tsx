@@ -25,7 +25,10 @@ export function PotpourriStartDialog({
 }: PotpourriStartDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm max-h-[85dvh] overflow-y-auto">
+      <DialogContent
+        className="max-w-sm max-h-[85dvh] overflow-y-auto"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Vokabel-Potpourri</DialogTitle>
           <DialogDescription>
