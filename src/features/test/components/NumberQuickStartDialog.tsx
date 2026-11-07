@@ -194,7 +194,7 @@ export function NumberQuickStartDialog({
           <p className="text-xs text-muted-foreground">
             {generatorMode
               ? "Von-bis-Test ignoriert SRS-Faelligkeit und erstellt einen dynamischen Zahlenpool."
-                : "Standard zeigt fällige oder noch nicht 5x richtig beantwortete gelernte Zahlen. Für Voll-Review optional \"Alle gelernten Zahlen\" aktivieren."}
+                : "Standard zeigt gelernte Zahlen mit noch nicht 5× richtig. Für Voll-Review optional \"Alle gelernten Zahlen\" aktivieren."}
           </p>
         </div>
 

@@ -11,6 +11,10 @@ export function normalizeOptionalLimit(limit: number | undefined): number | unde
   return Math.floor(limit);
 }
 
+/**
+ * Noch nicht „fertig getestet“: repetitions &lt; 5.
+ * (Kein SRS-dueAt – der Quick-Start „Fällige Karten“ ist zum Aufholen auf 5× gedacht.)
+ */
 export async function filterDueOrUnfinishedLearnedIds(
   learnedIds: number[],
   progressTable: ProgressTableName
@@ -21,9 +25,8 @@ export async function filterDueOrUnfinishedLearnedIds(
       .filter((row) => {
         const entryId = row.entryId;
         if (typeof entryId !== "number") return false;
-        const dueAt = typeof row.dueAt === "number" ? row.dueAt : Number.POSITIVE_INFINITY;
         const repetitions = typeof row.repetitions === "number" ? row.repetitions : 0;
-        return dueAt <= Date.now() || repetitions < 5;
+        return repetitions < 5;
       })
       .map((row) => row.entryId)
       .filter((id): id is number => typeof id === "number")
