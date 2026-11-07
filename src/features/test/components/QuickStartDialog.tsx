@@ -196,11 +196,13 @@ export function QuickStartDialog({
                 </p>
                 <p>
                   nie bewertet: {breakdown.neverReviewed} · zuletzt falsch:{" "}
-                  {breakdown.lastGradeWrong}
+                  {breakdown.lastGradeWrong} · Intervall≤1 bei ≥5×:{" "}
+                  {breakdown.stuckDailyInterval}
                 </p>
                 <p>
                   Median Intervall: {formatMedian(breakdown.medianIntervalDays, " Tage")} · Median
-                  überfällig: {formatMedian(breakdown.medianDaysOverdue, " Tage")}
+                  Ease: {formatMedian(breakdown.medianEase, "")} · Median überfällig:{" "}
+                  {formatMedian(breakdown.medianDaysOverdue, " Tage")}
                 </p>
               </>
             ) : (

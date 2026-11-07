@@ -48,8 +48,12 @@ export type DueFilterBreakdown = {
   lastGradeWrong: number;
   /** Median intervalDays der Auswahlkarten (oder null) */
   medianIntervalDays: number | null;
+  /** Median ease der Auswahlkarten (oder null) */
+  medianEase: number | null;
   /** Median Überfälligkeit in Tagen (nur dueAt <= now), oder null */
   medianDaysOverdue: number | null;
+  /** Auswahlkarten mit repetitions >= 5 und intervalDays <= 1 (SRS-Feststecken) */
+  stuckDailyInterval: number;
   repsZero: number;
   repsOneToFour: number;
   repsFivePlus: number;
@@ -82,15 +86,18 @@ export async function analyzeDueOrUnfinishedLearned(
   let unfinishedAndDue = 0;
   let neverReviewed = 0;
   let lastGradeWrong = 0;
+  let stuckDailyInterval = 0;
   let repsZero = 0;
   let repsOneToFour = 0;
   let repsFivePlus = 0;
   const intervalSamples: number[] = [];
+  const easeSamples: number[] = [];
   const overdueDaySamples: number[] = [];
   const sampleRows: Array<{
     entryId: number;
     repetitions: number;
     intervalDays: number;
+    ease: number;
     daysOverdue: number;
     lastGrade: number | null;
     hasReviewed: boolean;
@@ -103,6 +110,7 @@ export async function analyzeDueOrUnfinishedLearned(
     const dueAt = typeof row.dueAt === "number" ? row.dueAt : Number.POSITIVE_INFINITY;
     const repetitions = typeof row.repetitions === "number" ? row.repetitions : 0;
     const intervalDays = typeof row.intervalDays === "number" ? row.intervalDays : 0;
+    const ease = typeof row.ease === "number" ? row.ease : 2.5;
     const isDue = dueAt <= now;
     const unfinished = repetitions < 5;
     if (!isDue && !unfinished) continue;
@@ -115,11 +123,14 @@ export async function analyzeDueOrUnfinishedLearned(
     else if (repetitions < 5) repsOneToFour += 1;
     else repsFivePlus += 1;
 
+    if (repetitions >= 5 && intervalDays <= 1) stuckDailyInterval += 1;
+
     const hasReviewed = typeof row.lastReviewed === "number" && row.lastReviewed > 0;
     if (!hasReviewed) neverReviewed += 1;
     if (row.lastGrade === 0) lastGradeWrong += 1;
 
     intervalSamples.push(intervalDays);
+    easeSamples.push(ease);
     const daysOverdue = isDue ? Math.max(0, (now - dueAt) / DAY_MS) : 0;
     if (isDue) overdueDaySamples.push(daysOverdue);
 
@@ -127,6 +138,7 @@ export async function analyzeDueOrUnfinishedLearned(
       entryId,
       repetitions,
       intervalDays,
+      ease,
       daysOverdue,
       lastGrade: typeof row.lastGrade === "number" ? row.lastGrade : null,
       hasReviewed,
@@ -143,7 +155,9 @@ export async function analyzeDueOrUnfinishedLearned(
     neverReviewed,
     lastGradeWrong,
     medianIntervalDays: medianOf(intervalSamples),
+    medianEase: medianOf(easeSamples),
     medianDaysOverdue: medianOf(overdueDaySamples),
+    stuckDailyInterval,
     repsZero,
     repsOneToFour,
     repsFivePlus,
