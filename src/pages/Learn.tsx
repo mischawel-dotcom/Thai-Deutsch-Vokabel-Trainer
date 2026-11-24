@@ -32,6 +32,11 @@ import { LowClassConsonantsSection } from "../features/thai-script/LowClassConso
 import { MidClassConsonantsSection } from "../features/thai-script/MidClassConsonantsSection";
 import { VowelPhase1Section } from "../features/thai-script/VowelPhase1Section";
 import { VowelPhase2Section } from "../features/thai-script/VowelPhase2Section";
+import { VowelCatalogSection } from "../features/thai-script/VowelCatalogSection";
+import { ConsonantCatalogSection } from "../features/thai-script/ConsonantCatalogSection";
+import { ReadingPracticeSection } from "../features/thai-script/ReadingPracticeSection";
+import { ToneRulesExplainSection } from "../features/thai-script/ToneRulesExplainSection";
+import { ToneRulesQuizSection } from "../features/thai-script/ToneRulesQuizSection";
 import type { Route } from "../features/home/types";
 
 // Session-State für Learn
@@ -139,7 +144,17 @@ export default function Learn({ onNavigate }: LearnProps) {
   >("hub");
   /** Thai Schrift: Übersicht → Mittelklasse (wie Vokabeln → Lektionen) */
   const [thaiScriptStep, setThaiScriptStep] = useState<
-    "overview" | "midClass" | "highClass" | "lowClass" | "vowels1" | "vowels2"
+    | "overview"
+    | "midClass"
+    | "highClass"
+    | "lowClass"
+    | "consonantCatalog"
+    | "vowelCatalog"
+    | "vowels1"
+    | "vowels2"
+    | "readingPractice"
+    | "toneExplain"
+    | "toneQuiz"
   >("overview");
 
   /** Vollbild-Lernmodus: Vokabel-/Zahlen-Session oder Thai Mittelklasse-Karten */
@@ -1060,8 +1075,13 @@ export default function Learn({ onNavigate }: LearnProps) {
                   onOpenMidClass={() => setThaiScriptStep("midClass")}
                   onOpenHighClass={() => setThaiScriptStep("highClass")}
                   onOpenLowClass={() => setThaiScriptStep("lowClass")}
+                  onOpenConsonantCatalog={() => setThaiScriptStep("consonantCatalog")}
+                  onOpenVowelCatalog={() => setThaiScriptStep("vowelCatalog")}
                   onOpenVowelsPhase1={() => setThaiScriptStep("vowels1")}
                   onOpenVowelsPhase2={() => setThaiScriptStep("vowels2")}
+                  onOpenReadingPractice={() => setThaiScriptStep("readingPractice")}
+                  onOpenToneExplain={() => setThaiScriptStep("toneExplain")}
+                  onOpenToneQuiz={() => setThaiScriptStep("toneQuiz")}
                 />
               ) : null}
             </>
@@ -1092,6 +1112,18 @@ export default function Learn({ onNavigate }: LearnProps) {
           onExitFullscreen={() => setThaiScriptStep("overview")}
         />
       ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "consonantCatalog" ? (
+        <ConsonantCatalogSection
+          key="thai-consonant-catalog"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "vowelCatalog" ? (
+        <VowelCatalogSection
+          key="thai-vowel-catalog"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
       {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "vowels1" ? (
         <VowelPhase1Section
           key="thai-vowels-1"
@@ -1101,6 +1133,24 @@ export default function Learn({ onNavigate }: LearnProps) {
       {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "vowels2" ? (
         <VowelPhase2Section
           key="thai-vowels-2"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "readingPractice" ? (
+        <ReadingPracticeSection
+          key="thai-reading-practice"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "toneExplain" ? (
+        <ToneRulesExplainSection
+          key="thai-tone-explain"
+          onExitFullscreen={() => setThaiScriptStep("overview")}
+        />
+      ) : null}
+      {!sessionState.sessionActive && learnEntryView === "thaiScript" && thaiScriptStep === "toneQuiz" ? (
+        <ToneRulesQuizSection
+          key="thai-tone-quiz"
           onExitFullscreen={() => setThaiScriptStep("overview")}
         />
       ) : null}
