@@ -1,4 +1,4 @@
-const SW_VERSION = "2026-02-26-1";
+const SW_VERSION = "2026-11-24-1";
 
 self.addEventListener("install", (event) => {
   // Immediately activate new worker so stale caches can be cleared quickly.
